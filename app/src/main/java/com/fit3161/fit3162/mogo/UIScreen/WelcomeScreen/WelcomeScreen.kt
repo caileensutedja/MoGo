@@ -1,4 +1,4 @@
-package com.fit3161.fit3162.mogo
+package com.fit3161.fit3162.mogo.UIScreen.WelcomeScreen
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -33,6 +33,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fit3161.fit3162.mogo.R
 import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
 
 

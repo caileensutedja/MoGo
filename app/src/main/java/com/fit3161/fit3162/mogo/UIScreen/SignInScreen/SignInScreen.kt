@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -100,6 +101,17 @@ fun SignInScreen(modifier: Modifier = Modifier) {
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
+        // Implement this!!!
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            Text(
+                text = "Forgot Password? Re-register with the same email!",
+                fontSize = 12.sp
+                // Add navigation to Register screen here!
+            )
+        }
         // Confirm Login here!
 
 

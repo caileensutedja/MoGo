@@ -13,7 +13,7 @@
         android:theme="@style/Theme.MoGo"
         tools:targetApi="31">
         <activity
-            android:name=".UIScreen.LogInScreen.LogInScreen"
+            android:name=".UIScreen.SignInScreen.SignInScreen"
             android:exported="false"
             android:label="@string/title_activity_log_in_screen"
             android:theme="@style/Theme.MoGo" />

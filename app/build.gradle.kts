@@ -66,4 +66,12 @@ dependencies {
     implementation(platform("io.github.jan-tennert.supabase:bom:3.4.1"))
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.ktor:ktor-client-android:3.4.1")
+
+    // KTX dependencies for coroutines (for LifecycleScope, ViewModelScope, liveData).
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.10.0")
+
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
+
 }

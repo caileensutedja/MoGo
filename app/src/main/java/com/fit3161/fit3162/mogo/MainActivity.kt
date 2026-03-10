@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +29,7 @@ import androidx.core.view.WindowCompat.enableEdgeToEdge
 import androidx.lifecycle.compose.rememberLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
+import com.fit3161.fit3162.mogo.viewModels.UserViewModel
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
@@ -67,14 +69,16 @@ data class User(
 
 class MainActivity : ComponentActivity() {
 
+    private val viewModel: UserViewModel by viewModels()
+
     private fun addUser() {
         lifecycleScope.launch(Dispatchers.IO) {
             val newUser = User(firstname = "Jack", surname = "Johnson")
             supabase.from("users").insert(newUser)
 
-            withContext(Dispatchers.IO) {
-                Toast.makeText(this@MainActivity, "New user registered!", Toast.LENGTH_SHORT).show()
-            }
+//            withContext(Dispatchers.IO) {
+//                Toast.makeText(this@MainActivity, "New user registered!", Toast.LENGTH_SHORT).show()
+//            }
         }
     }
 
@@ -82,22 +86,22 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             val users = supabase.from("users").select().decodeList<User>()
 
-            withContext(Dispatchers.IO) {
-                users.forEach { println("$it.firstname $it.surname") }
-            }
+//            withContext(Dispatchers.IO) {
+//                users.forEach { println("${it.firstname} ${it.surname}") }
+//            }
         }
     }
 
-    private fun updateUsers(id: Int, newFirstName: String) {
+    private fun updateUser(id: Int, newFirstName: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             supabase.from("users")
                 .update({ set("firstname", newFirstName) }) {
                     filter { eq("id", id) }
                 }
 
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@MainActivity, "User updated!", Toast.LENGTH_SHORT).show()
-            }
+//            withContext(Dispatchers.Main) {
+//                Toast.makeText(this@MainActivity, "User updated!", Toast.LENGTH_SHORT).show()
+//            }
         }
     }
 
@@ -106,14 +110,27 @@ class MainActivity : ComponentActivity() {
             supabase.from("users")
                 .delete { filter { eq("id", id) } }
 
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@MainActivity, "User deleted!", Toast.LENGTH_SHORT).show()
-            }
+//            withContext(Dispatchers.Main) {
+//                Toast.makeText(this@MainActivity, "User deleted!", Toast.LENGTH_SHORT).show()
+//            }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // TODO: THIS IS TEMPORARY
+        // SAMPLE CRUD OPERATIONS
+        viewModel.users.observe(this) {
+            users -> users.forEach { println("${it.firstname} ${it.surname}") }
+        }
+
+        viewModel.loadUsers()
+
+        addUser()
+        updateUser(1, "Hanks")
+        deleteUser(1)
+
         enableEdgeToEdge()
         setContent {
             MoGoTheme {

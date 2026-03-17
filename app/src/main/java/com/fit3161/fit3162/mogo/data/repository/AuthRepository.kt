@@ -4,12 +4,14 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 
+import com.fit3161.fit3162.mogo.MogoApplication
+
 /**
  * Repository responsible for all authentication operations with Supabase.
  *
  * - Centralises Supabase calls (single source of truth for data domain).
  *
- * @param supabase The shared [SupabaseClient] instance in [com.fit3161.fit3162.mogo.MogoApplication] class.
+ * @param supabase The shared [SupabaseClient] instance in [MogoApplication] class.
  */
 class AuthRepository(private val supabase: SupabaseClient) {
 

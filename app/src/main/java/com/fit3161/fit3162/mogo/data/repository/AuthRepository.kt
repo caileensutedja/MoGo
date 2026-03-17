@@ -15,6 +15,22 @@ import com.fit3161.fit3162.mogo.MogoApplication
  */
 class AuthRepository(private val supabase: SupabaseClient) {
 
+    /**
+     * Attempts to sign in an existing user with their email and password.
+     *
+     * Uses [Email] provider with [signInWith] — the v3 SDK equivalent of
+     * the v2 signInWithPassword function. Both email and password are passed
+     * inside the config block.
+     *
+     * NOTE ON DOMAIN RESTRICTION:
+     * The ViewModel performs a client-side domain check before calling this.
+     * The Supabase SQL trigger performs a server-side check on the database.
+     * This function itself does not validate the domain — it trusts the caller.
+     *
+     * @param email    The user's university email address.
+     * @param password The user's password.
+     * @return [Result.success] if login succeeded, else [Result.failure]
+     */
     suspend fun login(email: String, password: String): Result<Unit> {
         return try {
             supabase.auth.signInWith(Email) {
@@ -28,7 +44,22 @@ class AuthRepository(private val supabase: SupabaseClient) {
     }
 
     /**
-     * Registers user.
+     * Registers a new user with their email and password.
+     *
+     * After a successful call, Supabase sends a verification email to the
+     * provided address. The account remains INACTIVE until the user clicks
+     * the link in that email. Attempting to log in before confirming will
+     * return an "Email not confirmed" error.
+     *
+     * NOTE ON ORG RESTRICTION:
+     * The Supabase SQL trigger (set up in the dashboard) will reject any
+     * registration attempt from a non-university email at the database level,
+     * returning an exception that is mapped to a friendly message here.
+     *
+     * @param email    The user's university email address.
+     * @param password The password the user wants to set for their account.
+     * @return [Result.success] if the registration request was accepted and
+     *         the verification email was sent, else [Result.failure].
      */
     suspend fun register(email: String, password: String): Result<Unit> {
         return try {
@@ -43,7 +74,14 @@ class AuthRepository(private val supabase: SupabaseClient) {
     }
 
     /***
-     * Attempt to restore the current session.
+     * Attempts to restore a previously authenticated session.
+     *
+     * Supabase persists the auth session token on the device. This function
+     * checks whether a valid, non-expired session exists, and refreshes it
+     * if possible. Call this on app launch (e.g. in MainActivity or a
+     * SplashScreen) to skip the login screen for already-authenticated users.
+     *
+     * @return true if a valid session was found and restored, false otherwise.
      */
     suspend fun restoreSession(): Boolean {
         return try {
@@ -55,14 +93,33 @@ class AuthRepository(private val supabase: SupabaseClient) {
     }
 
     /**
-     * Logout of the account.
+     * Signs the current user out and clears their local session.
+     *
+     * After calling this, [restoreSession] will return false and any
+     * authenticated Supabase requests will be rejected until the user
+     * logs in again.
      */
     suspend fun logout() {
         supabase.auth.signOut()
     }
 
-//    ----- PRIVATE FUNCTIONS BELOW -----
+//    ----- PRIVATE/HELPER FUNCTIONS BELOW -----
 
+    /**
+     * Maps raw Supabase exception messages to user-friendly strings.
+     *
+     * Supabase throws exceptions with technical or inconsistently worded
+     * messages. This function intercepts those and replaces them with
+     * clear, actionable messages suitable for display in the UI.
+     *
+     * WHY NOT LET THE UI HANDLE THIS:
+     * The UI (Composables) should not contain business logic or knowledge
+     * of Supabase internals. Keeping error mapping here means the ViewModel
+     * and UI only ever see plain readable strings.
+     *
+     * @param e The raw exception thrown by the Supabase SDK.
+     * @return A new [Exception] with a user-friendly message.
+     */
     private fun mapError(e: Exception) : Exception {
         val msg = when {
             e.message?.contains("Invalid login credentials") == true -> "Incorrect email or password."

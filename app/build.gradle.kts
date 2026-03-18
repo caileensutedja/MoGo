@@ -84,6 +84,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.compose.material3)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -92,19 +95,23 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    // Material Icons
+    implementation("androidx.compose.material:material-icons-extended-android:1.7.8")
+
     // Supabase
     implementation(platform("io.github.jan-tennert.supabase:bom:3.4.1"))
     implementation("io.github.jan-tennert.supabase:postgrest-kt") // PostgresSQL DB
     implementation("io.github.jan-tennert.supabase:auth-kt") // DB authentication
     implementation("io.github.jan-tennert.supabase:realtime-kt") // Realtime DB
     implementation("io.ktor:ktor-client-android:3.4.1") // Ktor engine (required for Supabase Kotlin SDK)
+//    implementation("io.ktor:ktor-client-okhttp:3.4.1")
 
 
     // KTX dependencies for coroutines (for LifecycleScope, ViewModelScope, liveData).
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
-    // Lifecycle & ViewMdel
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0")
+    // Lifecycle & ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.10.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0") // for kotlin coroutine??
 

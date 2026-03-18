@@ -6,6 +6,10 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
 
 class MogoApplication : Application() {
 
@@ -14,13 +18,22 @@ class MogoApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        supabase = createSupabaseClient(
-            supabaseUrl = BuildConfig.SUPABASE_URL,
-            supabaseKey = BuildConfig.SUPABASE_ANON_KEY
-        ) {
-            install(Auth)
-            install(Postgrest)
-            install(Realtime)
+        CoroutineScope(Dispatchers.IO).launch {
+            supabase = createSupabaseClient(
+                supabaseUrl = BuildConfig.SUPABASE_URL,
+                supabaseKey = BuildConfig.SUPABASE_ANON_KEY
+            ) {
+                install(Auth) {
+//                    scheme = "mogo"
+//                    host = "login-callback"
+                }
+                install(Postgrest)
+                install(Realtime)
+
+                // OkHttp engine is more stable than ktor-client-android on emulators
+//                httpEngine = OkHttp.create()
+            }
         }
-    }
+        }
+
 }

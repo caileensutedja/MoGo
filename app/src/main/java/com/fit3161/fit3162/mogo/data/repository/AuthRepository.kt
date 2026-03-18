@@ -18,7 +18,7 @@ class AuthRepository(private val supabase: SupabaseClient) {
     /**
      * Attempts to sign in an existing user with their email and password.
      *
-     * Uses [Email] provider with [signInWith] — the v3 SDK equivalent of
+     * Uses [Email] provider with signInWith — the v3 SDK equivalent of
      * the v2 signInWithPassword function. Both email and password are passed
      * inside the config block.
      *
@@ -36,7 +36,7 @@ class AuthRepository(private val supabase: SupabaseClient) {
             supabase.auth.signInWith(Email) {
                 this.email = email
                 this.password = password
-            } // TODO: There is no signInWithPassword(email, password)
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(mapError(e))
@@ -63,7 +63,7 @@ class AuthRepository(private val supabase: SupabaseClient) {
      */
     suspend fun register(email: String, password: String): Result<Unit> {
         return try {
-            supabase.auth.signInWith(Email) {
+            supabase.auth.signUpWith(Email) {
                 this.email = email
                 this.password = password
             }
@@ -121,13 +121,25 @@ class AuthRepository(private val supabase: SupabaseClient) {
      * @return A new [Exception] with a user-friendly message.
      */
     private fun mapError(e: Exception) : Exception {
+        val raw = e.message ?: "An unexpected error occurred."
         val msg = when {
-            e.message?.contains("Invalid login credentials") == true -> "Incorrect email or password."
-            e.message?.contains("Email unconfirmed") == true -> "Please confirm your email before logging in. Check your university inbox."
-            e.message?.contains("Monash University") == true -> "Only @student.monash.edu or @monash.edu addresses can register."
-            e.message?.contains("User already registered") == true -> "An account with this email already exists."
-
-            else -> e.message ?: "An unexpected error has occurred."
+            raw.contains("Invalid login credentials", ignoreCase = true) ->
+                "Incorrect email or password."
+            raw.contains("Email not confirmed", ignoreCase = true) ->
+                "Please confirm your email before logging in. Check your Monash inbox."
+            raw.contains("Monash University", ignoreCase = true) ->
+                "Only @student.monash.edu or @monash.edu addresses can register."
+            raw.contains("User already registered", ignoreCase = true) ->
+                "An account with this email already exists."
+            raw.contains("Password should be at least", ignoreCase = true) ->
+                "Password must be at least 8 characters."
+            raw.contains("Unable to validate email address", ignoreCase = true) ->
+                "Please enter a valid email address."
+            raw.contains("Email address is invalid", ignoreCase = true) ->
+                "Please enter a valid email address."
+            raw.contains("signup_disabled", ignoreCase = true) ->
+                "Registration is currently disabled."
+            else -> raw  // ← Show the raw message in development so you can see exactly what Supabase is returning
         }
         return Exception(msg)
     }

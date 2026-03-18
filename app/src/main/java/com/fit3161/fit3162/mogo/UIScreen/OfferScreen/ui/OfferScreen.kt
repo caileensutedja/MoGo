@@ -1,0 +1,172 @@
+package com.fit3161.fit3162.mogo.UIScreen.OfferScreen
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
+
+class OfferScreen : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            MoGoTheme {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = { BottomNavBar() }
+                ) { innerPadding ->
+                    OfferScreenUI(
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OfferScreenUI(modifier: Modifier = Modifier) {
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Title
+        Text(
+            text = "Offers",
+            fontSize = 34.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Placeholder list of 2 empty cards (no real data yet)
+        LazyColumn(
+            modifier = Modifier.weight(1f)
+        ) {
+            items(2) {
+                OffersSkeleton()
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+    }
+}
+@Composable
+fun OffersSkeleton() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
+            .padding(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "Welcome to MoGo ($5 off)",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Get a complimentary $5 off on your first ride",
+                    fontSize = 14.sp,
+                    color = Color.DarkGray
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Button(
+                        onClick = { /* TODO */ },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFEAD7FF)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Claim")
+                    }
+
+                    Button(
+                        onClick = { /* TODO */ },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFB57BFF)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("T&C")
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun BottomNavBar() {
+    NavigationBar(
+        containerColor = Color.White
+    ) {
+        NavigationBarItem(
+            selected = true,
+            onClick = { /* TODO */ },
+            icon = { Box(modifier = Modifier.size(24.dp).background(Color.Gray)) },
+            label = { Text("Home") }
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = { /* TODO */ },
+            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
+            label = { Text("Book") }
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = { /* TODO */ },
+            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
+            label = { Text("Offer") }
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = { /* TODO */ },
+            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
+            label = { Text("Profile") }
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewHomeScreen() {
+    MoGoTheme {
+        Scaffold(
+            bottomBar = { BottomNavBar() }
+        ) { innerPadding ->
+            OfferScreenUI(
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
+    }
+}

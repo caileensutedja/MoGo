@@ -3,4 +3,5 @@
     <string name="title_activity_register_screen">RegisterScreen</string>
     <string name="title_activity_log_in_screen">LogInScreen</string>
     <string name="title_activity_offer_screen">OfferScreen</string>
+    <string name="title_activity_main">MainActivity</string>
 </resources>

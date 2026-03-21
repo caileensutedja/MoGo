@@ -44,20 +44,21 @@ class AuthRepository(private val supabase: SupabaseClient) {
         }
     }
 
-    /**
-     * Attempts to restore a previously authenticated session on app relaunch.
-     * Call this on launch to skip the login screen for already-authenticated users.
-     *
-     * @return true if a valid session was restored, false otherwise.
-     */
-    suspend fun restoreSession(): Boolean {
-        return try {
-            supabase.auth.retrieveUserForCurrentSession(updateSession = true)
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
+    // Commented out because currently not used or needed.
+//    /**
+//     * Attempts to restore a previously authenticated session on app relaunch.
+//     * Call this on launch to skip the login screen for already-authenticated users.
+//     *
+//     * @return true if a valid session was restored, false otherwise.
+//     */
+//    suspend fun restoreSession(): Boolean {
+//        return try {
+//            supabase.auth.retrieveUserForCurrentSession(updateSession = true)
+//            true
+//        } catch (e: Exception) {
+//            false
+//        }
+//    }
 
     /**
      * Logs the current user out of the session. Logged-out users must log in again

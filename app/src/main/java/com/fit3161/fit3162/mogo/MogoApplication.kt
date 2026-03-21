@@ -20,7 +20,7 @@ import io.github.jan.supabase.realtime.Realtime
 class MogoApplication : Application() {
 
     /**
-     * Supabase client instance that can be shared across different parts of the app.
+     * Supabase HTTP client instance that can be shared across different parts of the app.
      */
     lateinit var supabase: SupabaseClient
         private set

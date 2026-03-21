@@ -1,13 +1,13 @@
 package com.fit3161.fit3162.mogo.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.fit3161.fit3162.mogo.MogoApplication
+import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.WelcomeScreen.WelcomeScreen
 import com.fit3161.fit3162.mogo.data.repo.AuthRepository
 import com.fit3161.fit3162.mogo.ui.dashboard.DashboardScreen
 import com.fit3161.fit3162.mogo.ui.login.LoginScreenTemp
@@ -20,20 +20,61 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+/**
+ * Defines every screen route in the app.
+ *
+ * @param route the name of the route (typically named after the screen names)..
+ */
 sealed class Screen(val route: String) {
-    object Login     : Screen("login")
-    object Register  : Screen("register")
-    object Dashboard : Screen("dashboard")
+    object Welcome : Screen("welcome")
+    object Login : Screen("login")
+    object Register : Screen("register")
+    object Dashboard : Screen("dashboard") // TODO: This is temporary. Remove during clean up/when done.
+    object HomeDashboard : Screen("homedashboard")
+
+    // TODO: Add the rest of the screens here.
 }
 
+/**
+ * Handles navigation between screens for the entire app.
+ * Defines how the screens are connected to each other.
+ *
+ * @param application [MogoApplication] instance used to access the shared Supabase client.
+ */
 @Composable
 fun AppNavigation(application: MogoApplication) {
+
     val navController = rememberNavController()
+
+    // Get Supabase client instance.
     val supabase = application.supabase
+
+    // Single AuthRepository shared across all auth screens.
     val authRepository = AuthRepository(supabase)
 
-    NavHost(navController = navController, startDestination = Screen.Login.route) {
+    /**
+     * Defines full navigation graph.
+     *
+     * From official documentation:
+     * "Provides a place in the Compose hierarchy for self-contained navigation to occur.
+     * Once this is called, any Composable within the given NavGraphBuilder can be navigated to
+     * from the provided navController."
+     *
+     */
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Welcome.route // App starts in Welcome Screen when first launched.
+    ) {
 
+        // Welcome Screen composable.
+        composable(Screen.Welcome.route) {
+            WelcomeScreen(
+                onNavigateToLogin = {
+                navController.navigate(Screen.Login.route) // Navigate from Welcome Screen to Login Screen.
+            })
+        }
+
+        // Login Screen composable.
         composable(Screen.Login.route) {
             val viewModel: LoginViewModel = viewModel(
                 factory = LoginViewModelFactory(authRepository)
@@ -44,13 +85,15 @@ fun AppNavigation(application: MogoApplication) {
                     navController.navigate(Screen.Register.route)
                 },
                 onLoginSuccess = {
-                    navController.navigate(Screen.Dashboard.route) {
+                    navController.navigate(Screen.HomeDashboard.route) { // Go to HomeScreen after Login
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             )
         }
 
+        // TODO: Remove during code cleanup. Use existing RegisterScreen UI composables.
+        // TEMPORARY Register Screen composable (uses ViewModel for business logic handling).
         composable(Screen.Register.route) {
             val viewModel: RegisterViewModel = viewModel(
                 factory = RegisterViewModelFactory(authRepository)
@@ -61,6 +104,8 @@ fun AppNavigation(application: MogoApplication) {
             )
         }
 
+        // TODO: Remove during code cleanup. Dashboard only contains a single button: SignOut to go back to prev. screen.
+        // Dashboard/HomeScreen/Screen after Login composable.
         composable(Screen.Dashboard.route) {
             DashboardScreen(
                 onLogout = {
@@ -73,5 +118,11 @@ fun AppNavigation(application: MogoApplication) {
                 }
             )
         }
+
+        // HomeScreen UI composable.
+        composable(Screen.HomeDashboard.route) {
+            HomeScreenUI()
+        }
+
     }
 }

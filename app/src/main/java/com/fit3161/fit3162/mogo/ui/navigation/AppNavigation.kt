@@ -8,7 +8,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -17,15 +16,15 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fit3161.fit3162.mogo.MogoApplication
 import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterScreen
+import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInScreen
 import com.fit3161.fit3162.mogo.UIScreen.WelcomeScreen.WelcomeScreen
 import com.fit3161.fit3162.mogo.data.repo.AuthRepository
 import com.fit3161.fit3162.mogo.ui.dashboard.DashboardScreen
-import com.fit3161.fit3162.mogo.ui.login.LoginScreenTemp
-import com.fit3161.fit3162.mogo.ui.login.LoginViewModel
-import com.fit3161.fit3162.mogo.ui.login.LoginViewModelFactory
-import com.fit3161.fit3162.mogo.ui.register.RegisterScreenTemp
-import com.fit3161.fit3162.mogo.ui.register.RegisterViewModel
-import com.fit3161.fit3162.mogo.ui.register.RegisterViewModelFactory
+import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModel
+import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModel
+import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModelFactory
+import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -86,10 +85,10 @@ fun AppNavigation(application: MogoApplication) {
 
         // Login Screen composable.
         composable(Screen.Login.route) {
-            val viewModel: LoginViewModel = viewModel(
-                factory = LoginViewModelFactory(authRepository)
+            val viewModel: SignInViewModel = viewModel(
+                factory = SignInViewModelFactory(authRepository)
             )
-            LoginScreenTemp(
+            SignInScreen(
                 viewModel = viewModel,
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
@@ -108,7 +107,7 @@ fun AppNavigation(application: MogoApplication) {
             val viewModel: RegisterViewModel = viewModel(
                 factory = RegisterViewModelFactory(authRepository)
             )
-            RegisterScreenTemp(
+            RegisterScreen(
                 viewModel = viewModel,
                 onNavigateToLogin = { navController.popBackStack() }
             )
@@ -157,10 +156,10 @@ fun BottomBar(navController: NavHostController) {
         navController.currentBackStackEntryAsState().value?.destination?.route
 
     val items = listOf(
-        BottomNavItem("HomeScreen", "Home", Icons.Filled.Home),
-        BottomNavItem("BookScreen", "Book", Icons.Filled.Home),
-        BottomNavItem("OfferScreen", "Offer", Icons.Filled.Home),
-        BottomNavItem("ProfileScreen", "Profile", Icons.Filled.Home)
+        BottomNavItem("home", "Home", Icons.Filled.Home),
+        BottomNavItem("book", "Book", Icons.Filled.Home),
+        BottomNavItem("offer", "Offer", Icons.Filled.Home),
+        BottomNavItem("profile", "Profile", Icons.Filled.Home)
     )
 
     NavigationBar {

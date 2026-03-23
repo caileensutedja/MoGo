@@ -16,11 +16,13 @@ class AuthRepository(private val supabase: SupabaseClient) {
     /**
      * Adds a new user to the Users table in DB.
      */
-    suspend fun register(email: String, password: String): Result<Unit> {
+    suspend fun register(email: String, password: String, name: String): Result<Unit> {
         return try {
             supabase.auth.signUpWith(Email) {
                 this.email = email
                 this.password = password
+                // INSERT NAME TO DB
+//                this.name = name
             }
             Result.success(Unit)
         } catch (e: Exception) {

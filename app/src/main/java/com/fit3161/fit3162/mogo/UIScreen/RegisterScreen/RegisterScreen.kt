@@ -1,9 +1,6 @@
 package com.fit3161.fit3162.mogo.UIScreen.RegisterScreen
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,15 +9,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,59 +39,159 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fit3161.fit3162.mogo.data.model.AuthState
 
 @Composable
-@Preview(showBackground = true)
-fun RegisterScreen(modifier: Modifier = Modifier) {
-    var userEmail by remember { mutableStateOf("") }
-    var showOTPDialog by remember { mutableStateOf(false) }
+fun RegisterScreen(
+    viewModel: RegisterViewModel,
+    onNavigateToLogin: () -> Unit) {
+
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(horizontal = 32.dp)
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier=Modifier.height(50.dp))
         Text(
-            text = "Register",
+            text = "Create Account",
             fontSize = 34.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         Text(
-            text = "with your Monash email",
-            fontSize = 30.sp,
+            text = "Register with your Monash University email",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
+
         Spacer(modifier=Modifier.height(70.dp))
         //Email Input
-        val isValid = userEmail.contains("@") && userEmail.endsWith(".monash.edu")
+        val isValid = email.contains("@") && email.endsWith(".monash.edu")
         OutlinedTextField(
-            value = userEmail,
-            onValueChange = { userEmail = it },
+            value = email,
+            onValueChange = { email = it; viewModel.resetState() },
+            placeholder = { Text("username@student.monash.edu") },
             label = { Text("Enter your Monash Email Address") },
-            isError = userEmail.isNotEmpty() && !isValid,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            isError = email.isNotEmpty() && !isValid,
             supportingText = {
-                if (userEmail.isNotEmpty() && !isValid) {
+                if (email.isNotEmpty() && !isValid) {
                     Text("Please enter your Monash email (e.g. [user]@[student/staff].monash.edu)")
                 }
             },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        Button(
-            // Logic to open the view model here when clicked
-            onClick = {
-                if (isValid) {
-                    showOTPDialog = true
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Name Input
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it; viewModel.resetState()},
+            label = { Text("Name") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Password input
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it; viewModel.resetState() },
+            label = { Text("Password") },
+            visualTransformation = if (passwordVisible)
+                VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next
+            ),
+            trailingIcon = {
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector = if (passwordVisible)
+                            Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = null
+                    )
                 }
             },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Confirm Password input
+        OutlinedTextField(
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it; viewModel.resetState() },
+            label = { Text("Confirm Password") },
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Show error messages if something is wrong
+        AnimatedVisibility(visible = state is AuthState.Error) {
+            Text(
+                text = (state as? AuthState.Error)?.message ?: "",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Spacer(modifier=Modifier.height(150.dp))
+
+        Text(
+            text = "Available only for Monash University students and staff. " +
+                    "Please make sure you log in with your Monash credentials.",
+            fontSize =  9.5.sp,
+            lineHeight = 12.sp,
+            textAlign = TextAlign.Center,
+            fontStyle = FontStyle.Italic,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .padding(vertical = 4.dp) // reduce top/bottom spacing
+        )
+
+        Spacer(modifier=Modifier.height(5.dp))
+
+        Button(
+            onClick = { viewModel.register(email, password, confirmPassword, name) },
+            enabled = state !is AuthState.Loading &&
+                    state !is AuthState.AwaitingEmailConfirmation,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -94,32 +200,49 @@ fun RegisterScreen(modifier: Modifier = Modifier) {
                 containerColor = Color(0xFFCEA2FD)
             )
         ) {
-            Text("Send Verification Code")
-        }
-        // Show the dialog logic
-        if (showOTPDialog){
-            OTPVIewModel(
-                userEmail = userEmail,
-                onDismissRequest = {showOTPDialog = false}
-            )
+            if (state is AuthState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Register")
+            }
         }
 
-        Spacer(modifier=Modifier.height(300.dp))
-        Text(
-            text="Available only for Monash University students and staff.\n" +
-                    "Please make sure you log in with your Monash credentials.",
-            fontSize = 12.sp,
-            textAlign = TextAlign.Center,
-            fontStyle = FontStyle.Italic,
-            modifier = Modifier.fillMaxWidth(0.85f)
-        )
         Spacer(modifier=Modifier.height(20.dp))
-//        Divider()
-        Spacer(modifier=Modifier.height(20.dp))
-        // Add Navigation Controller here
-        Text(
-            text = "Already have an account yet? Sign In"
-        )
+
+        TextButton(onClick = onNavigateToLogin) {
+            Text("Already have an account? Sign in")
+        }
+
+        /**
+         * Pops up as a dialog alert if successful, then prompts users to sign in again.
+         */
+        if (state is AuthState.AwaitingEmailConfirmation) {
+            AlertDialog(
+                onDismissRequest = {}, // Disable outside click dismiss
+                title = { Text("Registration Successful!") },
+                text = {
+                    Text(
+                        "✅ Check your Monash email and click the verification link. Then return to sign in."
+                    )
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        viewModel.resetState() // Reset state to Idle
+                        onNavigateToLogin()
+                    },
+                        shape = RoundedCornerShape(15.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFCEA2FD)
+                        )) {
+                        Text("Continue")
+                    }
+                }
+            )
+        }
     }
 }
 

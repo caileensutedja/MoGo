@@ -1,4 +1,4 @@
-package com.fit3161.fit3162.mogo.ui.register
+package com.fit3161.fit3162.mogo.UIScreen.RegisterScreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -15,7 +15,7 @@ class RegisterViewModel(private val repo: AuthRepository) : ViewModel() {
     private val _state = MutableStateFlow<AuthState>(AuthState.Idle)
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
-    fun register(email: String, password: String, confirmPassword: String) {
+    fun register(email: String, password: String, confirmPassword: String, name: String) {
         when {
             !isValidEmail(email) ->
                 _state.value = AuthState.Error(
@@ -25,9 +25,11 @@ class RegisterViewModel(private val repo: AuthRepository) : ViewModel() {
                 _state.value = AuthState.Error("Password must be at least 8 characters.")
             password != confirmPassword ->
                 _state.value = AuthState.Error("Passwords do not match.")
+            name.length < 1 ->
+                _state.value = AuthState.Error("Please enter your name")
             else -> viewModelScope.launch {
                 _state.value = AuthState.Loading
-                repo.register(email.trim(), password)
+                repo.register(email.trim(), password, name)
                     .onSuccess { _state.value = AuthState.AwaitingEmailConfirmation }
                     .onFailure {
                         _state.value = AuthState.Error(it.message ?: "Registration failed.")

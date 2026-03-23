@@ -1,4 +1,4 @@
-package com.fit3161.fit3162.mogo.ui.login
+package com.fit3161.fit3162.mogo.UIScreen.SignInScreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 /**
  * LoginViewModel manages LoginScreen state and business logic.
  */
-class LoginViewModel(private val repo: AuthRepository) : ViewModel() {
+class SignInViewModel(private val repo: AuthRepository) : ViewModel() {
 
     private val _state = MutableStateFlow<AuthState>(AuthState.Idle)
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -61,13 +61,13 @@ class LoginViewModel(private val repo: AuthRepository) : ViewModel() {
  * Android's default ViewModelProvider cannot instantiate parameterised ViewModels
  * without a factory.
  */
-class LoginViewModelFactory(
+class SignInViewModelFactory(
     private val repo: AuthRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
+        if (modelClass.isAssignableFrom(SignInViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return LoginViewModel(repo) as T
+            return SignInViewModel(repo) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

@@ -1,11 +1,6 @@
 package com.fit3161.fit3162.mogo.UIScreen.WelcomeScreen
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,12 +13,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -34,28 +29,41 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fit3161.fit3162.mogo.R
-import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
 
+// Remove Welcome Screen Activity (NOT Welcome Screen UI composable function)
 
-class WelcomeScreen : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            MoGoTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    WelcomeScreen(
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        }
-    }
-}
+//class WelcomeScreen : ComponentActivity() {
+//    override fun onCreate(savedInstanceState: Bundle?) {
+//        super.onCreate(savedInstanceState)
+//        enableEdgeToEdge()
+//        setContent {
+//            MoGoTheme {
+//                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+//
+//                    EmptyWelcome(modifier = Modifier.padding(innerPadding))
+//
+////                    WelcomeScreen(
+////                        modifier = Modifier.padding(innerPadding)
+////                    )
+//                }
+//            }
+//        }
+//    }
+//}
+//
+//@Composable
+//fun EmptyWelcome(modifier: Modifier) {
+//
+//}
 
+/**
+ * WelcomeScreen UI Composable.
+ *
+ * @param onNavigateToLogin TODO
+ */
 @Composable
 @Preview(showBackground = true)
-fun WelcomeScreen(modifier: Modifier = Modifier) {
+fun WelcomeScreen(onNavigateToLogin: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -95,9 +103,7 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(30.dp))
         Button(
-            onClick = {
-                // what happens when clicked
-            },
+            onClick = onNavigateToLogin, // Go to Login Screen
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -119,3 +125,11 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
         )
     }
 }
+
+//@Composable
+//@Preview(showBackground = true)
+//fun WelcomeScreenPreview() {
+//    MoGoTheme {
+//        WelcomeScreen()
+//    }
+//}

@@ -30,31 +30,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fit3161.fit3162.mogo.R
 
-// Remove Welcome Screen Activity (NOT Welcome Screen UI composable function)
-
-//class WelcomeScreen : ComponentActivity() {
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
-//        setContent {
-//            MoGoTheme {
-//                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-//
-//                    EmptyWelcome(modifier = Modifier.padding(innerPadding))
-//
-////                    WelcomeScreen(
-////                        modifier = Modifier.padding(innerPadding)
-////                    )
-//                }
-//            }
-//        }
-//    }
-//}
-//
-//@Composable
-//fun EmptyWelcome(modifier: Modifier) {
-//
-//}
 
 /**
  * WelcomeScreen UI Composable.
@@ -125,11 +100,3 @@ fun WelcomeScreen(onNavigateToLogin: () -> Unit = {}) {
         )
     }
 }
-
-//@Composable
-//@Preview(showBackground = true)
-//fun WelcomeScreenPreview() {
-//    MoGoTheme {
-//        WelcomeScreen()
-//    }
-//}

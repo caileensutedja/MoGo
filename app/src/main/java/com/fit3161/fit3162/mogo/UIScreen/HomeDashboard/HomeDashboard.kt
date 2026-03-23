@@ -26,25 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
 
-//class HomeScreen : ComponentActivity() {
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
-//        setContent {
-//            MoGoTheme {
-//                Scaffold(
-//                    modifier = Modifier.fillMaxSize(),
-//                    bottomBar = { BottomNavBar() }
-//                ) { innerPadding ->
-//                    HomeScreenUI(
-//                        modifier = Modifier.padding(innerPadding)
-//                    )
-//                }
-//            }
-//        }
-//    }
-//}
-
 /**
  * HomeScreen (HomeDashboard) UI.
  */

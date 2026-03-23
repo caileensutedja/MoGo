@@ -1,9 +1,19 @@
 package com.fit3161.fit3162.mogo.ui.navigation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fit3161.fit3162.mogo.MogoApplication
 import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
@@ -124,5 +134,57 @@ fun AppNavigation(application: MogoApplication) {
             HomeScreenUI()
         }
 
+    }
+}
+
+
+/**
+ * Data class for the bottom bar consisting of route, label, and icon.
+ */
+data class BottomNavItem(
+    val route: String,
+    val label: String,
+    val icon: ImageVector
+)
+
+/**
+ * Composable bottom bar for easy navigation.
+ */
+@Composable
+fun BottomBar(navController: NavHostController) {
+
+    val currentRoute =
+        navController.currentBackStackEntryAsState().value?.destination?.route
+
+    val items = listOf(
+        BottomNavItem("HomeScreen", "Home", Icons.Filled.Home),
+        BottomNavItem("BookScreen", "Book", Icons.Filled.Home),
+        BottomNavItem("OfferScreen", "Offer", Icons.Filled.Home),
+        BottomNavItem("ProfileScreen", "Profile", Icons.Filled.Home)
+    )
+
+    NavigationBar {
+
+        items.forEach { item ->
+            NavigationBarItem(
+                icon = {
+                    Icon(item.icon, contentDescription = item.label)
+                },
+                label = {
+                    Text(item.label)
+                },
+                selected = currentRoute == item.route,
+                onClick = {
+                    navController.navigate(item.route) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+
+        }
     }
 }

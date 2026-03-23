@@ -44,21 +44,14 @@ class AuthRepository(private val supabase: SupabaseClient) {
         }
     }
 
-    // Commented out because currently not used or needed.
-//    /**
-//     * Attempts to restore a previously authenticated session on app relaunch.
-//     * Call this on launch to skip the login screen for already-authenticated users.
-//     *
-//     * @return true if a valid session was restored, false otherwise.
-//     */
-//    suspend fun restoreSession(): Boolean {
-//        return try {
-//            supabase.auth.retrieveUserForCurrentSession(updateSession = true)
-//            true
-//        } catch (e: Exception) {
-//            false
-//        }
-//    }
+    /**
+     * Returns boolean if user is currently logged in or not.
+     *
+     *
+     */
+    fun isUserLogedIn(): Boolean {
+        return supabase.auth.currentUserOrNull() != null
+    }
 
     /**
      * Logs the current user out of the session. Logged-out users must log in again
@@ -81,7 +74,7 @@ class AuthRepository(private val supabase: SupabaseClient) {
             e.message?.contains("Email not confirmed") == true ->
                 "Please confirm your email before logging in. Check your university inbox."
 
-            e.message?.contains("Monash University") == true ->
+            e.message?.contains("Monash University students/staff only") == true ->
                 "Only @student.monash.edu or @monash.edu addresses can register."
 
             e.message?.contains("User already registered") == true ->

@@ -1,6 +1,7 @@
 package com.fit3161.fit3162.mogo.UIScreen.WelcomeScreen
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -44,7 +46,9 @@ fun WelcomeScreen(onNavigateToLogin: () -> Unit = {}) {
             .fillMaxSize()
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+
     ) {
         Spacer(modifier=Modifier.height(50.dp))
         Image(
@@ -67,16 +71,20 @@ fun WelcomeScreen(onNavigateToLogin: () -> Unit = {}) {
             fontSize = 15.sp,
             fontWeight = FontWeight.Light
         )
-        Spacer(modifier = Modifier.height(110.dp))
+        Spacer(modifier = Modifier.height(150.dp))
         Text(
-            text="Available only for Monash University students and staff.\n" +
+            text = "Available only for Monash University students and staff. " +
                     "Please make sure you log in with your Monash credentials.",
-            fontSize = 12.sp,
+            fontSize =  9.5.sp,
+            lineHeight = 12.sp,
             textAlign = TextAlign.Center,
             fontStyle = FontStyle.Italic,
-            modifier = Modifier.fillMaxWidth(0.85f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .padding(vertical = 4.dp) // reduce top/bottom spacing
         )
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = onNavigateToLogin, // Go to Login Screen
             modifier = Modifier
@@ -91,9 +99,9 @@ fun WelcomeScreen(onNavigateToLogin: () -> Unit = {}) {
             Text(text = "Start",
                 fontSize = 20.sp)
         }
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Designed by Group 15:\n\nBrianna, Caileen, Jasmine, Priyana",
+            text = "Designed by Group 15:\nBrianna, Caileen, Jasmine, Priyana",
             fontSize = 12.sp,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.SemiBold

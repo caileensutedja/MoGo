@@ -11,6 +11,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -21,6 +22,8 @@ import androidx.navigation.compose.rememberNavController
 import com.fit3161.fit3162.mogo.MogoApplication
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
+import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.OfferScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.ProfileScreen.ProfileScreenUI
@@ -28,11 +31,11 @@ import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterScreen
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInScreen
 import com.fit3161.fit3162.mogo.UIScreen.WelcomeScreen.WelcomeScreen
 import com.fit3161.fit3162.mogo.data.repo.AuthRepository
-import com.fit3161.fit3162.mogo.ui.dashboard.DashboardScreen
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModel
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModel
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModelFactory
+import com.fit3161.fit3162.mogo.data.repo.BookRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -131,12 +134,20 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Book UI composable.
         composable(Screen.Book.route) {
-            BookScreenUI()
+            BookScreenUI(
+
+            )
         }
 
         // Future Rides UI composable.
         composable(Screen.FutureRides.route) {
-            FutureRideScreenUI()
+                val bookRepository = remember { BookRepository() }
+                val factory = FutureRideViewModelFactory(bookRepository)
+                val viewModel: FutureRideViewModel = viewModel(factory = factory)
+
+                FutureRideScreenUI(
+                    viewModel = viewModel
+                )
         }
 
         // Offer UI composable.

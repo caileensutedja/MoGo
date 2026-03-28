@@ -1,7 +1,11 @@
 package com.fit3161.fit3162.mogo.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -15,7 +19,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fit3161.fit3162.mogo.MogoApplication
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.OfferScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.ProfileScreen.ProfileScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterScreen
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInScreen
 import com.fit3161.fit3162.mogo.UIScreen.WelcomeScreen.WelcomeScreen
@@ -32,16 +40,17 @@ import kotlinx.coroutines.launch
 /**
  * Defines every screen route in the app.
  *
- * @param route the name of the route (typically named after the screen names)..
+ * @param route the name of the route (typically named after the screen names).
  */
 sealed class Screen(val route: String) {
     object Welcome : Screen("welcome")
     object Login : Screen("login")
     object Register : Screen("register")
     object Dashboard : Screen("dashboard") // TODO: This is temporary. Remove during clean up/when done.
-    object HomeDashboard : Screen("homedashboard")
-
-    // TODO: Add the rest of the screens here.
+    object Book : Screen("book")
+    object FutureRides : Screen("futureRides")
+    object Profile: Screen("profile")
+    object Offer: Screen("offer")
 }
 
 /**
@@ -51,9 +60,7 @@ sealed class Screen(val route: String) {
  * @param application [MogoApplication] instance used to access the shared Supabase client.
  */
 @Composable
-fun AppNavigation(application: MogoApplication) {
-
-    val navController = rememberNavController()
+fun AppNavigation(application: MogoApplication, navController: NavHostController) {
 
     // Get Supabase client instance.
     val supabase = application.supabase
@@ -72,6 +79,7 @@ fun AppNavigation(application: MogoApplication) {
      */
     NavHost(
         navController = navController,
+        // Logic fix if alr logged in or not
         startDestination = Screen.Welcome.route // App starts in Welcome Screen when first launched.
     ) {
 
@@ -94,15 +102,14 @@ fun AppNavigation(application: MogoApplication) {
                     navController.navigate(Screen.Register.route)
                 },
                 onLoginSuccess = {
-                    navController.navigate(Screen.HomeDashboard.route) { // Go to HomeScreen after Login
+                    navController.navigate(Screen.Dashboard.route) { // Go to HomeScreen after Login
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             )
         }
 
-        // TODO: Remove during code cleanup. Use existing RegisterScreen UI composables.
-        // TEMPORARY Register Screen composable (uses ViewModel for business logic handling).
+        // Register Screen composable.
         composable(Screen.Register.route) {
             val viewModel: RegisterViewModel = viewModel(
                 factory = RegisterViewModelFactory(authRepository)
@@ -114,23 +121,32 @@ fun AppNavigation(application: MogoApplication) {
         }
 
         // TODO: Remove during code cleanup. Dashboard only contains a single button: SignOut to go back to prev. screen.
-        // Dashboard/HomeScreen/Screen after Login composable.
+        /**
+         * FIX SCREENS BELOW
+         */
+        // Home Dashboard Screen composable.
         composable(Screen.Dashboard.route) {
-            DashboardScreen(
-                onLogout = {
-                    CoroutineScope(Dispatchers.Main).launch {
-                        authRepository.logout()
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Dashboard.route) { inclusive = true }
-                        }
-                    }
-                }
-            )
+            HomeScreenUI()
         }
 
-        // HomeScreen UI composable.
-        composable(Screen.HomeDashboard.route) {
-            HomeScreenUI()
+        // Book UI composable.
+        composable(Screen.Book.route) {
+            BookScreenUI()
+        }
+
+        // Future Rides UI composable.
+        composable(Screen.FutureRides.route) {
+            FutureRideScreenUI()
+        }
+
+        // Offer UI composable.
+        composable(Screen.Offer.route) {
+            OfferScreenUI()
+        }
+
+        // Profile UI composable.
+        composable(Screen.Profile.route) {
+            ProfileScreenUI()
         }
 
     }
@@ -155,16 +171,17 @@ fun BottomBar(navController: NavHostController) {
     val currentRoute =
         navController.currentBackStackEntryAsState().value?.destination?.route
 
+    // Lists within the bottom bar
     val items = listOf(
-        BottomNavItem("home", "Home", Icons.Filled.Home),
-        BottomNavItem("book", "Book", Icons.Filled.Home),
-        BottomNavItem("offer", "Offer", Icons.Filled.Home),
-        BottomNavItem("profile", "Profile", Icons.Filled.Home)
+        BottomNavItem("dashboard", "Home", Icons.Filled.Home),
+        BottomNavItem("book", "Book", Icons.Filled.CalendarMonth),
+        BottomNavItem("offer", "Offer", Icons.Filled.LocalOffer),
+        BottomNavItem("profile", "Profile", Icons.Filled.Person)
     )
 
     NavigationBar {
-
         items.forEach { item ->
+            // When the icon is clicked, it will be highlighted and the user will be redirected to the intended screen
             NavigationBarItem(
                 icon = {
                     Icon(item.icon, contentDescription = item.label)
@@ -173,6 +190,7 @@ fun BottomBar(navController: NavHostController) {
                     Text(item.label)
                 },
                 selected = currentRoute == item.route,
+                // To remember the backstack of screens
                 onClick = {
                     navController.navigate(item.route) {
                         popUpTo(navController.graph.startDestinationId) {

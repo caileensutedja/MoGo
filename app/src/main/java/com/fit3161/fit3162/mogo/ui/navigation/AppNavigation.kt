@@ -158,10 +158,9 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Offer UI composable.
         composable(Screen.Offer.route) {
-            val offerRepository = remember { OfferRepository() }
-            val factory = OfferViewModelFactory(offerRepository)
-            val viewModel: OfferViewModel = viewModel(factory = factory)
-
+            val viewModel: OfferViewModel = viewModel(
+                factory = OfferViewModelFactory(supabase)
+            )
             OfferScreenUI(
                 viewModel = viewModel
             )

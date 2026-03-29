@@ -2,7 +2,6 @@ package com.fit3161.fit3162.mogo.ui.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Person
@@ -18,9 +17,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.fit3161.fit3162.mogo.MogoApplication
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModel
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
@@ -36,9 +36,6 @@ import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModel
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModelFactory
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 /**
  * Defines every screen route in the app.
@@ -50,7 +47,7 @@ sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Register : Screen("register")
     object Dashboard : Screen("dashboard") // TODO: This is temporary. Remove during clean up/when done.
-    object Book : Screen("book")
+    object Booked : Screen("booked")
     object FutureRides : Screen("futureRides")
     object Profile: Screen("profile")
     object Offer: Screen("offer")
@@ -132,10 +129,16 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
             HomeScreenUI()
         }
 
-        // Book UI composable.
-        composable(Screen.Book.route) {
+        // Booked UI composable.
+        composable(Screen.Booked.route) {
+            val bookRepository = remember { BookRepository() }
+            val factory = BookViewModelFactory(bookRepository)
+            val viewModel: BookViewModel = viewModel(factory = factory)
             BookScreenUI(
-
+                viewModel = viewModel,
+                onNavigateToFutureBookRides = {
+                    navController.navigate(Screen.FutureRides.route) // Navigate from Welcome Screen to Login Screen.
+                }
             )
         }
 
@@ -184,10 +187,10 @@ fun BottomBar(navController: NavHostController) {
 
     // Lists within the bottom bar
     val items = listOf(
-        BottomNavItem("dashboard", "Home", Icons.Filled.Home),
-        BottomNavItem("book", "Book", Icons.Filled.CalendarMonth),
-        BottomNavItem("offer", "Offer", Icons.Filled.LocalOffer),
-        BottomNavItem("profile", "Profile", Icons.Filled.Person)
+        BottomNavItem(Screen.Dashboard.route, "Home", Icons.Filled.Home),
+        BottomNavItem(Screen.Booked.route, "booked", Icons.Filled.CalendarMonth),
+        BottomNavItem(Screen.Offer.route, "Offer", Icons.Filled.LocalOffer),
+        BottomNavItem(Screen.Profile.route, "Profile", Icons.Filled.Person)
     )
 
     NavigationBar {
@@ -201,14 +204,11 @@ fun BottomBar(navController: NavHostController) {
                     Text(item.label)
                 },
                 selected = currentRoute == item.route,
-                // To remember the backstack of screens
+                // TODO: Check if it stores previous screen states
                 onClick = {
                     navController.navigate(item.route) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
+                        popUpTo(navController.graph.startDestinationId)
                         launchSingleTop = true
-                        restoreState = true
                     }
                 }
             )

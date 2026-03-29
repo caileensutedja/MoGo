@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fit3161.fit3162.mogo.data.repo.Ride
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -126,7 +127,7 @@ fun FutureRideScreenUI(
 }
 
 @Composable
-fun FutureRideCard(ride: FutureRide) {
+fun FutureRideCard(ride: Ride) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,7 +156,13 @@ fun FutureRideCard(ride: FutureRide) {
                     fontSize = 16.sp,
                     color = Color.DarkGray
                 )
-//
+
+                Text(
+                    text = "Destination: 📍${ride.destination}",
+                    fontSize = 16.sp,
+                    color = Color.DarkGray
+                )
+
                 // Distance + time
                 Text(
                     text = "ETA: ${ride.eta}",

@@ -1,27 +1,30 @@
 package com.fit3161.fit3162.mogo.UIScreen.BookScreen
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fit3161.fit3162.mogo.data.repo.Ride
 
 @Composable
-fun BookScreenUI(modifier: Modifier = Modifier) {
+fun BookScreenUI(
+    viewModel: BookViewModel,
+    modifier: Modifier = Modifier,
+    onNavigateToFutureBookRides: () -> Unit
+) {
+
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier
@@ -46,6 +49,10 @@ fun BookScreenUI(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.SemiBold
         )
         Spacer(modifier = Modifier.height(8.dp))
+
+        /**
+         * To Implement: A link to refer to ongoing ride progress
+         */
         Text(
             text = "None",
             fontSize = 16.sp,
@@ -61,40 +68,62 @@ fun BookScreenUI(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.SemiBold
         )
 
+        // Loading State
+        if (state.isLoading) {
+            CircularProgressIndicator()
+        }
+
+        // Error State
+        state.error?.let {
+            Text("Error: $it", color = Color.Red)
+        }
+
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Placeholder list of 2 empty cards (no real data yet)
-        LazyColumn(
-            modifier = Modifier.weight(1f)
-        ) {
-            items(2) {
-                RideCardSkeleton()
-                Spacer(modifier = Modifier.height(16.dp))
+        if (state.rides.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No rides available")
             }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f)
+            ) {
+                items(state.rides.size) { idx ->
+                    val ride = state.rides[idx]
+
+                    BookedCardSkeleton(
+                        ride = ride
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+
+
+            //  Future Ride Button
+            Button(
+                onClick = { onNavigateToFutureBookRides() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp),
+                shape = RoundedCornerShape(15.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFCEA2FD)
+                )
+            ) {
+                Text("Book Future Ride", fontSize = 18.sp)
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
         }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Book Future Ride Button
-        Button(
-            onClick = { /* TODO */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            shape = RoundedCornerShape(15.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFCEA2FD)
-            )
-        ) {
-            Text("Book Future Ride", fontSize = 18.sp)
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
     }
 }
 
 @Composable
-fun RideCardSkeleton() {
+fun BookedCardSkeleton(ride: Ride) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -118,17 +147,17 @@ fun RideCardSkeleton() {
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "Driver Name",
+                    text = ride.driverName,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Vehicle Type | Seats",
+                    text = "${ride.carType} | ${ride.totalSeats} seats",
                     fontSize = 14.sp,
                     color = Color.DarkGray
                 )
                 Text(
-                    text = "📍 Pickup Location",
+                    text = "📍 ${ride.destination}",
                     fontSize = 14.sp
                 )
 
@@ -159,52 +188,6 @@ fun RideCardSkeleton() {
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun BottomNavBar() {
-    NavigationBar(
-        containerColor = Color.White
-    ) {
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Home") }
-        )
-        NavigationBarItem(
-            selected = true,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.Gray)) },
-            label = { Text("Book") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Offer") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Profile") }
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewBookScreen() {
-    MoGoTheme {
-        Scaffold(
-            bottomBar = { BottomNavBar() }
-        ) { innerPadding ->
-            BookScreenUI(
-                modifier = Modifier.padding(innerPadding)
-            )
         }
     }
 }

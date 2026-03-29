@@ -1,4 +1,4 @@
-package com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen
+package com.fit3161.fit3162.mogo.UIScreen.BookScreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -10,29 +10,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-data class FutureRideUiState(
-    val selectedDate: String = "",
+data class BookUIState(
     val rides: List<Ride> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
-class FutureRideViewModel (private val repo: BookRepository) : ViewModel() {
+class BookViewModel (private val repo: BookRepository) : ViewModel(){
 
-    private val _uiState = MutableStateFlow(FutureRideUiState())
-    val uiState: StateFlow<FutureRideUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(BookUIState())
+    val uiState: StateFlow<BookUIState> = _uiState.asStateFlow()
 
-    fun onDateSelected(date: String) {
-        _uiState.value = _uiState.value.copy(
-            selectedDate = date,
-            isLoading = true,
-            error = null
-        )
-
-        loadRidesByDate(date)
-    }
-
-    private fun loadRidesByDate(date: String) {
+    private fun loadBookedByDate() {
         viewModelScope.launch {
             try {
                 // DELETE, FOR DUMMY
@@ -43,7 +32,7 @@ class FutureRideViewModel (private val repo: BookRepository) : ViewModel() {
                 )
 
                 // Uncomment
-//                val rides = repo.getFutureRidesByDate(date)
+//                val rides = repo.getBookedRidesByDate()
 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -53,8 +42,6 @@ class FutureRideViewModel (private val repo: BookRepository) : ViewModel() {
             }
         }
     }
-//}
-
 
     /**
      * TEMPORARY: Dummy data
@@ -71,31 +58,31 @@ class FutureRideViewModel (private val repo: BookRepository) : ViewModel() {
         return listOf(
             Ride(
                 id = "1",
-                driverName = "Rice Tan",
+                driverName = "Janice Tan",
                 carType = "Electric",
                 totalSeats = 4,
                 availableSeats = 2,
-                destination = "LTB Clayton Campus",
+                destination = "LTB, Clayton Campus",
                 eta = "12:00",
                 date = "2026-04-13"
             ),
             Ride(
                 id = "2",
-                driverName = "John Lim",
+                driverName = "John Doe",
                 carType = "Electric",
                 totalSeats = 4,
                 availableSeats = 1,
-                destination = "Building H Caulfield Campus",
+                destination = "Building H, Caulfield Campus",
                 eta = "14:00",
                 date = "2026-04-13"
             ),
             Ride(
                 id = "3",
-                driverName = "Sarah Lee",
+                driverName = "Bob Harryson",
                 carType = "Diesel",
                 totalSeats = 6,
                 availableSeats = 3,
-                destination = "Sports Center Clayton Campus",
+                destination = "Sports Center, Clayton Campus",
                 eta = "15:00",
                 date = "2026-04-13"
             )
@@ -103,14 +90,14 @@ class FutureRideViewModel (private val repo: BookRepository) : ViewModel() {
     }
 }
 
-class FutureRideViewModelFactory(
+
+class BookViewModelFactory(
     private val repo: BookRepository
 ) : ViewModelProvider.Factory {
-
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(FutureRideViewModel::class.java)) {
+        if (modelClass.isAssignableFrom(BookViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return FutureRideViewModel(repo) as T
+            return BookViewModel(repo) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

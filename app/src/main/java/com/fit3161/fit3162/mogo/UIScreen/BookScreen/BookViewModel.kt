@@ -21,7 +21,7 @@ class BookViewModel (private val repo: BookRepository) : ViewModel(){
     private val _uiState = MutableStateFlow(BookUIState())
     val uiState: StateFlow<BookUIState> = _uiState.asStateFlow()
 
-    private fun loadBookedByDate() {
+    private fun loadBooked() {
         viewModelScope.launch {
             try {
                 // DELETE, FOR DUMMY

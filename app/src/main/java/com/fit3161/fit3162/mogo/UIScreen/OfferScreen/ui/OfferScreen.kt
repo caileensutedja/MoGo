@@ -1,32 +1,38 @@
 package com.fit3161.fit3162.mogo.UIScreen.OfferScreen
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModel
+import com.fit3161.fit3162.mogo.data.repo.Offer
 
 @Composable
-fun OfferScreenUI(modifier: Modifier = Modifier) {
+fun OfferScreenUI(
+    viewModel: OfferViewModel,
+    modifier: Modifier = Modifier) {
+
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
+
         // Title
         Text(
             text = "Offers",
@@ -34,23 +40,47 @@ fun OfferScreenUI(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        // Loading State
+        if (state.isLoading) {
+            CircularProgressIndicator()
+        }
 
-        // Placeholder list of 2 empty cards (no real data yet)
-        LazyColumn(
-            modifier = Modifier.weight(1f)
-        ) {
-            items(2) {
-                OffersSkeleton()
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+        // Error State
+        state.error?.let {
+            Text("Error: $it", color = Color.Red)
         }
 
         Spacer(modifier = Modifier.height(20.dp))
+
+        if (state.offers.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No offers available")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f)
+            ) {
+                items(state.offers.size) { idx ->
+                    val offer = state.offers[idx]
+
+                    OfferCardSkeleton(
+                        offer = offer
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+        }
     }
 }
 @Composable
-fun OffersSkeleton() {
+fun OfferCardSkeleton(offer: Offer) {
+    var showDialog by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -64,12 +94,17 @@ fun OffersSkeleton() {
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "Welcome to MoGo ($5 off)",
+                    text = offer.title,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Get a complimentary $5 off on your first ride",
+                    text = "Store: ${offer.store} | Offer Amount: $${offer.amount}",
+                    fontSize = 14.sp,
+                    color = Color.DarkGray
+                )
+                Text(
+                    text = "Expiry Date: ${offer.date}",
                     fontSize = 14.sp,
                     color = Color.DarkGray
                 )
@@ -81,7 +116,7 @@ fun OffersSkeleton() {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
-                        onClick = { /* TODO */ },
+                        onClick = { /* TODO: Generate a code? */ },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFEAD7FF)
                         ),
@@ -91,7 +126,7 @@ fun OffersSkeleton() {
                     }
 
                     Button(
-                        onClick = { /* TODO */ },
+                        onClick = { showDialog = true },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFB57BFF)
                         ),
@@ -100,54 +135,22 @@ fun OffersSkeleton() {
                         Text("T&C")
                     }
                 }
+                // AlertDialog for T&C (pop-up mechanism)
+                if (showDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDialog = false },
+                        title = { Text("Terms & Conditions") },
+                        text = { Text(offer.tc) }, // Display the T&C text from Offer
+                        confirmButton = {
+                            TextButton(
+                                onClick = { showDialog = false }
+                            ) {
+                                Text("Ok")
+                            }
+                        }
+                    )
+                }
             }
-        }
-    }
-}
-
-
-@Composable
-fun BottomNavBar() {
-    NavigationBar(
-        containerColor = Color.White
-    ) {
-        NavigationBarItem(
-            selected = true,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.Gray)) },
-            label = { Text("Home") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Book") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Offer") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Profile") }
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewHomeScreen() {
-    MoGoTheme {
-        Scaffold(
-            bottomBar = { BottomNavBar() }
-        ) { innerPadding ->
-            OfferScreenUI(
-                modifier = Modifier.padding(innerPadding)
-            )
         }
     }
 }

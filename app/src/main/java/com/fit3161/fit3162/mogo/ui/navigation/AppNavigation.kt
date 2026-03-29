@@ -26,6 +26,8 @@ import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.OfferScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModel
+import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.ProfileScreen.ProfileScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterScreen
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInScreen
@@ -36,6 +38,7 @@ import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModel
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModelFactory
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
+import com.fit3161.fit3162.mogo.data.repo.OfferRepository
 
 /**
  * Defines every screen route in the app.
@@ -79,7 +82,7 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
      */
     NavHost(
         navController = navController,
-        // Logic fix if alr logged in or not
+        // TODO: Logic fix if alr logged in or not
         startDestination = Screen.Welcome.route // App starts in Welcome Screen when first launched.
     ) {
 
@@ -155,7 +158,13 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Offer UI composable.
         composable(Screen.Offer.route) {
-            OfferScreenUI()
+            val offerRepository = remember { OfferRepository() }
+            val factory = OfferViewModelFactory(offerRepository)
+            val viewModel: OfferViewModel = viewModel(factory = factory)
+
+            OfferScreenUI(
+                viewModel = viewModel
+            )
         }
 
         // Profile UI composable.

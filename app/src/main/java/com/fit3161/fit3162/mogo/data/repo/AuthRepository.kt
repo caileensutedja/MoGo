@@ -3,6 +3,8 @@ package com.fit3161.fit3162.mogo.data.repo
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 
 /**
  * AuthRepository class handles authentication operations using the Supabase DB client.
@@ -22,9 +24,11 @@ class AuthRepository(private val supabase: SupabaseClient) {
                 this.email = email
                 this.password = password
                 // INSERT NAME TO DB
-//                this.name = name
-//                this.phoneNumber = phoneNumber
-//                this.gender = gender
+                data = buildJsonObject {
+                    put("name", JsonPrimitive(name))
+                    put("phoneNumber", JsonPrimitive(phoneNumber))
+                    put("gender", JsonPrimitive(gender))
+                }
             }
             Result.success(Unit)
         } catch (e: Exception) {

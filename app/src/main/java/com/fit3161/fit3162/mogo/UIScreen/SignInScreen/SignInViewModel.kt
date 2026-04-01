@@ -9,13 +9,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.fit3161.fit3162.mogo.data.SessionManager
-
 
 /**
  * LoginViewModel manages LoginScreen state and business logic.
  */
-class SignInViewModel(private val repo: AuthRepository, private val sessionManager: SessionManager) : ViewModel() {
+class SignInViewModel(private val repo: AuthRepository) : ViewModel() {
 
     private val _state = MutableStateFlow<AuthState>(AuthState.Idle)
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -33,14 +31,7 @@ class SignInViewModel(private val repo: AuthRepository, private val sessionManag
         viewModelScope.launch { // Login attempt happens here.
             _state.value = AuthState.Loading
             repo.login(email.trim(), password)
-                .onSuccess { user ->
-                    // user will be the object returned from the DB
-                    sessionManager.saveSession(
-                        name = "",       // TODO: from DB response
-                        email = email.trim()
-                    )
-                    _state.value = AuthState.Success
-                }
+                .onSuccess { _state.value = AuthState.Success }
                 .onFailure { _state.value = AuthState.Error(it.message ?: "Login failed.") }
         }
     }
@@ -71,13 +62,12 @@ class SignInViewModel(private val repo: AuthRepository, private val sessionManag
  * without a factory.
  */
 class SignInViewModelFactory(
-    private val repo: AuthRepository,
-    private val sessionManager: SessionManager
+    private val repo: AuthRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SignInViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SignInViewModel(repo, sessionManager) as T
+            return SignInViewModel(repo) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

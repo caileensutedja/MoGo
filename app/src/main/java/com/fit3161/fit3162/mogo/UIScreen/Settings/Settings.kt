@@ -1,5 +1,9 @@
 package com.fit3161.fit3162.mogo.UIScreen.SettingsScreen
 
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,80 +17,92 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
 
 @Composable
-fun SettingsScreenUI(
-    modifier: Modifier = Modifier,
-    viewModel: SettingsViewModel = viewModel()
-) {
-    val uiState by viewModel.uiState.collectAsState()
+fun SettingsScreenUI(modifier: Modifier = Modifier) {
 
-    LaunchedEffect(uiState.saveSuccess) {
-        if (uiState.saveSuccess) {
-            // TODO: show snackbar "Saved!"
-            viewModel.clearSaveResult()
-        }
-    }
+    // Dropdown states
+    var driverPref by remember { mutableStateOf("") }
+    var role by remember { mutableStateOf("") }
+    var otherSetting by remember { mutableStateOf("") }
 
     Column(
-        modifier = modifier.fillMaxSize().padding(16.dp)
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
     ) {
-        Text(text = "Back", fontSize = 16.sp, modifier = Modifier.clickable { /* TODO */ })
+
+        // Back button
+        Text(
+            text = "Back",
+            fontSize = 16.sp,
+            modifier = Modifier.clickable { /* TODO */ }
+        )
+
         Spacer(modifier = Modifier.height(10.dp))
+
+        // Title
         Text(
             text = "Settings",
             fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
+
         Spacer(modifier = Modifier.height(30.dp))
 
+        // Driver Preference dropdown
         SettingsDropdown(
             label = "Driver Preference",
-            value = uiState.driverPreference,
+            value = driverPref,
             options = listOf("Male", "Female", "N/A"),
-            onValueChange = viewModel::onDriverPreferenceChange
+            onValueChange = { driverPref = it }
         )
+
         Spacer(modifier = Modifier.height(20.dp))
 
         SettingsDropdown(
             label = "Car Preference",
-            value = uiState.carPreference,
+            value = otherSetting,
             options = listOf("Electric", "Hybrid", "Any"),
-            onValueChange = viewModel::onCarPreferenceChange
+            onValueChange = { otherSetting = it }
         )
+
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Role dropdown
         SettingsDropdown(
             label = "Role (Driver/Rider)",
-            value = uiState.role,
+            value = role,
             options = listOf("Rider", "Driver"),
-            onValueChange = viewModel::onRoleChange
+            onValueChange = { role = it }
         )
+
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Placeholder for additional settings
         SettingsDropdown(
             label = "Placeholder",
-            value = uiState.placeholder,
+            value = otherSetting,
             options = listOf("Option A", "Option B", "Option C"),
-            onValueChange = viewModel::onPlaceholderChange
+            onValueChange = { otherSetting = it }
         )
+
         Spacer(modifier = Modifier.height(40.dp))
 
+        // Save Changes button
         Button(
-            onClick = viewModel::saveSettings,
-            enabled = !uiState.isSaving,
-            modifier = Modifier.fillMaxWidth().height(55.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCEA2FD)),
+            onClick = { /* TODO */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFCEA2FD)
+            ),
             shape = RoundedCornerShape(15.dp)
         ) {
-            if (uiState.isSaving) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-            } else {
-                Text("Save Changes", fontSize = 18.sp)
-            }
+            Text("Save Changes", fontSize = 18.sp)
         }
     }
 }
@@ -101,8 +117,14 @@ fun SettingsDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Column {
-        Text(text = label, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+        Text(
+            text = label,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium
+        )
+
         Spacer(modifier = Modifier.height(8.dp))
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -112,9 +134,16 @@ fun SettingsDropdown(
                 .padding(horizontal = 16.dp),
             contentAlignment = Alignment.CenterStart
         ) {
-            Text(text = if (value.isEmpty()) "Select..." else value, fontSize = 16.sp)
+            Text(
+                text = if (value.isEmpty()) "Select..." else value,
+                fontSize = 16.sp
+            )
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
             options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(option) },
@@ -124,6 +153,52 @@ fun SettingsDropdown(
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun BottomNavBar() {
+    NavigationBar(
+        containerColor = Color.White
+    ) {
+        NavigationBarItem(
+            selected = false,
+            onClick = { /* TODO */ },
+            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
+            label = { Text("Home") }
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = { /* TODO */ },
+            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
+            label = { Text("Book") }
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = { /* TODO */ },
+            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
+            label = { Text("Offer") }
+        )
+        NavigationBarItem(
+            selected = true,
+            onClick = { /* TODO */ },
+            icon = { Box(modifier = Modifier.size(24.dp).background(Color.Gray)) },
+            label = { Text("Profile") }
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewSettingsScreen() {
+    MoGoTheme {
+        Scaffold(
+            bottomBar = { BottomNavBar() }
+        ) { innerPadding ->
+            SettingsScreenUI(
+                modifier = Modifier.padding(innerPadding)
+            )
         }
     }
 }

@@ -81,7 +81,6 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.benchmark.traceprocessor.android)
     implementation(libs.androidx.navigation.compose)
-
 //    implementation(libs.androidx.benchmark.traceprocessor.jvm)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -107,7 +106,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.2")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.2")
     implementation("androidx.activity:activity-ktx:1.9.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
@@ -115,7 +113,4 @@ dependencies {
     // App Navigation
     val nav_version = "2.8.9"
     implementation("androidx.navigation:navigation-compose:$nav_version")
-
-    // Session Persistance
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
 }

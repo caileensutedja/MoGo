@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -39,6 +40,9 @@ import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModelFactory
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
 import com.fit3161.fit3162.mogo.data.repo.OfferRepository
+import com.fit3161.fit3162.mogo.ui.maps.MapScreenUI
+import com.fit3161.fit3162.mogo.ui.maps.MapsViewModel
+import com.fit3161.fit3162.mogo.ui.maps.MapsViewModelFactory
 
 /**
  * Defines every screen route in the app.
@@ -52,8 +56,9 @@ sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard") // TODO: This is temporary. Remove during clean up/when done.
     object Booked : Screen("booked")
     object FutureRides : Screen("futureRides")
-    object Profile: Screen("profile")
-    object Offer: Screen("offer")
+    object Profile : Screen("profile")
+    object Offer : Screen("offer")
+    object Map : Screen("map")
 }
 
 /**
@@ -172,6 +177,13 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
             ProfileScreenUI()
         }
 
+
+        // Map View Composable
+        composable(Screen.Map.route) {
+            val factory = MapsViewModelFactory(application.mapsRepository)
+            val viewModel: MapsViewModel = viewModel(factory = factory)
+            MapScreenUI(viewModel = viewModel)
+        }
     }
 }
 
@@ -199,7 +211,9 @@ fun BottomBar(navController: NavHostController) {
         BottomNavItem(Screen.Dashboard.route, "Home", Icons.Filled.Home),
         BottomNavItem(Screen.Booked.route, "booked", Icons.Filled.CalendarMonth),
         BottomNavItem(Screen.Offer.route, "Offer", Icons.Filled.LocalOffer),
-        BottomNavItem(Screen.Profile.route, "Profile", Icons.Filled.Person)
+        BottomNavItem(Screen.Profile.route, "Profile", Icons.Filled.Person),
+
+        BottomNavItem(Screen.Map.route, "Map View", Icons.Filled.Map)
     )
 
     NavigationBar {

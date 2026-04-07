@@ -30,13 +30,24 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Supabase
+        manifestPlaceholders["MAPS_API_KEY"] = project.findProperty("MAPS_API_KEY")?: ""
+
+        // Google Maps KEY
+        buildConfigField(
+            "String",
+            "MAPS_API_KEY",
+            "\"${localProperties["MAPS_API_KEY"] ?: ""}\""
+            )
+
+
+        // Supabase URL Key.
         buildConfigField(
             "String",
             "SUPABASE_URL",
             "\"${localProperties["SUPABASE_URL"] ?: ""}\""
         )
 
+        // Supabase ANON Key.
         buildConfigField(
             "String",
             "SUPABASE_ANON_KEY",
@@ -81,6 +92,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.benchmark.traceprocessor.android)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.compose.runtime)
 //    implementation(libs.androidx.benchmark.traceprocessor.jvm)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -111,6 +123,25 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
     // App Navigation
-    val nav_version = "2.8.9"
-    implementation("androidx.navigation:navigation-compose:$nav_version")
+    val navVersion = "2.8.9"
+    implementation("androidx.navigation:navigation-compose:$navVersion")
+    // Nav with Fragments
+    implementation("androidx.navigation:navigation-fragment-ktx:2.8.5")
+    implementation("androidx.navigation:navigation-ui-ktx:2.9.7")
+
+    // Maps
+    implementation("com.google.android.gms:play-services-maps:20.0.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.maps.android:android-maps-utils:3.8.2")
+
+    // Retrofit for Directions/Routes API
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:5.3.2")
+
+    // Maps Compose
+    implementation("com.google.maps.android:maps-compose:8.2.2")
+
+    // Continue from here...
+//    https://developers.google.com/maps/documentation/android-sdk/start#create-project
 }

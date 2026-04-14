@@ -32,6 +32,7 @@ fun FutureRideScreenUI(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
+    var showHidden by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -45,6 +46,17 @@ fun FutureRideScreenUI(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.fillMaxWidth()
         )
+
+        // Show active gender preference if set
+        state.genderPreference?.let {
+            Text(
+                text = "Showing: $it drivers only",
+                fontSize = 14.sp,
+                color = Color(0xFFB57BFF),
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+        }
 
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -110,24 +122,157 @@ fun FutureRideScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        if (!state.isLoading && state.error == null && state.rides.isEmpty()) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("No rides available on this date", color = Color.Gray)
-            }
-        } else {
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                items(state.rides.size) { idx ->
-                    FutureRideCard(ride = state.rides[idx])
-                    Spacer(modifier = Modifier.height(16.dp))
+        if (!state.isLoading && state.error == null){
+            if (state.visibleRides.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if (state.selectedDate.isNotEmpty())
+                            "No rides available on this date"
+                        else
+                            "No upcoming rides available",
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    // Visible rides
+                    items(state.visibleRides.size) { idx ->
+                        FutureRideCard(
+                            ride = state.visibleRides[idx],
+                            isHidden = false,
+                            onHide = { viewModel.hideRide(state.visibleRides[idx].id) },
+                            onUnhide = {}
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    // Hidden rides toggle
+                    if (state.hiddenRides.isNotEmpty()) {
+                        item {
+                            TextButton(onClick = { showHidden = !showHidden }) {
+                                Text(
+                                    text = if (showHidden)
+                                        "Hide ignored rides ▲"
+                                    else
+                                        "Show ignored rides (${state.hiddenRides.size}) ▼",
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+
+                        if (showHidden) {
+                            items(state.hiddenRides.size) { idx ->
+                                FutureRideCard(
+                                    ride = state.hiddenRides[idx],
+                                    isHidden = true,
+                                    onHide = {},
+                                    onUnhide = { viewModel.unhideRide(state.hiddenRides[idx].id) }
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+                    }
                 }
             }
         }
-
     }
 }
 
+
 @Composable
-fun FutureRideCard(ride: Ride) {
+fun FutureRideCard(
+    ride: Ride,
+    isHidden: Boolean = false,
+    onHide: () -> Unit,
+    onUnhide: () -> Unit = {}
+) {
+    val driver = ride.users
+    val vehicle = ride.vehicles
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                if (isHidden) Color(0xFFE0E0E0) else Color(0xFFF3E8FF),
+                RoundedCornerShape(20.dp)
+            )
+            .padding(16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = driver?.userName ?: "Unknown Driver",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isHidden) Color.Gray else Color.Black
+                )
+                Text(
+                    text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
+                    fontSize = 16.sp,
+                    color = Color.DarkGray
+                )
+                Text(
+                    text = "📍 ${ride.origin} → ${ride.destination}",
+                    fontSize = 16.sp,
+                    color = Color.DarkGray
+                )
+                Text(
+                    text = "🕐 ${formatDepartureTime(ride.departureTime)}",
+                    fontSize = 16.sp,
+                    color = Color.DarkGray
+                )
+                Text(
+                    text = "💺 ${ride.availableSeats} seats available",
+                    fontSize = 14.sp,
+                    color = Color.DarkGray
+                )
+                ride.carbonEstimate?.let {
+                    Text(
+                        text = "🌿 %.2f kg CO₂".format(it),
+                        fontSize = 14.sp,
+                        color = Color(0xFF4CAF50)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isHidden) {
+                        Button(
+                            onClick = { onUnhide() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Restore")
+                        }
+                    } else {
+                        Button(
+                            onClick = { onHide() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEAD7FF)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Not Interested")
+                        }
+                        Button(
+                            onClick = { /* TODO: book the ride */ },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Book")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+@Composable
+fun FutureRideCard_2(ride: Ride) {
     val driver = ride.users
     val vehicle = ride.vehicles
 

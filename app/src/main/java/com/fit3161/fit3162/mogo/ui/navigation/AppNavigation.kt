@@ -153,15 +153,11 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Future Rides UI composable.
         composable(Screen.FutureRides.route) {
-//                val bookRepository = remember { BookRepository(SupabaseClient) }
-//                val factory = FutureRideViewModelFactory(bookRepository)
-//                val viewModel: FutureRideViewModel = viewModel(factory = factory)
+            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
             val viewModel: FutureRideViewModel = viewModel(
-                factory = FutureRideViewModelFactory(supabase)
+                factory = FutureRideViewModelFactory(supabase, userId)
             )
-                FutureRideScreenUI(
-                    viewModel = viewModel
-                )
+            FutureRideScreenUI(viewModel = viewModel)
         }
 
         // Offer UI composable.

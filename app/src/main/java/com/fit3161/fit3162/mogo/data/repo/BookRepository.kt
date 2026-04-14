@@ -10,11 +10,18 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RideUser(
-        @SerialName("user_id")    val userId: String,
-        @SerialName("user_name")  val userName: String,
-        @SerialName("user_email") val userEmail: String? = null,
-        @SerialName("user_phone") val userPhone: String? = null
-        // Continue here
+        @SerialName("user_id")            val userId: String,
+        @SerialName("user_name")          val userName: String,
+        @SerialName("user_phone")         val userPhone: String,
+        @SerialName("user_email")         val userEmail: String,
+        @SerialName("user_dob")           val userDob: String? = null,
+        @SerialName("user_gender")        val userGender: String,
+        @SerialName("user_role")          val userRole: String,
+        @SerialName("driver_rating")      val driverRating: Double? = null,
+        @SerialName("home_campus")        val homeCampus: String? = null,
+        @SerialName("time_created")       val timeCreated: String? = null,
+        @SerialName("updated_at")         val updatedAt: String? = null,
+        @SerialName("gender_preference")  val genderPreference: String? = null
 )
 @Serializable
 data class Vehicle(
@@ -55,7 +62,10 @@ data class Booking(
         @SerialName("time_created")     val timeCreated: String? = null,
         val rides: Ride? = null         // joined ride data
 )
-
+@Serializable
+data class HiddenRide(
+        @SerialName("ride_id") val rideId: String
+)
 class BookRepository(private val client: SupabaseClient) {
 
         // BookScreen: current user's confirmed bookings, with ride + driver + vehicle
@@ -65,13 +75,14 @@ class BookRepository(private val client: SupabaseClient) {
                         .select(Columns.raw("*, rides(*, users(*), vehicles(*))")) {
                                 filter {
                                         eq("rider_id", userId)
-                                        eq("booking_status", "confirmed") // adjust to your enum value
+                                        eq("booking_status", "confirmed")
                                 }
+                                order("time_created", Order.ASCENDING) // Change it to ride's date
                         }
                         .decodeList<Booking>()
         }
 
-        suspend fun getAllFutureRides(): List<Ride> {
+        suspend fun getAllFutureRides(genderPreference: String? = null): List<Ride> {
                 val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
                         .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
@@ -79,16 +90,22 @@ class BookRepository(private val client: SupabaseClient) {
                         .from("rides")
                         .select(Columns.raw("*, users(*), vehicles(*)")) {
                                 filter {
-                                        gte("departure_time", now)
-                                        eq("ride_status", "scheduled")
-                                        gt("available_seats", 0)
+                                        and {
+                                                gte("departure_time", now)
+                                                eq("ride_status", "scheduled")
+                                                gt("available_seats", 0)
+                                                // Filter by driver gender at DB level if preference is set
+                                                if (genderPreference != null) {
+                                                        eq("users.user_gender", genderPreference)
+                                                }
+                                        }
                                 }
                                 order("departure_time", Order.ASCENDING) // Ascending order from Now
                         }
                         .decodeList<Ride>()
         }
 
-        suspend fun getFutureRidesByDate(date: String): List<Ride> {
+        suspend fun getFutureRidesByDate(date: String, genderPreference: String? = null): List<Ride> {
                 Log.d("DATE", "Date given is: ${date}")
                 Log.d("DATE", "Date given converted gta is: ${date}T00:00:00+10:00")
                 Log.d("DATE", "Date given converted gta is: ${date}T23:59:59+10:00")
@@ -101,11 +118,75 @@ class BookRepository(private val client: SupabaseClient) {
                                                 lte("departure_time", "${date}T23:59:59+00:00")
                                                 eq("ride_status", "scheduled")
                                                 gt("available_seats", 0)
+                                                // Filter by driver gender at DB level if preference is set
+                                                if (genderPreference != null) {
+                                                        eq("users.user_gender", genderPreference)
+                                                }
                                         }
-
                                 }
                                 order("departure_time", Order.ASCENDING)
                         }
                         .decodeList<Ride>()
         }
+
+        suspend fun getGenderPreference(userId: String): String? {
+                return client
+                        .from("users")
+                        .select(Columns.raw("user_id, gender_preference")) {
+                                filter { eq("user_id", userId) }
+                                limit(1)
+                        }
+                        .decodeSingleOrNull<RideUser>()
+                        ?.genderPreference
+        }
+
+        suspend fun hideRide(userId: String, rideId: String) {
+                client
+                        .from("hidden_rides")
+                        .insert(mapOf(
+                                "user_id" to userId,
+                                "ride_id" to rideId
+                        ))
+        }
+
+        suspend fun unhideRide(userId: String, rideId: String) {
+                client
+                        .from("hidden_rides")
+                        .delete {
+                                filter {
+                                        and {
+                                                eq("user_id", userId)
+                                                eq("ride_id", rideId)
+                                        }
+                                }
+                        }
+        }
+
+        suspend fun getHiddenRideIds(userId: String): Set<String> {
+                // Clean up expired hidden rides first (where ride departure has passed)
+//                val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
+//                        .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+//
+//                client
+//                        .from("hidden_rides")
+//                        .delete {
+//                                filter {
+//                                        and {
+//                                                eq("user_id", userId)
+//                                                lt("rides.departure_time", now)
+//                                        }
+//                                }
+//                        }
+
+                // Return remaining hidden ride IDs
+                return client
+                        .from("hidden_rides")
+                        .select(Columns.raw("ride_id")) {
+                                filter { eq("user_id", userId) }
+                        }
+                        .decodeList<HiddenRide>()
+                        .map { it.rideId }
+                        .toSet()
+        }
 }
+

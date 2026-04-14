@@ -23,6 +23,10 @@ class FutureRideViewModel (private val repo: BookRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(FutureRideUiState())
     val uiState: StateFlow<FutureRideUiState> = _uiState.asStateFlow()
 
+    init {
+        loadAllFutureRides()
+    }
+
     fun onDateSelected(date: String) {
         _uiState.value = _uiState.value.copy(
             selectedDate = date,
@@ -32,19 +36,33 @@ class FutureRideViewModel (private val repo: BookRepository) : ViewModel() {
         loadRidesByDate(date)
     }
 
+    fun onDateCleared() {
+        _uiState.value = _uiState.value.copy(
+            selectedDate = "",
+            isLoading = true,
+            error = null
+        )
+        loadAllFutureRides()
+    }
+
+    private fun loadAllFutureRides() {
+        viewModelScope.launch {
+            try {
+                val rides = repo.getAllFutureRides()
+                _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
+
     private fun loadRidesByDate(date: String) {
         viewModelScope.launch {
             try {
                 val rides = repo.getFutureRidesByDate(date)
-                _uiState.value = _uiState.value.copy(
-                    rides = rides,
-                    isLoading = false
-                )
+                _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message
-                )
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
     }

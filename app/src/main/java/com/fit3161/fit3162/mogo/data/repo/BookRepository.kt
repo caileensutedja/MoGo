@@ -1,24 +1,12 @@
 package com.fit3161.fit3162.mogo.data.repo;
 
+import android.util.Log
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-
-//data class Ride(
-//        val id: String,
-//        val driverName: String,
-//        val carType: String,
-//        val totalSeats: Int,
-//        val availableSeats: Int,
-//        val destination: String,
-//        val eta: String,
-//        val date: String
-//)
-//public class BookRepository {
-//    //getfutureridesbydate (input: date)
-//}
 
 @Serializable
 data class RideUser(
@@ -83,17 +71,40 @@ class BookRepository(private val client: SupabaseClient) {
                         .decodeList<Booking>()
         }
 
-        // FutureRideScreen: available rides on a given date, with driver + vehicle
-        suspend fun getFutureRidesByDate(date: String): List<Ride> {
+        suspend fun getAllFutureRides(): List<Ride> {
+                val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
+                        .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+
                 return client
                         .from("rides")
                         .select(Columns.raw("*, users(*), vehicles(*)")) {
                                 filter {
-                                        gte("departure_time", "${date}T00:00:00Z")
-                                        lte("departure_time", "${date}T23:59:59Z")
-                                        eq("ride_status", "scheduled") // adjust to your enum value
+                                        gte("departure_time", now)
+                                        eq("ride_status", "scheduled")
                                         gt("available_seats", 0)
                                 }
+                                order("departure_time", Order.ASCENDING) // Ascending order from Now
+                        }
+                        .decodeList<Ride>()
+        }
+
+        suspend fun getFutureRidesByDate(date: String): List<Ride> {
+                Log.d("DATE", "Date given is: ${date}")
+                Log.d("DATE", "Date given converted gta is: ${date}T00:00:00+10:00")
+                Log.d("DATE", "Date given converted gta is: ${date}T23:59:59+10:00")
+                return client
+                        .from("rides")
+                        .select(Columns.raw("*, users(*), vehicles(*)")) {
+                                filter {
+                                        and {
+                                                gte("departure_time", "${date}T00:00:00+00:00")
+                                                lte("departure_time", "${date}T23:59:59+00:00")
+                                                eq("ride_status", "scheduled")
+                                                gt("available_seats", 0)
+                                        }
+
+                                }
+                                order("departure_time", Order.ASCENDING)
                         }
                         .decodeList<Ride>()
         }

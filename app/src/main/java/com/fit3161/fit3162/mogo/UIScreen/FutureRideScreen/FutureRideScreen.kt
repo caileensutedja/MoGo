@@ -59,8 +59,18 @@ fun FutureRideScreenUI(
         )
 
         // Button for Date Picker
-        Button(onClick = { showDatePicker = true }) {
-            Text("Select Date")
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(onClick = { showDatePicker = true }) {
+                Text("Select Date")
+            }
+            if (state.selectedDate.isNotEmpty()) {
+                OutlinedButton(onClick = { viewModel.onDateCleared() }) {
+                    Text("Clear")
+                }
+            }
         }
 
         // DATE PICKER DIALOG
@@ -100,14 +110,11 @@ fun FutureRideScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // No Rides
-        if (!state.isLoading && state.rides.isEmpty() && state.error == null && state.selectedDate.isNotEmpty()) {
+        if (!state.isLoading && state.error == null && state.rides.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("No rides available on this date")
+                Text("No rides available on this date", color = Color.Gray)
             }
-        }
-
-        if (state.rides.isNotEmpty()) {
+        } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(state.rides.size) { idx ->
                     FutureRideCard(ride = state.rides[idx])
@@ -115,6 +122,7 @@ fun FutureRideScreenUI(
                 }
             }
         }
+
     }
 }
 
@@ -204,6 +212,6 @@ fun FutureRideCard(ride: Ride) {
 }
 
 fun convertMillisToDate(millis: Long): String {
-    val formatter = SimpleDateFormat("dd-mm-yyyy", Locale.getDefault())
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     return formatter.format(Date(millis))
 }

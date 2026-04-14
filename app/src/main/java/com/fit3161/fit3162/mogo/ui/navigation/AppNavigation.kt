@@ -23,7 +23,6 @@ import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModel
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
-import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.OfferScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModel
@@ -147,13 +146,8 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Future Rides UI composable.
         composable(Screen.FutureRides.route) {
-                val bookRepository = remember { BookRepository() }
-                val factory = FutureRideViewModelFactory(bookRepository)
-                val viewModel: FutureRideViewModel = viewModel(factory = factory)
-
-                FutureRideScreenUI(
-                    viewModel = viewModel
-                )
+            val viewModel: FutureRideViewModel = viewModel()   // ← no factory, no arguments
+            FutureRideScreenUI(viewModel = viewModel)
         }
 
         // Offer UI composable.

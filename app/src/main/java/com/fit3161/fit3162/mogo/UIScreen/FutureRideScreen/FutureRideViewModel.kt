@@ -1,117 +1,102 @@
 package com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
 import com.fit3161.fit3162.mogo.data.repo.Ride
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class FutureRideUiState(
-    val selectedDate: String = "",
     val rides: List<Ride> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val selectedDate: String = ""
 )
 
-class FutureRideViewModel (private val repo: BookRepository) : ViewModel() {
+class FutureRideViewModel() : ViewModel() {   // ← no parameters
+
 
     private val _uiState = MutableStateFlow(FutureRideUiState())
     val uiState: StateFlow<FutureRideUiState> = _uiState.asStateFlow()
 
-    fun onDateSelected(date: String) {
-        _uiState.value = _uiState.value.copy(
-            selectedDate = date,
-            isLoading = true,
-            error = null
-        )
+    private var allRides: List<Ride> = emptyList()
 
-        loadRidesByDate(date)
+    private val _selectedDate = MutableStateFlow("")
+    val selectedDate: StateFlow<String> = _selectedDate.asStateFlow()
+
+    private val _selectedDestination = MutableStateFlow("")
+    val selectedDestination: StateFlow<String> = _selectedDestination.asStateFlow()
+
+    init {
+        loadRides()
     }
 
-    private fun loadRidesByDate(date: String) {
+    private fun loadRides() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                // DELETE, FOR DUMMY
-                val allRides = loadDummyRides()
-                _uiState.value = _uiState.value.copy(
-                    rides = allRides,
-                    isLoading = false
+                // Dummy rides – replace with repository.getFutureRides() later
+                allRides = listOf(
+                    Ride(
+                        id = "1",
+                        driverName = "Rice Tan",
+                        carType = "Electric",
+                        destination = "Clayton Campus",
+                        eta = "12:00",
+                        date = "15-04-2026",
+                        totalSeats = 4,
+                        availableSeats = 2
+                    ),
+                    Ride(
+                        id = "2",
+                        driverName = "John Lim",
+                        carType = "Electric",
+                        destination = "Caulfield Campus",
+                        eta = "14:00",
+                        date = "15-04-2026",
+                        totalSeats = 4,
+                        availableSeats = 3
+                    ),
+                    Ride(
+                        id = "3",
+                        driverName = "Sarah Lee",
+                        carType = "Diesel",
+                        destination = "Clayton Campus",
+                        eta = "15:00",
+                        date = "15-04-2026",
+                        totalSeats = 5,
+                        availableSeats = 1
+                    )
                 )
-
-                // Uncomment
-//                val rides = repo.getFutureRidesByDate(date)
-
+                filterRides()
+                _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message
-                )
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
         }
     }
-//}
 
-
-    /**
-     * TEMPORARY: Dummy data
-     * TODO: Replace with repository call when backend is ready
-     */
-    init {
-        val dummy = loadDummyRides()
-        _uiState.value = _uiState.value.copy(
-            rides = dummy
-        )
+    fun onDateSelected(date: String) {
+        _selectedDate.value = date
+        filterRides()
     }
-    private fun loadDummyRides(): List<Ride> {
-//        return  emptyList<FutureRide>()
-        return listOf(
-            Ride(
-                id = "1",
-                driverName = "Rice Tan",
-                carType = "Electric",
-                totalSeats = 4,
-                availableSeats = 2,
-                destination = "LTB Clayton Campus",
-                eta = "12:00",
-                date = "2026-04-13"
-            ),
-            Ride(
-                id = "2",
-                driverName = "John Lim",
-                carType = "Electric",
-                totalSeats = 4,
-                availableSeats = 1,
-                destination = "Building H Caulfield Campus",
-                eta = "14:00",
-                date = "2026-04-13"
-            ),
-            Ride(
-                id = "3",
-                driverName = "Sarah Lee",
-                carType = "Diesel",
-                totalSeats = 6,
-                availableSeats = 3,
-                destination = "Sports Center Clayton Campus",
-                eta = "15:00",
-                date = "2026-04-13"
-            )
-        )
+
+    fun onDestinationSelected(destination: String) {
+        _selectedDestination.value = destination
+        filterRides()
     }
-}
 
-class FutureRideViewModelFactory(
-    private val repo: BookRepository
-) : ViewModelProvider.Factory {
-
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(FutureRideViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return FutureRideViewModel(repo) as T
+    private fun filterRides() {
+        val filtered = allRides.filter { ride ->
+            (selectedDate.value.isEmpty() || ride.date == selectedDate.value) &&
+                    (selectedDestination.value.isEmpty() || ride.destination.contains(selectedDestination.value, ignoreCase = true))
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
+        _uiState.update {
+            it.copy(rides = filtered, selectedDate = selectedDate.value)
+        }
     }
 }

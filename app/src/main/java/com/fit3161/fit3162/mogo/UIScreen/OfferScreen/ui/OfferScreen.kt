@@ -23,8 +23,8 @@ import com.fit3161.fit3162.mogo.data.repo.Offer
 @Composable
 fun OfferScreenUI(
     viewModel: OfferViewModel,
-    modifier: Modifier = Modifier) {
-
+    modifier: Modifier = Modifier
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
@@ -32,30 +32,25 @@ fun OfferScreenUI(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-
-        // Title
         Text(
             text = "Offers",
             fontSize = 34.sp,
             fontWeight = FontWeight.Bold
         )
 
-        // Loading State
         if (state.isLoading) {
             CircularProgressIndicator()
         }
 
-        // Error State
         state.error?.let {
             Text("Error: $it", color = Color.Red)
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        if (state.offers.isEmpty()) {
+        if (state.offersList.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 Text("No offers available")
@@ -64,12 +59,9 @@ fun OfferScreenUI(
             LazyColumn(
                 modifier = Modifier.weight(1f)
             ) {
-                items(state.offers.size) { idx ->
-                    val offer = state.offers[idx]
-
-                    OfferCardSkeleton(
-                        offer = offer
-                    )
+                items(state.offersList.size) { idx ->
+                    val offer = state.offersList[idx]
+                    OfferCardSkeleton(offer = offer)
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -77,6 +69,7 @@ fun OfferScreenUI(
         }
     }
 }
+
 @Composable
 fun OfferCardSkeleton(offer: Offer) {
     var showDialog by remember { mutableStateOf(false) }
@@ -87,24 +80,20 @@ fun OfferCardSkeleton(offer: Offer) {
             .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = offer.title,
+                    text = offer.businesses?.name ?: "MoGo",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Store: ${offer.store} | Offer Amount: $${offer.amount}",
+                    text = "Discount: $${offer.amount ?: "N/A"}",
                     fontSize = 14.sp,
                     color = Color.DarkGray
                 )
                 Text(
-                    text = "Expiry Date: ${offer.date}",
+                    text = "Expiry: ${formatDate(offer.date)}",
                     fontSize = 14.sp,
                     color = Color.DarkGray
                 )
@@ -135,22 +124,36 @@ fun OfferCardSkeleton(offer: Offer) {
                         Text("T&C")
                     }
                 }
-                // AlertDialog for T&C (pop-up mechanism)
+
                 if (showDialog) {
                     AlertDialog(
                         onDismissRequest = { showDialog = false },
                         title = { Text("Terms & Conditions") },
-                        text = { Text(offer.tc) }, // Display the T&C text from Offer
+                        text = { Text("Please refer to MoGo's terms and conditions.") },
                         confirmButton = {
-                            TextButton(
-                                onClick = { showDialog = false }
-                            ) {
+                            TextButton(onClick = { showDialog = false }) {
                                 Text("Ok")
                             }
                         }
                     )
                 }
+
             }
+
         }
+    }
+
+
+
+}
+
+fun formatDate(dateString: String?): String {
+    if (dateString == null) return "No expiry"
+    return try {
+        val input = java.time.OffsetDateTime.parse(dateString)
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy")
+        input.format(formatter)
+    } catch (e: Exception) {
+        dateString.take(10)
     }
 }

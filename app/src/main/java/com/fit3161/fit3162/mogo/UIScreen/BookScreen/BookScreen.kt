@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fit3161.fit3162.mogo.data.repo.Booking
 import com.fit3161.fit3162.mogo.data.repo.Ride
 
 @Composable
@@ -80,50 +81,61 @@ fun BookScreenUI(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        if (state.rides.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No rides available")
+        if (!state.isLoading && state.bookings.isEmpty() && state.error == null) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text("No booked rides")
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f)
-            ) {
-                items(state.rides.size) { idx ->
-                    val ride = state.rides[idx]
-
-                    BookedCardSkeleton(
-                        ride = ride
-                    )
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(state.bookings.size) { idx ->
+                    BookedCardSkeleton(booking = state.bookings[idx])
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
-
-
-            //  Future Ride Button
-            Button(
-                onClick = { onNavigateToFutureBookRides() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
-                shape = RoundedCornerShape(15.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFCEA2FD)
-                )
-            ) {
-                Text("Book Future Ride", fontSize = 18.sp)
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        //  Future Ride Button
+        Button(
+            onClick = { onNavigateToFutureBookRides() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp),
+            shape = RoundedCornerShape(15.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFCEA2FD)
+            )
+        ) {
+            Text("Book Future Ride", fontSize = 18.sp)
+        }
+
+        //  Upload Ride Button
+        Button(
+            // onNavigateToUploadRides()
+            onClick = {  },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp),
+            shape = RoundedCornerShape(15.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFCEA2FD)
+            )
+        ) {
+            Text("Upload Future Ride", fontSize = 18.sp)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
     }
 }
 
+
 @Composable
-fun BookedCardSkeleton(ride: Ride) {
+fun BookedCardSkeleton(booking: Booking) {
+    val ride = booking.rides
+    val driver = ride?.users
+    val vehicle = ride?.vehicles
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -146,48 +158,73 @@ fun BookedCardSkeleton(ride: Ride) {
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = ride.driverName,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${ride.carType} | ${ride.totalSeats} seats",
-                    fontSize = 14.sp,
-                    color = Color.DarkGray
-                )
-                Text(
-                    text = "📍 ${ride.destination}",
-                    fontSize = 14.sp
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Button(
-                        onClick = { /* TODO */ },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFEAD7FF)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Cancel")
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = driver?.userName ?: "Unknown Driver",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
+                        fontSize = 14.sp,
+                        color = Color.DarkGray
+                    )
+                    Text(
+                        text = "📍 ${ride?.destination ?: booking.dropoffLocation}",
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "🕐 ${formatDepartureTime(ride?.departureTime)}",
+                        fontSize = 14.sp,
+                        color = Color.DarkGray
+                    )
+                    ride?.carbonEstimate?.let {
+                        Text(
+                            text = "🌿 %.2f kg CO₂".format(it),
+                            fontSize = 13.sp,
+                            color = Color(0xFF4CAF50)
+                        )
                     }
 
-                    Button(
-                        onClick = { /* TODO */ },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFB57BFF)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Details")
+                        Button(
+                            onClick = { /* TODO: cancel booking */ },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFEAD7FF)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+
+                        Button(
+                            onClick = { /* TODO: show details */ },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFB57BFF)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Details")
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+fun formatDepartureTime(timestamp: String?): String {
+    if (timestamp == null) return "TBA"
+    return try {
+        val dt = java.time.OffsetDateTime.parse(timestamp)
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")
+        dt.format(formatter)
+    } catch (e: Exception) {
+        timestamp.take(16)
     }
 }

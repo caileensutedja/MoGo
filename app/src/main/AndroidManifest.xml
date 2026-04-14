@@ -31,23 +31,23 @@
 
         </activity>
 
-        <activity
-            android:name=".UIScreen.OfferScreen.OfferScreen"
-            android:exported="false"
-            android:label="@string/title_activity_offer_screen"
-            android:theme="@style/Theme.MoGo" />
+<!--        <activity-->
+<!--            android:name=".UIScreen.OfferScreen.OfferScreen"-->
+<!--            android:exported="false"-->
+<!--            android:label="@string/title_activity_offer_screen"-->
+<!--            android:theme="@style/Theme.MoGo" />-->
 
-        <activity
-            android:name=".UIScreen.SignInScreen.SignInScreen"
-            android:exported="false"
-            android:label="@string/title_activity_log_in_screen"
-            android:theme="@style/Theme.MoGo" />
+<!--        <activity-->
+<!--            android:name=".UIScreen.SignInScreen.SignInScreen"-->
+<!--            android:exported="false"-->
+<!--            android:label="@string/title_activity_log_in_screen"-->
+<!--            android:theme="@style/Theme.MoGo" />-->
 
-        <activity
-            android:name=".UIScreen.RegisterScreen.RegisterScreen"
-            android:exported="false"
-            android:label="@string/title_activity_register_screen"
-            android:theme="@style/Theme.MoGo" />
+<!--        <activity-->
+<!--            android:name=".UIScreen.RegisterScreen.RegisterScreen"-->
+<!--            android:exported="false"-->
+<!--            android:label="@string/title_activity_register_screen"-->
+<!--            android:theme="@style/Theme.MoGo" />-->
 
 <!--        NOTE: Remove WelcomeScreen as an Activity but keep its UI Composable-->
 <!--        <activity-->

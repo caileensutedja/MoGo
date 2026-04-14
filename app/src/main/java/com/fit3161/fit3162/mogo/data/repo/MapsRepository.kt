@@ -1,12 +1,17 @@
 package com.fit3161.fit3162.mogo.data.repo
 
+import android.annotation.SuppressLint
 import com.fit3161.fit3162.mogo.data.model.RouteResult
 import com.fit3161.fit3162.mogo.data.remote.RoutesApiService
 import com.fit3161.fit3162.mogo.data.remote.dto.LatLngLiteral
 import com.fit3161.fit3162.mogo.data.remote.dto.RoutesRequest
 import com.fit3161.fit3162.mogo.data.remote.dto.Waypoint
 import com.fit3161.fit3162.mogo.data.remote.dto.WaypointLocation
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.tasks.await
 
 
 /**
@@ -22,8 +27,22 @@ import com.google.android.gms.maps.model.LatLng
  */
 class MapsRepository(
     private val apiService: RoutesApiService,
-    private val apiKey: String
+    private val apiKey: String,
+    private val fusedLocationProviderClient: FusedLocationProviderClient
 ) {
+
+    @SuppressLint("MissingPermission")
+    suspend fun getDeviceLocation(): Result<LatLng> = runCatching {
+        val location = fusedLocationProviderClient.getCurrentLocation(
+            Priority.PRIORITY_HIGH_ACCURACY,
+            CancellationTokenSource().token
+        ).await()
+
+        location.let {
+            LatLng(it.latitude, it.longitude)
+        } ?: throw Exception("Unable to get device location. Ensure location services are enabled.")
+
+    }
 
     /**
      * Fetches a driving route between two coordinates.
@@ -40,7 +59,7 @@ class MapsRepository(
     ): Result<RouteResult> = runCatching {
 
         val response = apiService.computeRoutes(
-            apiKey  = apiKey,
+            apiKey = apiKey,
             request = RoutesRequest(
                 origin = Waypoint(
                     WaypointLocation(
@@ -52,7 +71,10 @@ class MapsRepository(
                         LatLngLiteral(destination.latitude, destination.longitude)
                     )
                 )
-            )
+            ),
+//            fieldMask = TODO(),
+//            packageName = TODO(),
+//            sha1Fingerprint = TODO()
         )
 
         check(response.routes.isNotEmpty()) {
@@ -63,16 +85,16 @@ class MapsRepository(
         val leg   = route.legs.first()
 
         RouteResult(
-            polylinePoints  = route.polyline.encodedPolyline,
-            distanceText    = leg.localizedValues.distance.text,
-            durationText    = leg.localizedValues.duration.text,
-            distanceMeters  = route.distanceMeters,
+            polylinePoints = route.polyline.encodedPolyline,
+            distanceText = leg.localizedValues.distance.text,
+            durationText = leg.localizedValues.duration.text,
+            distanceMeters = route.distanceMeters,
             durationSeconds = route.duration.trimEnd('s').toIntOrNull() ?: 0,
-            startLocation   = LatLng(
+            startLocation = LatLng(
                 leg.startLocation.latLng.latitude,
                 leg.startLocation.latLng.longitude
             ),
-            endLocation     = LatLng(
+            endLocation = LatLng(
                 leg.endLocation.latLng.latitude,
                 leg.endLocation.latLng.longitude
             ),

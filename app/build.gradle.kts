@@ -15,6 +15,9 @@ plugins {
 
     // Supabase uses Kotlin serialization
     kotlin("plugin.serialization") version "2.2.10"
+
+    // Secrets Gradle Plugin
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
@@ -30,7 +33,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        manifestPlaceholders["MAPS_API_KEY"] = project.findProperty("MAPS_API_KEY")?: ""
+        // Fix: Use localProperties to ensure the manifest gets the key
+        manifestPlaceholders["MAPS_API_KEY"] = localProperties["MAPS_API_KEY"] ?: ""
 
         // Google Maps KEY
         buildConfigField(
@@ -65,17 +69,33 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-    // Deprecated (20/03/2026)
-    kotlinOptions {
-        jvmTarget = "11"
+    // Migrating from kotlinOptions to compilerOptions
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
     buildFeatures {
         compose = true
         buildConfig = true
     }
+}
+
+// For Secrets Gradle Plugin.
+secrets {
+    propertiesFileName = "local.properties"
+    defaultPropertiesFileName = "local.defaults.properties"
+
+    // Make secrets available in AndroidManifest.xml as ${MAPS_API_KEY}
+    // AND in Kotlin code as BuildConfig.MAPS_API_KEY
+    ignoreList.add("sdk.*") // Don't expose sdk.dir as a BuildConfig field
+    ignoreList.add("keyAlias") // Ignore signing config keys if present
+    ignoreList.add("keyPassword")
+    ignoreList.add("storeFile")
+    ignoreList.add("storePassword")
 }
 
 val supabaseVersion = "3.4.1"
@@ -120,7 +140,8 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.0")
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
 
     // App Navigation
     val navVersion = "2.8.9"
@@ -142,6 +163,5 @@ dependencies {
     // Maps Compose
     implementation("com.google.maps.android:maps-compose:8.2.2")
 
-    // Continue from here...
-//    https://developers.google.com/maps/documentation/android-sdk/start#create-project
+
 }

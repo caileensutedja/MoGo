@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
 import com.fit3161.fit3162.mogo.data.repo.Ride
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -26,8 +27,8 @@ import java.util.Locale
 @Composable
 fun FutureRideScreenUI(
     viewModel: FutureRideViewModel,
-    modifier: Modifier = Modifier) {
-
+    modifier: Modifier = Modifier
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
@@ -69,7 +70,6 @@ fun FutureRideScreenUI(
                 confirmButton = {
                     TextButton(onClick = {
                         showDatePicker = false
-
                         datePickerState.selectedDateMillis?.let { millis ->
                             val formattedDate = convertMillisToDate(millis)
                             viewModel.onDateSelected(formattedDate)
@@ -101,24 +101,16 @@ fun FutureRideScreenUI(
         Spacer(modifier = Modifier.height(20.dp))
 
         // No Rides
-        if (state.rides.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No rides available")
+        if (!state.isLoading && state.rides.isEmpty() && state.error == null && state.selectedDate.isNotEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text("No rides available on this date")
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f)
-            ) {
-                items(state.rides.size) { idx ->
-                    val ride = state.rides[idx]
+        }
 
-                    FutureRideCard(
-                        ride = ride
-                    )
+        if (state.rides.isNotEmpty()) {
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(state.rides.size) { idx ->
+                    FutureRideCard(ride = state.rides[idx])
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -128,6 +120,9 @@ fun FutureRideScreenUI(
 
 @Composable
 fun FutureRideCard(ride: Ride) {
+    val driver = ride.users
+    val vehicle = ride.vehicles
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -135,40 +130,45 @@ fun FutureRideCard(ride: Ride) {
             .padding(16.dp)
     ) {
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically
+        Row(verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                // Driver name
                 Text(
-                    text = ride.driverName,
+                    text = driver?.userName ?: "Unknown Driver",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
-
-                // Electric + seats
                 Text(
-                    text = ride.carType,
+                    text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
                     fontSize = 16.sp,
                     color = Color.DarkGray
                 )
-
                 Text(
-                    text = "Destination: 📍${ride.destination}",
+                    text = "📍 ${ride.origin} → ${ride.destination}",
                     fontSize = 16.sp,
                     color = Color.DarkGray
                 )
-
-                // Distance + time
                 Text(
-                    text = "ETA: ${ride.eta}",
+                    text = "🕐 ${formatDepartureTime(ride.departureTime)}",
                     fontSize = 16.sp,
                     color = Color.DarkGray
                 )
+                Text(
+                    text = "💺 ${ride.availableSeats} seats available",
+                    fontSize = 14.sp,
+                    color = Color.DarkGray
+                )
+                ride.carbonEstimate?.let {
+                    Text(
+                        text = "🌿 %.2f kg CO₂".format(it),
+                        fontSize = 14.sp,
+                        color = Color(0xFF4CAF50)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -179,7 +179,7 @@ fun FutureRideCard(ride: Ride) {
                 ) {
 
                     Button(
-                        onClick = { /* TODO */ },
+                        onClick = { /* TODO: hide */ },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFEAD7FF)
                         ),
@@ -189,7 +189,7 @@ fun FutureRideCard(ride: Ride) {
                     }
 
                     Button(
-                        onClick = { /* TODO */ },
+                        onClick = { /* TODO: book the ride */ },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFB57BFF)
                         ),

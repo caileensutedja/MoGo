@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
 import com.fit3161.fit3162.mogo.data.repo.Ride
+import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,23 +29,17 @@ class FutureRideViewModel (private val repo: BookRepository) : ViewModel() {
             isLoading = true,
             error = null
         )
-
         loadRidesByDate(date)
     }
 
     private fun loadRidesByDate(date: String) {
         viewModelScope.launch {
             try {
-                // DELETE, FOR DUMMY
-                val allRides = loadDummyRides()
+                val rides = repo.getFutureRidesByDate(date)
                 _uiState.value = _uiState.value.copy(
-                    rides = allRides,
+                    rides = rides,
                     isLoading = false
                 )
-
-                // Uncomment
-//                val rides = repo.getFutureRidesByDate(date)
-
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -53,64 +48,15 @@ class FutureRideViewModel (private val repo: BookRepository) : ViewModel() {
             }
         }
     }
-//}
-
-
-    /**
-     * TEMPORARY: Dummy data
-     * TODO: Replace with repository call when backend is ready
-     */
-    init {
-        val dummy = loadDummyRides()
-        _uiState.value = _uiState.value.copy(
-            rides = dummy
-        )
-    }
-    private fun loadDummyRides(): List<Ride> {
-//        return  emptyList<FutureRide>()
-        return listOf(
-            Ride(
-                id = "1",
-                driverName = "Rice Tan",
-                carType = "Electric",
-                totalSeats = 4,
-                availableSeats = 2,
-                destination = "LTB Clayton Campus",
-                eta = "12:00",
-                date = "2026-04-13"
-            ),
-            Ride(
-                id = "2",
-                driverName = "John Lim",
-                carType = "Electric",
-                totalSeats = 4,
-                availableSeats = 1,
-                destination = "Building H Caulfield Campus",
-                eta = "14:00",
-                date = "2026-04-13"
-            ),
-            Ride(
-                id = "3",
-                driverName = "Sarah Lee",
-                carType = "Diesel",
-                totalSeats = 6,
-                availableSeats = 3,
-                destination = "Sports Center Clayton Campus",
-                eta = "15:00",
-                date = "2026-04-13"
-            )
-        )
-    }
 }
 
 class FutureRideViewModelFactory(
-    private val repo: BookRepository
+    private val client: SupabaseClient
 ) : ViewModelProvider.Factory {
-
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(FutureRideViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return FutureRideViewModel(repo) as T
+            return FutureRideViewModel(BookRepository(client)) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

@@ -116,8 +116,10 @@ class RegisterViewModel(private val repo: AuthRepository) : ViewModel() {
                 _state.value = AuthState.Error(
                     "Please use your @student.monash.edu or @monash.edu email."
                 )
-            data.password.length < 8 ->
-                _state.value = AuthState.Error("Password must be at least 8 characters.")
+            !isPasswordStrong(data.password) ->
+                _state.value = AuthState.Error(
+                    "Password must be at least 8 characters, contain an uppercase letter and a special character (e.g. !@#$%^&*)."
+                )
             data.password != data.confirmPassword ->
                 _state.value = AuthState.Error("Passwords do not match.")
             data.name.isBlank() ->
@@ -155,6 +157,12 @@ class RegisterViewModel(private val repo: AuthRepository) : ViewModel() {
         _state.value = AuthState.Idle
     }
 
+    private fun isPasswordStrong(password: String): Boolean {
+        if (password.length < 8) return false
+        val hasUpperCase = password.any { it.isUpperCase() }
+        val hasSpecialChar = password.any { it in "!@#$%^&*()_+-=[]{}|;:,.<>?/~`" }
+        return hasUpperCase && hasSpecialChar
+    }
     private fun isValidEmail(email: String): Boolean {
         val lower = email.trim().lowercase()
         return lower.endsWith("@student.monash.edu")

@@ -1,8 +1,10 @@
 package com.fit3161.fit3162.mogo
 
 import android.app.Application
+import android.util.Log
 import com.fit3161.fit3162.mogo.data.remote.RoutesApiService
 import com.fit3161.fit3162.mogo.data.repo.MapsRepository
+import com.google.android.gms.maps.MapsInitializer
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
@@ -25,31 +27,42 @@ import retrofit2.converter.gson.GsonConverterFactory
  */
 class MogoApplication : Application() {
 
-    /**
-     * Supabase HTTP client instance that can be shared across different parts of the app.
-     */
-    lateinit var supabase: SupabaseClient
-        private set
-
-
-    lateinit var mapsRepository: MapsRepository
-        private set
-
-
-    override fun onCreate() {
-        super.onCreate()
-
-        supabase = createSupabaseClient(
-            supabaseUrl = BuildConfig.SUPABASE_URL, // Use BuildConfig to access Url and Key from local.properties file.
+    val supabase: SupabaseClient by lazy {
+        createSupabaseClient(
+            supabaseUrl = BuildConfig.SUPABASE_URL,
             supabaseKey = BuildConfig.SUPABASE_ANON_KEY
         ) {
-            install(Auth) // For login/logout, registering users, managing logged users/sessions management.
-            install(Postgrest) // Allows PostgresSQL for DB operations.
+            install(Auth)
+            install(Postgrest)
             install(Realtime)
         }
+    }
 
-        // OkHttpClient — logging in debug only
+
+    // 2. MapsRepository and its dependencies created on demand
+//    val mapsRepository: MapsRepository by lazy {
+//        val okHttpClient = OkHttpClient.Builder()
+//            .apply {
+//                if (BuildConfig.DEBUG) {
+//                    addInterceptor(HttpLoggingInterceptor().apply {
+//                        level = HttpLoggingInterceptor.Level.BODY
+//                    })
+//                }
+//            }
+//            .build()
+    // 2. MapsRepository and its dependencies created on demand
+    val mapsRepository: MapsRepository by lazy {
         val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                // Inject Android verification headers for the restricted API Key
+                val request = chain.request().newBuilder()
+                    .addHeader("X-Android-Package", "com.fit3161.fit3162.mogo")
+                    // Provide your exact SHA-1 fingerprint here (colons are usually fine,
+                    // but if it fails, remove the colons: 11AFB9DF...)
+                    .addHeader("X-Android-Cert", "11:AF:B9:DF:93:55:C8:4F:31:C0:1D:E7:C3:13:72:24:7E:25:B2:94")
+                    .build()
+                chain.proceed(request)
+            }
             .apply {
                 if (BuildConfig.DEBUG) {
                     addInterceptor(HttpLoggingInterceptor().apply {
@@ -59,7 +72,6 @@ class MogoApplication : Application() {
             }
             .build()
 
-        // Retrofit for Routes API
         val routesApiService = Retrofit.Builder()
             .baseUrl("https://routes.googleapis.com/")
             .client(okHttpClient)
@@ -67,11 +79,21 @@ class MogoApplication : Application() {
             .build()
             .create(RoutesApiService::class.java)
 
-        // Maps repository
-        mapsRepository = MapsRepository(
+        MapsRepository(
             apiService = routesApiService,
-            apiKey     = BuildConfig.MAPS_API_KEY
+            apiKey = BuildConfig.MAPS_API_KEY,
+            fusedLocationProviderClient = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(this) // TODO: Refactor if possible
         )
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+
+        // Force the modern renderer globally before the UI starts
+        MapsInitializer.initialize(this, MapsInitializer.Renderer.LATEST) { renderer ->
+            Log.d("MapsApp", "Renderer callback triggered: $renderer")
+        }
+
 
     }
 

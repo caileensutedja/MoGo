@@ -9,8 +9,6 @@ import retrofit2.http.POST
 /**
  * Retrofit interface for Google Routes API.
  * Base URL: https://routes.googleapis.com/
- *
- * X-Goog-FieldMask is required — you are only billed for fields you request.
  */
 interface RoutesApiService {
 
@@ -25,6 +23,9 @@ interface RoutesApiService {
                     "routes.legs.startLocation," +
                     "routes.legs.endLocation," +
                     "routes.legs.localizedValues",
+        // Headers to support restricted API keys
+//        @Header("X-Android-Package") packageName: String,
+//        @Header("X-Android-Cert") sha1Fingerprint: String,
         @Body request: RoutesRequest
     ): RoutesResponse
 }

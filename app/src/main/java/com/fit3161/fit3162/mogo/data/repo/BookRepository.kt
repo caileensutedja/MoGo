@@ -141,12 +141,20 @@ class BookRepository(private val client: SupabaseClient) {
         }
 
         suspend fun hideRide(userId: String, rideId: String) {
-                client
-                        .from("hidden_rides")
-                        .insert(mapOf(
+                try {
+                        Log.d("MOGO_DEBUG", "Attempting to hide ride: $rideId for user: $userId")
+
+                        client.from("hidden_rides").insert(mapOf(
                                 "user_id" to userId,
                                 "ride_id" to rideId
                         ))
+
+                        Log.d("MOGO_DEBUG", "Successfully hidden ride!")
+                } catch (e: Exception) {
+                        // This will print the exact SQL error (e.g., Foreign Key violation, 403 Forbidden, etc.)
+                        Log.e("MOGO_DEBUG", "FAILED to hide ride. Error: ${e.message}")
+                        Log.e("MOGO_DEBUG", "Full StackTrace: ${e.stackTraceToString()}")
+                }
         }
 
         suspend fun unhideRide(userId: String, rideId: String) {
@@ -163,22 +171,6 @@ class BookRepository(private val client: SupabaseClient) {
         }
 
         suspend fun getHiddenRideIds(userId: String): Set<String> {
-                // Clean up expired hidden rides first (where ride departure has passed)
-//                val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
-//                        .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-//
-//                client
-//                        .from("hidden_rides")
-//                        .delete {
-//                                filter {
-//                                        and {
-//                                                eq("user_id", userId)
-//                                                lt("rides.departure_time", now)
-//                                        }
-//                                }
-//                        }
-
-                // Return remaining hidden ride IDs
                 return client
                         .from("hidden_rides")
                         .select(Columns.raw("ride_id")) {

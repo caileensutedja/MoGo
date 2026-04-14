@@ -118,6 +118,7 @@ class FutureRideViewModel (
         viewModelScope.launch {
             try {
                 repo.hideRide(userId, rideId)
+                Log.d("HIDE", "Success to hide ride: $rideId")
             } catch (e: Exception) {
                 // Revert if DB call fails
                 _uiState.value = _uiState.value.copy(

@@ -1,8 +1,11 @@
 package com.fit3161.fit3162.mogo.UIScreen.Profile
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.repo.AuthRepository
+import com.fit3161.fit3162.mogo.data.repo.ImageUploadRepository
 import com.fit3161.fit3162.mogo.data.repo.ProfileRepository
 import com.fit3161.fit3162.mogo.data.repo.UserProfile
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,7 +13,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
 
 data class ProfileUiState(
     val profile: UserProfile? = null,
@@ -20,14 +22,28 @@ data class ProfileUiState(
 
 class ProfileViewModel(
     private val authRepo: AuthRepository,
-    private val profileRepo: ProfileRepository
+    private val profileRepo: ProfileRepository,
+    private val context: Context               // ✅ added
 ) : ViewModel() {
+
+    private val imageUploadRepo = ImageUploadRepository(authRepo.getSupabaseClient(), context)   // ✅ pass context
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
         loadProfile()
+    }
+
+    fun updateProfilePicture(uri: Uri) {
+        viewModelScope.launch {
+            val userId = authRepo.getCurrentUserId() ?: return@launch
+            val avatarUrl = imageUploadRepo.uploadProfileImage(userId, uri)
+            if (avatarUrl != null) {
+                profileRepo.updateAvatarUrl(userId, avatarUrl)
+                loadProfile()
+            }
+        }
     }
 
     fun updateField(field: String, value: String) {
@@ -41,6 +57,7 @@ class ProfileViewModel(
             loadProfile()
         }
     }
+
     fun loadProfile() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }

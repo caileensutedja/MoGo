@@ -1,21 +1,24 @@
 package com.fit3161.fit3162.mogo.UIScreen.ProfileScreen
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,18 +28,17 @@ fun ProfileScreenUI(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var mobile by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
 
-    // Dialog states
     var showNameDialog by remember { mutableStateOf(false) }
     var showMobileDialog by remember { mutableStateOf(false) }
     var showGenderDialog by remember { mutableStateOf(false) }
 
-    // Temporary values for editing
     var tempName by remember { mutableStateOf("") }
     var tempMobile by remember { mutableStateOf("") }
     var tempGender by remember { mutableStateOf("") }
@@ -64,6 +66,15 @@ fun ProfileScreenUI(
         return
     }
 
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            selectedImageUri = it
+            viewModel.updateProfilePicture(it)
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -81,13 +92,31 @@ fun ProfileScreenUI(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Profile picture
+        // Profile picture (clickable to pick image)
         Box(
             modifier = Modifier
                 .size(120.dp)
-                .background(Color(0xFFDCCBFF), CircleShape),
+                .background(Color(0xFFDCCBFF), CircleShape)
+                .clickable { launcher.launch("image/*") },
             contentAlignment = Alignment.Center
-        ) { Text("P", fontSize = 40.sp, fontWeight = FontWeight.Bold) }
+        ) {
+            val avatarUrl = uiState.profile?.avatar_url
+            if (avatarUrl != null && selectedImageUri == null) {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "Profile picture",
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else if (selectedImageUri != null) {
+                AsyncImage(
+                    model = selectedImageUri,
+                    contentDescription = "Selected avatar",
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Text("P", fontSize = 40.sp, fontWeight = FontWeight.Bold)
+            }
+        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -95,7 +124,7 @@ fun ProfileScreenUI(
         OutlinedTextField(
             value = name,
             onValueChange = {},
-            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+            textStyle = TextStyle(color = Color.Black),   // ✅ fixed
             label = { Text("Full Name") },
             modifier = Modifier.fillMaxWidth(),
             enabled = false,
@@ -110,10 +139,10 @@ fun ProfileScreenUI(
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Email (read-only, no edit icon)
+        // Email field
         OutlinedTextField(
             value = email,
-            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+            textStyle = TextStyle(color = Color.Black),
             onValueChange = {},
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
@@ -124,7 +153,7 @@ fun ProfileScreenUI(
         // Mobile field
         OutlinedTextField(
             value = mobile,
-            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+            textStyle = TextStyle(color = Color.Black),
             onValueChange = {},
             label = { Text("Mobile Number") },
             modifier = Modifier.fillMaxWidth(),
@@ -144,7 +173,7 @@ fun ProfileScreenUI(
         OutlinedTextField(
             value = gender,
             onValueChange = {},
-            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+            textStyle = TextStyle(color = Color.Black),
             label = { Text("Gender") },
             modifier = Modifier.fillMaxWidth(),
             enabled = false,
@@ -170,7 +199,7 @@ fun ProfileScreenUI(
         Spacer(modifier = Modifier.height(12.dp))
 
         Button(
-            onClick = { /* Save all changes (optional) */ },
+            onClick = { /* Save all changes */ },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCEA2FD)),
             shape = RoundedCornerShape(12.dp)
@@ -179,7 +208,7 @@ fun ProfileScreenUI(
         }
     }
 
-    // Edit Name Dialog
+    // Dialogs (unchanged – they don't use LocalTextStyle)
     if (showNameDialog) {
         AlertDialog(
             onDismissRequest = { showNameDialog = false },
@@ -208,7 +237,6 @@ fun ProfileScreenUI(
         )
     }
 
-    // Edit Mobile Dialog
     if (showMobileDialog) {
         AlertDialog(
             onDismissRequest = { showMobileDialog = false },
@@ -237,7 +265,6 @@ fun ProfileScreenUI(
         )
     }
 
-    // Edit Gender Dialog with dropdown
     if (showGenderDialog) {
         val genderOptions = listOf("Female", "Male", "Non-binary", "Genderqueer", "Agender", "Transgender", "Prefer not to say", "Other")
         var expanded by remember { mutableStateOf(false) }

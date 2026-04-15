@@ -89,6 +89,11 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    // Image loading (Coil)
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
+// Supabase Storage (for uploading images)
+    implementation("io.github.jan-tennert.supabase:storage-kt:${supabaseVersion}")
 
     // Material Compose
     implementation("androidx.compose.material:material-icons-extended:1.7.8")

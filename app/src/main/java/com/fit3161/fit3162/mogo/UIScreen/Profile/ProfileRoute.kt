@@ -13,7 +13,7 @@ fun ProfileRoute(application: MogoApplication) {
     val authRepo = remember { AuthRepository(supabase) }
     val profileRepo = remember { ProfileRepository(supabase) }
     val viewModel = remember {
-        ProfileViewModel(authRepo, profileRepo)
+        ProfileViewModel(authRepo, profileRepo, application.applicationContext)
     }
     ProfileScreenUI(viewModel = viewModel)
 }

@@ -13,7 +13,8 @@ data class UserProfile(
     val user_name: String,
     val user_phone: String,
     val user_gender: String,
-    val user_role: String
+    val user_role: String,
+    val avatar_url: String? = null   // new
 )
 
 class ProfileRepository(private val supabase: SupabaseClient) {
@@ -28,6 +29,17 @@ class ProfileRepository(private val supabase: SupabaseClient) {
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+    suspend fun updateAvatarUrl(userId: String, avatarUrl: String): Result<Unit> {
+        return try {
+            supabase.from("users")
+                .update(buildJsonObject { put("avatar_url", avatarUrl) }) {
+                    filter { eq("user_id", userId) }
+                }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

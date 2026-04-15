@@ -30,6 +30,17 @@ class ProfileViewModel(
         loadProfile()
     }
 
+    fun updateField(field: String, value: String) {
+        viewModelScope.launch {
+            val userId = authRepo.getCurrentUserId() ?: return@launch
+            when (field) {
+                "name" -> profileRepo.updateProfile(userId, name = value)
+                "mobile" -> profileRepo.updateProfile(userId, phone = value)
+                "gender" -> profileRepo.updateProfile(userId, gender = value)
+            }
+            loadProfile()
+        }
+    }
     fun loadProfile() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }

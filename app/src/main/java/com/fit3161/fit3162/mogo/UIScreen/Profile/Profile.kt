@@ -66,7 +66,12 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
             onValueChange = {},
             label = { Text("Full Name") },
             modifier = Modifier.fillMaxWidth(),
-            enabled = false
+            enabled = false,
+            trailingIcon = {
+                IconButton(onClick = { /* TODO: implement edit */ }) {
+                    Text("✎", fontSize = 20.sp)
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -77,7 +82,12 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
             onValueChange = { },
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
-            enabled = false
+            enabled = false,
+            trailingIcon = {
+                IconButton(onClick = { /* TODO: implement edit */ }) {
+                    Text("✎", fontSize = 20.sp)
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -88,7 +98,12 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
             onValueChange = { },
             label = { Text("Mobile Number") },
             modifier = Modifier.fillMaxWidth(),
-            enabled = false
+            enabled = false,
+            trailingIcon = {
+                IconButton(onClick = { /* TODO: implement edit */ }) {
+                    Text("✎", fontSize = 20.sp)
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -99,7 +114,12 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
             onValueChange = {},
             label = { Text("Gender (Male/Female/Other)") },
             modifier = Modifier.fillMaxWidth(),
-            enabled = false
+            enabled = false,
+            trailingIcon = {
+                IconButton(onClick = { /* TODO: implement edit */ }) {
+                    Text("✎", fontSize = 20.sp)
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(100.dp))

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileRoute
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -163,7 +164,7 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Profile UI composable.
         composable(Screen.Profile.route) {
-            ProfileScreenUI()
+            ProfileRoute(application = application)
         }
 
     }

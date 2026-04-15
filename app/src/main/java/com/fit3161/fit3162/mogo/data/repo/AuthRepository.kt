@@ -51,6 +51,7 @@ class AuthRepository(private val supabase: SupabaseClient) {
             Result.failure(mapError(e))
         }
     }
+    fun getCurrentUserId(): String? = supabase.auth.currentUserOrNull()?.id
 
     /**
      * Returns boolean if user is currently logged in or not.

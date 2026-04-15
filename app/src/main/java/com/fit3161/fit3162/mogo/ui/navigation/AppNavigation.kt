@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileRoute
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -39,8 +40,6 @@ import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModelFactory
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
 import com.fit3161.fit3162.mogo.data.repo.OfferRepository
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth
 
 /**
  * Defines every screen route in the app.
@@ -136,13 +135,9 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Booked UI composable.
         composable(Screen.Booked.route) {
-//            val bookRepository = remember { BookRepository(SupabaseClient) }
-//            val factory = BookViewModelFactory(bookRepository)
-//            val viewModel: BookViewModel = viewModel(factory = factory)
-            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
-            val viewModel: BookViewModel = viewModel(
-                factory = BookViewModelFactory(supabase, userId)
-            )
+            val bookRepository = remember { BookRepository() }
+            val factory = BookViewModelFactory(bookRepository)
+            val viewModel: BookViewModel = viewModel(factory = factory)
             BookScreenUI(
                 viewModel = viewModel,
                 onNavigateToFutureBookRides = {
@@ -153,18 +148,21 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Future Rides UI composable.
         composable(Screen.FutureRides.route) {
-            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
-            val viewModel: FutureRideViewModel = viewModel(
-                factory = FutureRideViewModelFactory(supabase, userId)
-            )
-            FutureRideScreenUI(viewModel = viewModel)
+                val bookRepository = remember { BookRepository() }
+                val factory = FutureRideViewModelFactory(bookRepository)
+                val viewModel: FutureRideViewModel = viewModel(factory = factory)
+
+                FutureRideScreenUI(
+                    viewModel = viewModel
+                )
         }
 
         // Offer UI composable.
         composable(Screen.Offer.route) {
-            val viewModel: OfferViewModel = viewModel(
-                factory = OfferViewModelFactory(supabase)
-            )
+            val offerRepository = remember { OfferRepository() }
+            val factory = OfferViewModelFactory(offerRepository)
+            val viewModel: OfferViewModel = viewModel(factory = factory)
+
             OfferScreenUI(
                 viewModel = viewModel
             )

@@ -12,7 +12,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,7 +68,7 @@ fun ProfileScreenUI(
         return
     }
 
-    val launcher = rememberLauncherForActivityResult(
+    val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
@@ -92,39 +94,66 @@ fun ProfileScreenUI(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Profile picture (clickable to pick image)
+        // Profile picture with edit icon overlay
         Box(
-            modifier = Modifier
-                .size(120.dp)
-                .background(Color(0xFFDCCBFF), CircleShape)
-                .clickable { launcher.launch("image/*") },
+            modifier = Modifier.size(120.dp),
             contentAlignment = Alignment.Center
         ) {
-            val avatarUrl = uiState.profile?.avatar_url
-            if (avatarUrl != null && selectedImageUri == null) {
-                AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = "Profile picture",
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else if (selectedImageUri != null) {
-                AsyncImage(
-                    model = selectedImageUri,
-                    contentDescription = "Selected avatar",
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Text("P", fontSize = 40.sp, fontWeight = FontWeight.Bold)
+            // Circular image
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(Color(0xFFDCCBFF))
+                    .clickable { galleryLauncher.launch("image/*") }
+            ) {
+                val avatarUrl = uiState.profile?.avatar_url
+                if (avatarUrl != null && selectedImageUri == null) {
+                    AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = "Profile picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (selectedImageUri != null) {
+                    AsyncImage(
+                        model = selectedImageUri,
+                        contentDescription = "Selected avatar",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("P", fontSize = 40.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Edit icon (pencil) at bottom‑right edge
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = (-8).dp, y = (-8).dp)  // position inside the circle edge
+                    .size(32.dp)
+                    .background(Color.White, CircleShape)
+                    .clickable { galleryLauncher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("✎", fontSize = 18.sp, color = Color.Black)
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Rest of the fields (unchanged)...
         // Name field
         OutlinedTextField(
             value = name,
             onValueChange = {},
-            textStyle = TextStyle(color = Color.Black),   // ✅ fixed
+            textStyle = TextStyle(color = Color.Black),
             label = { Text("Full Name") },
             modifier = Modifier.fillMaxWidth(),
             enabled = false,

@@ -101,7 +101,7 @@ fun WelcomeScreen(onNavigateToLogin: () -> Unit = {}) {
         }
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Designed by Group 15:\nBrianna, Caileen, Jasmine, Pia",
+            text = "Designed by Group 15:\nBrianna, Caileen, Jasmine, Priyana",
             fontSize = 12.sp,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.SemiBold

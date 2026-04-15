@@ -63,9 +63,10 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
         // Name field
         OutlinedTextField(
             value = name,
-            onValueChange = { name = it },
+            onValueChange = {},
             label = { Text("Full Name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -73,9 +74,10 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
         // Email field
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = { },
             label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -83,9 +85,10 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
         // Mobile field
         OutlinedTextField(
             value = mobile,
-            onValueChange = { mobile = it },
+            onValueChange = { },
             label = { Text("Mobile Number") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -93,9 +96,10 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
         // Gender field
         OutlinedTextField(
             value = gender,
-            onValueChange = { gender = it },
+            onValueChange = {},
             label = { Text("Gender (Male/Female/Other)") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false
         )
 
         Spacer(modifier = Modifier.height(100.dp))

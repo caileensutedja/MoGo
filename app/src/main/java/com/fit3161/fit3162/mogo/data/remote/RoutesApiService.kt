@@ -19,7 +19,7 @@ interface RoutesApiService {
             "routes.duration," +
                     "routes.distanceMeters," +
                     "routes.polyline," +
-                    "routes.bounds," +
+                    "routes.viewport," +
                     "routes.legs.startLocation," +
                     "routes.legs.endLocation," +
                     "routes.legs.localizedValues",

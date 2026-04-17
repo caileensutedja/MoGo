@@ -2,6 +2,7 @@ package com.fit3161.fit3162.mogo.ui.maps
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fit3161.fit3162.mogo.data.model.PresetDestination // ADDED: new import for preset destinations
 import com.fit3161.fit3162.mogo.data.model.RouteResult
 import com.fit3161.fit3162.mogo.data.repo.MapsRepository
 import com.google.android.gms.maps.model.LatLng
@@ -10,20 +11,47 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+// REMOVED: FusedLocationProviderClient import — location is now handled by MapsRepository
+
 class MapsViewModel(private val mapRepository: MapsRepository) : ViewModel() {
 
-    // ── User location state ──────────────────────────────────────────
+    // ADDED: preset destinations list — modify coordinates to match your app's locations
+    val presetDestinations = listOf(
+        PresetDestination(
+            name = "Monash Clayton",
+            latLng = LatLng(-37.91103371251901, 145.13714676692243),
+            description = "Monash University Clayton Campus"
+        ),
+        PresetDestination(
+            name = "Monash Caulfield",
+            latLng = LatLng(-37.87694590809227, 145.0457298608304),
+            description = "Monash University Caulfield Campus"
+        ),
+        PresetDestination(
+            name = "Monash Peninsula",
+            latLng = LatLng(-38.152447616283546, 145.1365170687726),
+            description = "Monash University Peninsula Campus"
+        ),
+//        PresetDestination(
+//            name = "Monash Parkville",
+//            latLng = LatLng(-37.7838187556312, 144.95936807247296),
+//            description = "Monash University Parkville Campus"
+//        )
+    )
+
+    // ADDED: user location state (was not tracked before)
     private val _userLocation = MutableStateFlow<LocationState>(LocationState.Unknown)
     val userLocation: StateFlow<LocationState> = _userLocation.asStateFlow()
 
-    // ── Route state ──────────────────────────────────────────────────
+    // ADDED: selected destination state for chip highlighting + route info card
+    private val _selectedDestination = MutableStateFlow<PresetDestination?>(null)
+    val selectedDestination: StateFlow<PresetDestination?> = _selectedDestination.asStateFlow()
+
     private val _routeState = MutableStateFlow<RouteState>(RouteState.Idle)
     val routeState: StateFlow<RouteState> = _routeState.asStateFlow()
 
-    /**
-     * Fetches device location from the repository.
-     * Call this AFTER permission is granted from the UI layer.
-     */
+    // ADDED: replaces old getDeviceLocation() that took FusedLocationProviderClient as parameter
+    // Now delegates to repository (proper MVVM — ViewModel doesn't touch Android framework classes)
     fun loadDeviceLocation() {
         viewModelScope.launch {
             _userLocation.value = LocationState.Loading
@@ -34,19 +62,35 @@ class MapsViewModel(private val mapRepository: MapsRepository) : ViewModel() {
         }
     }
 
-    /**
-     * Fetches a route from origin to destination.
-     * If no origin is provided, uses the current device location.
-     */
+    // REMOVED: old getDeviceLocation(fusedLocationClient: FusedLocationProviderClient)
+    // that used callback-based lastLocation
+
+    // ADDED: called when user taps a destination chip
+    // Sets selection state AND triggers route fetch in one action
+    fun selectDestination(destination: PresetDestination) {
+        _selectedDestination.value = destination
+        fetchRoute(destination.latLng)
+    }
+
+    // CHANGED: now also clears selectedDestination (was only clearing routeState)
+    fun clearRoute() {
+        _selectedDestination.value = null
+        _routeState.value = RouteState.Idle
+    }
+
+    // CHANGED: destination is now first parameter (required), origin is optional
+    // (was: both required). If origin is null, automatically uses device location.
     fun fetchRoute(destination: LatLng, origin: LatLng? = null) {
         viewModelScope.launch {
             _routeState.value = RouteState.Loading
 
-            // Resolve origin: use provided value, current location, or fetch fresh
+            // ADDED: automatic origin resolution chain
+            // 1. Use provided origin, OR
+            // 2. Use cached user location, OR
+            // 3. Fetch fresh location from repository
             val resolvedOrigin = origin
                 ?: (_userLocation.value as? LocationState.Located)?.latLng
                 ?: run {
-                    // Try fetching location if we don't have one yet
                     val locResult = mapRepository.getDeviceLocation()
                     locResult.getOrElse {
                         _routeState.value = RouteState.Error(
@@ -62,16 +106,9 @@ class MapsViewModel(private val mapRepository: MapsRepository) : ViewModel() {
             )
         }
     }
-
-    /** Resets route state back to idle (e.g. when user clears the route). */
-    fun clearRoute() {
-        _routeState.value = RouteState.Idle
-    }
 }
 
-
-// ── Sealed classes for state ─────────────────────────────────────────
-
+// ADDED: LocationState sealed class (user location was not tracked before)
 sealed class LocationState {
     object Unknown : LocationState()
     object Loading : LocationState()
@@ -86,11 +123,11 @@ sealed class RouteState {
     data class Error(val message: String) : RouteState()
 }
 
-
 //package com.fit3161.fit3162.mogo.ui.maps
 //
 //import androidx.lifecycle.ViewModel
 //import androidx.lifecycle.viewModelScope
+//import com.fit3161.fit3162.mogo.data.model.PresetDestination
 //import com.fit3161.fit3162.mogo.data.model.RouteResult
 //import com.fit3161.fit3162.mogo.data.repo.MapsRepository
 //import com.google.android.gms.maps.model.LatLng
@@ -99,11 +136,37 @@ sealed class RouteState {
 //import kotlinx.coroutines.flow.asStateFlow
 //import kotlinx.coroutines.launch
 //
-//class MapsViewModel(private val mapRepository : MapsRepository) : ViewModel() {
+//class MapsViewModel(private val mapRepository: MapsRepository) : ViewModel() {
 //
+//    // ── Preset destinations ──────────────────────────────────────────
+//    // Modify these to match your app's actual destinations.
+//    val presetDestinations = listOf(
+//        PresetDestination(
+//            name = "Monash Clayton",
+//            latLng = LatLng(-37.9105, 145.1363),
+//            description = "Monash University Clayton Campus"
+//        ),
+//        PresetDestination(
+//            name = "Flinders St",
+//            latLng = LatLng(-37.8183, 144.9671),
+//            description = "Flinders Street Station"
+//        ),
+//        PresetDestination(
+//            name = "Melbourne Airport",
+//            latLng = LatLng(-37.6690, 144.8410),
+//            description = "Tullamarine Airport (MEL)"
+//        )
+//    )
+//
+//    // ── User location state ──────────────────────────────────────────
 //    private val _userLocation = MutableStateFlow<LocationState>(LocationState.Unknown)
 //    val userLocation: StateFlow<LocationState> = _userLocation.asStateFlow()
 //
+//    // ── Selected destination ─────────────────────────────────────────
+//    private val _selectedDestination = MutableStateFlow<PresetDestination?>(null)
+//    val selectedDestination: StateFlow<PresetDestination?> = _selectedDestination.asStateFlow()
+//
+//    // ── Route state ──────────────────────────────────────────────────
 //    private val _routeState = MutableStateFlow<RouteState>(RouteState.Idle)
 //    val routeState: StateFlow<RouteState> = _routeState.asStateFlow()
 //
@@ -121,17 +184,24 @@ sealed class RouteState {
 //        }
 //    }
 //
-////    fun getDeviceLocation(fusedLocationClient : FusedLocationProviderClient) {
-////        try {
-////            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-////                if (location != null) {
-////                    // Update a new state: _currentUserLocation.value = LatLng(location.latitude, location.longitude)
-////                }
-////            }
-////        } catch (e: SecurityException) {
-////            // Handle exception.
-////        }
-////    }
+//    /**
+//     * Called when the user taps a preset destination chip.
+//     * Sets the selected destination and immediately fetches the route
+//     * from the user's current location.
+//     */
+//    fun selectDestination(destination: PresetDestination) {
+//        _selectedDestination.value = destination
+//        fetchRoute(destination.latLng)
+//    }
+//
+//    /**
+//     * Clears the current route and selected destination,
+//     * returning the map to its idle state.
+//     */
+//    fun clearRoute() {
+//        _selectedDestination.value = null
+//        _routeState.value = RouteState.Idle
+//    }
 //
 //    /**
 //     * Fetches a route from origin to destination.
@@ -145,7 +215,6 @@ sealed class RouteState {
 //            val resolvedOrigin = origin
 //                ?: (_userLocation.value as? LocationState.Located)?.latLng
 //                ?: run {
-//                    // Try fetching location if we don't have one yet
 //                    val locResult = mapRepository.getDeviceLocation()
 //                    locResult.getOrElse {
 //                        _routeState.value = RouteState.Error(
@@ -161,25 +230,10 @@ sealed class RouteState {
 //            )
 //        }
 //    }
-//
-////    fun fetchRoute(origin: LatLng, destination: LatLng) {
-////        viewModelScope.launch {
-//////             OLD:
-////            _routeState.value = RouteState.Loading
-////            _routeState.value = mapRepository.getRoute(origin, destination).fold(
-////                onSuccess = { RouteState.Success(it) },
-////                onFailure = { RouteState.Error(it.message ?: "Unknown error") }
-////            )
-////        }
-////    }
-////}
-//
-//    /** Resets route state back to idle (e.g. when user clears the route). */
-//    fun clearRoute() {
-//        _routeState.value = RouteState.Idle
-//    }
-//
 //}
+//
+//
+//// ── Sealed classes for state ─────────────────────────────────────────
 //
 //sealed class LocationState {
 //    object Unknown : LocationState()
@@ -194,5 +248,3 @@ sealed class RouteState {
 //    data class Success(val route: RouteResult) : RouteState()
 //    data class Error(val message: String) : RouteState()
 //}
-//
-//

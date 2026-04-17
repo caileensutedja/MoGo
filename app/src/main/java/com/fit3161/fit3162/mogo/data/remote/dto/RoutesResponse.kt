@@ -12,7 +12,7 @@ data class RoutesResponse(
         val distanceMeters: Int,
         val duration: String,           // returned as "1234s"
         val polyline: Polyline,
-        val bounds: Bounds,
+        val viewport: Bounds,
         val legs: List<Leg>
     )
 

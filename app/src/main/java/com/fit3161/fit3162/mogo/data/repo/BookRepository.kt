@@ -37,7 +37,7 @@ data class Vehicle(
 data class Ride(
         @SerialName("ride_id")          val id: String,
         @SerialName("driver_id")        val driverId: String,
-        @SerialName("vehicle_id")       val vehicleId: String,
+        @SerialName("vehicle_id")       val vehicleId: String? = null,  // make nullable for now
         @SerialName("origin")           val origin: String,
         @SerialName("destination")      val destination: String,
         @SerialName("ride_status")      val rideStatus: String,
@@ -46,8 +46,10 @@ data class Ride(
         @SerialName("carbon_estimate")  val carbonEstimate: Double? = null,
         @SerialName("is_recurring")     val isRecurring: Boolean,
         @SerialName("time_created")     val timeCreated: String? = null,
-        val users: RideUser? = null,    // joined driver info
-        val vehicles: Vehicle? = null   // joined vehicle info
+        @SerialName("vehicle_type")     val vehicleType: String,
+        @SerialName("plate_number")     val plateNumber: String,
+        val users: RideUser? = null,
+        val vehicles: Vehicle? = null
 )
 
 @Serializable
@@ -67,6 +69,24 @@ data class HiddenRide(
         @SerialName("ride_id") val rideId: String
 )
 class BookRepository(private val client: SupabaseClient) {
+
+        suspend fun uploadRide(ride: Ride): Result<Unit> {
+                return try {
+                        client.from("rides").insert(ride)
+                        Result.success(Unit)
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Upload failed", e)
+                        Result.failure(e)
+                }
+        }
+
+        suspend fun getUserVehicles(userId: String): List<Vehicle> {
+                return client.from("vehicles")
+                        .select() {
+                                filter { eq("driver_id", userId) }
+                        }
+                        .decodeList<Vehicle>()
+        }
 
         // BookScreen: current user's confirmed bookings, with ride + driver + vehicle
         suspend fun getBookedRides(userId: String): List<Booking> {

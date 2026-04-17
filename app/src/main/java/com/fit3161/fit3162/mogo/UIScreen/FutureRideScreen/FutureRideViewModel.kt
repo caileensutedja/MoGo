@@ -151,7 +151,7 @@ class FutureRideViewModel (
 
 class FutureRideViewModelFactory(
     private val client: SupabaseClient,
-    private val userId: String          // ← add this
+    private val userId: String
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(FutureRideViewModel::class.java)) {

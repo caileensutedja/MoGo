@@ -22,7 +22,8 @@ import com.fit3161.fit3162.mogo.data.repo.Ride
 fun BookScreenUI(
     viewModel: BookViewModel,
     modifier: Modifier = Modifier,
-    onNavigateToFutureBookRides: () -> Unit
+    onNavigateToFutureBookRides: () -> Unit,
+    onNavigateToUploadRides: () -> Unit
 ) {
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -110,10 +111,11 @@ fun BookScreenUI(
             Text("Book Future Ride", fontSize = 18.sp)
         }
 
+        Spacer(modifier = Modifier.height(15.dp))
+
         //  Upload Ride Button
         Button(
-            // onNavigateToUploadRides()
-            onClick = {  },
+            onClick = { onNavigateToUploadRides() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),

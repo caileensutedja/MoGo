@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,7 +24,9 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -55,7 +58,8 @@ import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.convertMillisToDate
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UploadRideScreen(
-    viewModel: UploadRideViewModel
+    viewModel: UploadRideViewModel,
+    onNavigateToDashboard: () -> Unit
 ) {
     val form by viewModel.form.collectAsState()
     val status by viewModel.status.collectAsState()
@@ -329,6 +333,27 @@ fun UploadRideScreen(
 
         if (status is UploadStatus.Error) {
             Text((status as UploadStatus.Error).message, color = Color.Red)
+        }
+
+        if (status is UploadStatus.Success){
+            AlertDialog(
+                onDismissRequest = {}, // Disable outside click dismiss
+                title = { Text("Ride Uploaded Successfully!") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.resetStatus()
+                            onNavigateToDashboard()
+                        },
+                        shape = RoundedCornerShape(15.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFCEA2FD)
+                        )
+                    ) {
+                        Text("Continue")
+                    }
+                }
+            )
         }
 
         Button(

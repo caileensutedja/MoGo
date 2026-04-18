@@ -165,7 +165,11 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
             val viewModel: UploadRideViewModel = viewModel(
                 factory = UploadRideViewModelFactory(supabase, userId)
             )
-            UploadRideScreen(viewModel = viewModel)
+            UploadRideScreen(
+                viewModel = viewModel,
+                onNavigateToDashboard = {
+                    navController.navigate(Screen.Dashboard.route) // Navigate from Welcome Screen to Login Screen.
+                })
         }
 
         // Offer UI composable.

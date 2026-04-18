@@ -1,6 +1,7 @@
 package com.fit3161.fit3162.mogo.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileRoute
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
@@ -180,7 +181,7 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Profile UI composable.
         composable(Screen.Profile.route) {
-            ProfileScreenUI()
+            ProfileRoute(application = application)
         }
 
     }

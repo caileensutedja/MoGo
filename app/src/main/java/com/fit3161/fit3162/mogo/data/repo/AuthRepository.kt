@@ -94,4 +94,8 @@ class AuthRepository(private val supabase: SupabaseClient) {
         }
         return Exception(msg)
     }
+
+    fun getCurrentUserId(): String? {
+        return supabase.auth.currentUserOrNull()?.id
+    }
 }

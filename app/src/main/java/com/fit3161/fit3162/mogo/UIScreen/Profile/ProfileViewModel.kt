@@ -23,7 +23,7 @@ data class ProfileUiState(
 class ProfileViewModel(
     private val authRepo: AuthRepository,
     private val profileRepo: ProfileRepository,
-    private val context: Context               // ✅ added
+    private val context: Context
 ) : ViewModel() {
 
     private val imageUploadRepo = ImageUploadRepository(authRepo.getSupabaseClient(), context)   // ✅ pass context

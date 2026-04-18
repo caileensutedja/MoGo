@@ -94,7 +94,6 @@ fun ProfileScreenUI(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Profile picture with edit icon overlay
         Box(
             modifier = Modifier.size(120.dp),
             contentAlignment = Alignment.Center
@@ -342,38 +341,6 @@ fun ProfileScreenUI(
             dismissButton = {
                 TextButton(onClick = { showGenderDialog = false }) { Text("Cancel") }
             }
-        )
-    }
-}
-
-@Composable
-fun BottomNavBar() {
-    NavigationBar(
-        containerColor = Color.White
-    ) {
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Home") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Book") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Offer") }
-        )
-        NavigationBarItem(
-            selected = true,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.Gray)) },
-            label = { Text("Profile") }
         )
     }
 }

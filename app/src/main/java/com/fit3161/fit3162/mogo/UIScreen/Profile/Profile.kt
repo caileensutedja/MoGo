@@ -133,7 +133,7 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun BottomNavBar() {
+fun PreviewBottomNavBar() {
     NavigationBar(
         containerColor = Color.White
     ) {
@@ -169,7 +169,7 @@ fun BottomNavBar() {
 fun PreviewProfileScreen() {
     MoGoTheme {
         Scaffold(
-            bottomBar = { BottomNavBar() }
+            bottomBar = { PreviewBottomNavBar() }
         ) { innerPadding ->
             ProfileScreenUI(
                 modifier = Modifier.padding(innerPadding)

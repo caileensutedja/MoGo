@@ -52,6 +52,8 @@ class AuthRepository(private val supabase: SupabaseClient) {
         }
     }
 
+    fun getSupabaseClient(): SupabaseClient = supabase
+
     /**
      * Returns boolean if user is currently logged in or not.
      *
@@ -91,5 +93,9 @@ class AuthRepository(private val supabase: SupabaseClient) {
             else -> e.message ?: "An unexpected error occurred."
         }
         return Exception(msg)
+    }
+
+    fun getCurrentUserId(): String? {
+        return supabase.auth.currentUserOrNull()?.id
     }
 }

@@ -15,6 +15,9 @@ plugins {
 
     // Supabase uses Kotlin serialization
     kotlin("plugin.serialization") version "2.2.10"
+
+    // Secrets Gradle Plugin
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
@@ -30,13 +33,25 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Supabase
+        // Fix: Use localProperties to ensure the manifest gets the key
+        manifestPlaceholders["MAPS_API_KEY"] = localProperties["MAPS_API_KEY"] ?: ""
+
+        // Google Maps KEY
+        buildConfigField(
+            "String",
+            "MAPS_API_KEY",
+            "\"${localProperties["MAPS_API_KEY"] ?: ""}\""
+            )
+
+
+        // Supabase URL Key.
         buildConfigField(
             "String",
             "SUPABASE_URL",
             "\"${localProperties["SUPABASE_URL"] ?: ""}\""
         )
 
+        // Supabase ANON Key.
         buildConfigField(
             "String",
             "SUPABASE_ANON_KEY",
@@ -54,17 +69,33 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-    // Deprecated (20/03/2026)
-    kotlinOptions {
-        jvmTarget = "11"
+    // Migrating from kotlinOptions to compilerOptions
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
     buildFeatures {
         compose = true
         buildConfig = true
     }
+}
+
+// For Secrets Gradle Plugin.
+secrets {
+    propertiesFileName = "local.properties"
+    defaultPropertiesFileName = "local.defaults.properties"
+
+    // Make secrets available in AndroidManifest.xml as ${MAPS_API_KEY}
+    // AND in Kotlin code as BuildConfig.MAPS_API_KEY
+    ignoreList.add("sdk.*") // Don't expose sdk.dir as a BuildConfig field
+    ignoreList.add("keyAlias") // Ignore signing config keys if present
+    ignoreList.add("keyPassword")
+    ignoreList.add("storeFile")
+    ignoreList.add("storePassword")
 }
 
 val supabaseVersion = "3.4.1"
@@ -81,6 +112,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.benchmark.traceprocessor.android)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.compose.runtime)
 //    implementation(libs.androidx.benchmark.traceprocessor.jvm)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -113,9 +145,28 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.0")
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
 
     // App Navigation
-    val nav_version = "2.8.9"
-    implementation("androidx.navigation:navigation-compose:$nav_version")
+    val navVersion = "2.8.9"
+    implementation("androidx.navigation:navigation-compose:$navVersion")
+    // Nav with Fragments
+    implementation("androidx.navigation:navigation-fragment-ktx:2.8.5")
+    implementation("androidx.navigation:navigation-ui-ktx:2.9.7")
+
+    // Maps
+    implementation("com.google.android.gms:play-services-maps:20.0.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.maps.android:android-maps-utils:3.8.2")
+
+    // Retrofit for Directions/Routes API
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:5.3.2")
+
+    // Maps Compose
+    implementation("com.google.maps.android:maps-compose:8.2.2")
+
+
 }

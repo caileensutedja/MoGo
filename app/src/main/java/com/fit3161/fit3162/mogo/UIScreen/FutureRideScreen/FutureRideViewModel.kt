@@ -1,102 +1,163 @@
 package com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
 import com.fit3161.fit3162.mogo.data.repo.Ride
+import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class FutureRideUiState(
+    val selectedDate: String = "",
     val rides: List<Ride> = emptyList(),
+    val hiddenRideIds: Set<String> = emptySet(),
+    val genderPreference: String? = null, // Filters gender preference
     val isLoading: Boolean = false,
-    val error: String? = null,
-    val selectedDate: String = ""
-)
+    val error: String? = null
+) {
+    val visibleRides: List<Ride>
+        get() = rides.filter { it.id !in hiddenRideIds }
 
-class FutureRideViewModel() : ViewModel() {   // ← no parameters
+    val hiddenRides: List<Ride>
+        get() = rides.filter { it.id in hiddenRideIds }
+}
 
+
+class FutureRideViewModel (
+    private val repo: BookRepository,
+    private val userId: String) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FutureRideUiState())
     val uiState: StateFlow<FutureRideUiState> = _uiState.asStateFlow()
 
-    private var allRides: List<Ride> = emptyList()
-
-    private val _selectedDate = MutableStateFlow("")
-    val selectedDate: StateFlow<String> = _selectedDate.asStateFlow()
-
-    private val _selectedDestination = MutableStateFlow("")
-    val selectedDestination: StateFlow<String> = _selectedDestination.asStateFlow()
-
     init {
-        loadRides()
-    }
-
-    private fun loadRides() {
+//        viewModelScope.launch {
+//            Log.d("PASS", "init: $userId")
+//            // Load preference and hidden ride IDs first, then fetch rides
+//            val pref = repo.getGenderPreference(userId)
+//            Log.d("PASS", "Preference is: ${pref}")
+//            val hiddenIds = repo.getHiddenRideIds(userId)
+//            Log.d("PASS", "Hidden ID is: ${hiddenIds}")
+//            _uiState.value = _uiState.value.copy(
+//                genderPreference = pref,
+//                hiddenRideIds = hiddenIds
+//            )
+//            loadAllFutureRides()
+//        }
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
             try {
-                // Dummy rides – replace with repository.getFutureRides() later
-                allRides = listOf(
-                    Ride(
-                        id = "1",
-                        driverName = "Rice Tan",
-                        carType = "Electric",
-                        destination = "Clayton Campus",
-                        eta = "12:00",
-                        date = "15-04-2026",
-                        totalSeats = 4,
-                        availableSeats = 2
-                    ),
-                    Ride(
-                        id = "2",
-                        driverName = "John Lim",
-                        carType = "Electric",
-                        destination = "Caulfield Campus",
-                        eta = "14:00",
-                        date = "15-04-2026",
-                        totalSeats = 4,
-                        availableSeats = 3
-                    ),
-                    Ride(
-                        id = "3",
-                        driverName = "Sarah Lee",
-                        carType = "Diesel",
-                        destination = "Clayton Campus",
-                        eta = "15:00",
-                        date = "15-04-2026",
-                        totalSeats = 5,
-                        availableSeats = 1
-                    )
+                val pref = repo.getGenderPreference(userId)
+                val hiddenIds = repo.getHiddenRideIds(userId)
+                _uiState.value = _uiState.value.copy(
+                    genderPreference = pref,
+                    hiddenRideIds = hiddenIds
                 )
-                filterRides()
-                _uiState.update { it.copy(isLoading = false) }
+                loadAllFutureRides()
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
+                Log.e("CRASH", "Init failed. Full Error: ${e.stackTraceToString()}") // This gives the full story
+                _uiState.value = _uiState.value.copy(error = "Connection Failed: ${e.message}")
             }
         }
     }
 
+
     fun onDateSelected(date: String) {
-        _selectedDate.value = date
-        filterRides()
+        _uiState.value = _uiState.value.copy(
+            selectedDate = date,
+            isLoading = true,
+            error = null
+        )
+        loadRidesByDate(date)
     }
 
-    fun onDestinationSelected(destination: String) {
-        _selectedDestination.value = destination
-        filterRides()
+    fun onDateCleared() {
+        _uiState.value = _uiState.value.copy(
+            selectedDate = "",
+            isLoading = true,
+            error = null
+        )
+        loadAllFutureRides()
     }
 
-    private fun filterRides() {
-        val filtered = allRides.filter { ride ->
-            (selectedDate.value.isEmpty() || ride.date == selectedDate.value) &&
-                    (selectedDestination.value.isEmpty() || ride.destination.contains(selectedDestination.value, ignoreCase = true))
+    private fun loadAllFutureRides() {
+        viewModelScope.launch {
+            try {
+                val rides = repo.getAllFutureRides(
+                    genderPreference = _uiState.value.genderPreference
+                )
+                _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
         }
-        _uiState.update {
-            it.copy(rides = filtered, selectedDate = selectedDate.value)
+    }
+
+    private fun loadRidesByDate(date: String) {
+        viewModelScope.launch {
+            try {
+                val rides = repo.getFutureRidesByDate(
+                    date,
+                    genderPreference = _uiState.value.genderPreference)
+                _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
         }
+    }
+
+    fun hideRide(rideId: String) {
+        // Optimistically update UI immediately
+        _uiState.value = _uiState.value.copy(
+            hiddenRideIds = _uiState.value.hiddenRideIds + rideId
+        )
+        viewModelScope.launch {
+            try {
+                repo.hideRide(userId, rideId)
+                Log.d("HIDE", "Success to hide ride: $rideId")
+            } catch (e: Exception) {
+                // Revert if DB call fails
+                _uiState.value = _uiState.value.copy(
+                    hiddenRideIds = _uiState.value.hiddenRideIds - rideId
+                )
+                Log.d("HIDE", "Failed to hide ride: ${e.message}")
+            }
+        }
+    }
+
+    fun unhideRide(rideId: String) {
+        // Optimistically update UI immediately
+        _uiState.value = _uiState.value.copy(
+            hiddenRideIds = _uiState.value.hiddenRideIds - rideId
+        )
+        viewModelScope.launch {
+            try {
+                repo.unhideRide(userId, rideId)
+            } catch (e: Exception) {
+                // Revert if DB call fails
+                _uiState.value = _uiState.value.copy(
+                    hiddenRideIds = _uiState.value.hiddenRideIds + rideId
+                )
+                Log.d("HIDE", "Failed to unhide ride: ${e.message}")
+            }
+        }
+    }
+
+}
+
+class FutureRideViewModelFactory(
+    private val client: SupabaseClient,
+    private val userId: String
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(FutureRideViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return FutureRideViewModel(BookRepository(client), userId) as T  // ← pass it
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

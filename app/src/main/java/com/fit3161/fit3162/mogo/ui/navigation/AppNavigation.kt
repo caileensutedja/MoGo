@@ -8,10 +8,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileRoute
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -24,6 +22,7 @@ import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModel
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
+import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.OfferScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModel
@@ -37,8 +36,10 @@ import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModel
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModel
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModelFactory
-import com.fit3161.fit3162.mogo.data.repo.BookRepository
-import com.fit3161.fit3162.mogo.data.repo.OfferRepository
+import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideScreen
+import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideViewModel
+import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideViewModelFactory
+import io.github.jan.supabase.auth.auth
 
 /**
  * Defines every screen route in the app.
@@ -52,6 +53,7 @@ sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard") // TODO: This is temporary. Remove during clean up/when done.
     object Booked : Screen("booked")
     object FutureRides : Screen("futureRides")
+    object UploadRide: Screen("uploadRide")
     object Profile: Screen("profile")
     object Offer: Screen("offer")
 }
@@ -82,7 +84,7 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
      */
     NavHost(
         navController = navController,
-        // TODO: Logic fix if alr logged in or not
+        // TODO: Logic fix if alr logged in or not -> Session Persistence
         startDestination = Screen.Welcome.route // App starts in Welcome Screen when first launched.
     ) {
 
@@ -134,29 +136,43 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Booked UI composable.
         composable(Screen.Booked.route) {
-            val bookRepository = remember { BookRepository() }
-            val factory = BookViewModelFactory(bookRepository)
-            val viewModel: BookViewModel = viewModel(factory = factory)
+            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
+            val viewModel: BookViewModel = viewModel(
+                factory = BookViewModelFactory(supabase, userId)
+            )
             BookScreenUI(
                 viewModel = viewModel,
                 onNavigateToFutureBookRides = {
-                    navController.navigate(Screen.FutureRides.route) // Navigate from Welcome Screen to Login Screen.
+                    navController.navigate(Screen.FutureRides.route)
+                },
+                onNavigateToUploadRides = {
+                    navController.navigate(Screen.UploadRide.route)
                 }
             )
         }
 
         // Future Rides UI composable.
         composable(Screen.FutureRides.route) {
-            val viewModel: FutureRideViewModel = viewModel()   // ← no factory, no arguments
+            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
+            val viewModel: FutureRideViewModel = viewModel(
+                factory = FutureRideViewModelFactory(supabase, userId)
+            )
             FutureRideScreenUI(viewModel = viewModel)
+        }
+
+        composable(Screen.UploadRide.route) {
+            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
+            val viewModel: UploadRideViewModel = viewModel(
+                factory = UploadRideViewModelFactory(supabase, userId)
+            )
+            UploadRideScreen(viewModel = viewModel)
         }
 
         // Offer UI composable.
         composable(Screen.Offer.route) {
-            val offerRepository = remember { OfferRepository() }
-            val factory = OfferViewModelFactory(offerRepository)
-            val viewModel: OfferViewModel = viewModel(factory = factory)
-
+            val viewModel: OfferViewModel = viewModel(
+                factory = OfferViewModelFactory(supabase)
+            )
             OfferScreenUI(
                 viewModel = viewModel
             )
@@ -164,7 +180,7 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
 
         // Profile UI composable.
         composable(Screen.Profile.route) {
-            ProfileRoute(application = application)
+            ProfileScreenUI()
         }
 
     }

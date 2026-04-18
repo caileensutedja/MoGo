@@ -51,7 +51,6 @@ class AuthRepository(private val supabase: SupabaseClient) {
             Result.failure(mapError(e))
         }
     }
-    fun getCurrentUserId(): String? = supabase.auth.currentUserOrNull()?.id
 
     fun getSupabaseClient(): SupabaseClient = supabase
 

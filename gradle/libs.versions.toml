@@ -11,6 +11,7 @@ composeBom = "2024.09.00"
 benchmarkTraceprocessorAndroid = "1.4.1"
 benchmarkTraceprocessorJvm = "1.4.1"
 navigationCompose = "2.9.7"
+runtime = "1.10.6"
 
 [libraries]
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
@@ -31,6 +32,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 androidx-benchmark-traceprocessor-android = { group = "androidx.benchmark", name = "benchmark-traceprocessor-android", version.ref = "benchmarkTraceprocessorAndroid" }
 androidx-benchmark-traceprocessor-jvm = { group = "androidx.benchmark", name = "benchmark-traceprocessor-jvm", version.ref = "benchmarkTraceprocessorJvm" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

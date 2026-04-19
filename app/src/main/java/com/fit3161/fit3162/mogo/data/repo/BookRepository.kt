@@ -70,6 +70,9 @@ data class HiddenRide(
 )
 class BookRepository(private val client: SupabaseClient) {
 
+        /**
+         * UPLOAD RIDE
+         */
         suspend fun uploadRide(ride: Ride): Result<Unit> {
                 return try {
                         client.from("rides").insert(ride)
@@ -79,7 +82,7 @@ class BookRepository(private val client: SupabaseClient) {
                         Result.failure(e)
                 }
         }
-
+        //TODO: Incorporate Vehicles
         suspend fun getUserVehicles(userId: String): List<Vehicle> {
                 return client.from("vehicles")
                         .select() {
@@ -88,6 +91,9 @@ class BookRepository(private val client: SupabaseClient) {
                         .decodeList<Vehicle>()
         }
 
+        /**
+         * BOOKED RIDES
+         */
         // BookScreen: current user's confirmed bookings, with ride + driver + vehicle
         suspend fun getBookedRides(userId: String): List<Booking> {
                 return client
@@ -102,7 +108,10 @@ class BookRepository(private val client: SupabaseClient) {
                         .decodeList<Booking>()
         }
 
-        suspend fun getAllFutureRides(genderPreference: String? = null): List<Ride> {
+        /**
+         * FUTURE RIDES
+         */
+        suspend fun getAllFutureRides(userId: String, genderPreference: String? = null): List<Ride> {
                 val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
                         .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
@@ -114,6 +123,7 @@ class BookRepository(private val client: SupabaseClient) {
                                                 gte("departure_time", now)
                                                 eq("ride_status", "scheduled")
                                                 gt("available_seats", 0)
+                                                neq("driver_id",userId)
                                                 // Filter by driver gender at DB level if preference is set
                                                 if (genderPreference != null) {
                                                         eq("users.user_gender", genderPreference)
@@ -149,6 +159,9 @@ class BookRepository(private val client: SupabaseClient) {
                         .decodeList<Ride>()
         }
 
+        /**
+         * USER GENDER PREFERENCE
+         */
         @Serializable
         data class UserPreference(
                 @SerialName("user_id") val userId: String,
@@ -165,6 +178,10 @@ class BookRepository(private val client: SupabaseClient) {
                         ?.genderPreference
         }
 
+        /**
+         * HIDE USER
+         * Below are functions to hide ride options
+         */
         suspend fun hideRide(userId: String, rideId: String) {
                 try {
                         Log.d("MOGO_DEBUG", "Attempting to hide ride: $rideId for user: $userId")

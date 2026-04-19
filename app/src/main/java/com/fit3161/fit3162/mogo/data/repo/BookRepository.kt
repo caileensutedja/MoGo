@@ -149,6 +149,11 @@ class BookRepository(private val client: SupabaseClient) {
                         .decodeList<Ride>()
         }
 
+        @Serializable
+        data class UserPreference(
+                @SerialName("user_id") val userId: String,
+                @SerialName("gender_preference") val genderPreference: String? = null
+        )
         suspend fun getGenderPreference(userId: String): String? {
                 return client
                         .from("users")
@@ -156,7 +161,7 @@ class BookRepository(private val client: SupabaseClient) {
                                 filter { eq("user_id", userId) }
                                 limit(1)
                         }
-                        .decodeSingleOrNull<RideUser>()
+                        .decodeSingleOrNull<UserPreference>()  // ← only change this line
                         ?.genderPreference
         }
 

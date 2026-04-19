@@ -1,6 +1,7 @@
 package com.fit3161.fit3162.mogo.UIScreen.BookScreen
 
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -138,6 +139,9 @@ fun BookedCardSkeleton(booking: Booking) {
     val driver = ride?.users
     val vehicle = ride?.vehicles
 
+    Log.d("BOOKING_DEBUG", "booking: $booking")
+    Log.d("BOOKING_DEBUG", "ride: $ride")
+    Log.d("BOOKING_DEBUG", "driver: $driver")
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -160,65 +164,66 @@ fun BookedCardSkeleton(booking: Booking) {
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+
+                Text(
+                    text = driver?.userName ?: "Unknown Driver",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text= "${ride?.vehicleType}",
+//                        text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
+                    fontSize = 14.sp,
+                    color = Color.DarkGray
+                )
+                Text(
+                    text = "📍 ${ride?.destination ?: booking.dropoffLocation}",
+                    fontSize = 14.sp
+                )
+                Text(
+                    text = "🕐 ${formatDepartureTime(ride?.departureTime)}",
+                    fontSize = 14.sp,
+                    color = Color.DarkGray
+                )
+                ride?.carbonEstimate?.let {
                     Text(
-                        text = driver?.userName ?: "Unknown Driver",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "🌿 %.2f kg CO₂".format(it),
+                        fontSize = 13.sp,
+                        color = Color(0xFF4CAF50)
                     )
-                    Text(
-                        text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
-                        fontSize = 14.sp,
-                        color = Color.DarkGray
-                    )
-                    Text(
-                        text = "📍 ${ride?.destination ?: booking.dropoffLocation}",
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = "🕐 ${formatDepartureTime(ride?.departureTime)}",
-                        fontSize = 14.sp,
-                        color = Color.DarkGray
-                    )
-                    ride?.carbonEstimate?.let {
-                        Text(
-                            text = "🌿 %.2f kg CO₂".format(it),
-                            fontSize = 13.sp,
-                            color = Color(0xFF4CAF50)
-                        )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Button(
+                        onClick = { /* TODO: cancel booking */ },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFEAD7FF)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Cancel")
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                    Button(
+                        onClick = { /* TODO: show details */ },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFB57BFF)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Button(
-                            onClick = { /* TODO: cancel booking */ },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFEAD7FF)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Cancel")
-                        }
-
-                        Button(
-                            onClick = { /* TODO: show details */ },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFB57BFF)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Details")
-                        }
+                        Text("Details")
                     }
                 }
             }
         }
     }
 }
+
 
 fun formatDepartureTime(timestamp: String?): String {
     if (timestamp == null) return "TBA"

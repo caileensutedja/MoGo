@@ -209,7 +209,8 @@ fun FutureRideCard(
                     color = if (isHidden) Color.Gray else Color.Black
                 )
                 Text(
-                    text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
+                    text= "Vehicle Type: ${ride?.vehicleType}",
+//                    text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
                     fontSize = 16.sp,
                     color = Color.DarkGray
                 )

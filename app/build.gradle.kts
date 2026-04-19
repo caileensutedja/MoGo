@@ -114,6 +114,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.compose.animation)
+    implementation(libs.androidx.compose.ui.graphics)
 //    implementation(libs.androidx.benchmark.traceprocessor.jvm)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

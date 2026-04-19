@@ -102,6 +102,7 @@ class FutureRideViewModel (
         viewModelScope.launch {
             try {
                 val rides = repo.getFutureRidesByDate(
+                    userId,
                     date,
                     genderPreference = _uiState.value.genderPreference)
                 _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)

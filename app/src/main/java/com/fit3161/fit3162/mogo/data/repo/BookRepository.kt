@@ -135,7 +135,7 @@ class BookRepository(private val client: SupabaseClient) {
                         .decodeList<Ride>()
         }
 
-        suspend fun getFutureRidesByDate(date: String, genderPreference: String? = null): List<Ride> {
+        suspend fun getFutureRidesByDate(userId: String, date: String, genderPreference: String? = null): List<Ride> {
                 Log.d("DATE", "Date given is: ${date}")
                 Log.d("DATE", "Date given converted gta is: ${date}T00:00:00+10:00")
                 Log.d("DATE", "Date given converted gta is: ${date}T23:59:59+10:00")
@@ -148,6 +148,7 @@ class BookRepository(private val client: SupabaseClient) {
                                                 lte("departure_time", "${date}T23:59:59+00:00")
                                                 eq("ride_status", "scheduled")
                                                 gt("available_seats", 0)
+                                                neq("driver_id",userId)
                                                 // Filter by driver gender at DB level if preference is set
                                                 if (genderPreference != null) {
                                                         eq("users.user_gender", genderPreference)

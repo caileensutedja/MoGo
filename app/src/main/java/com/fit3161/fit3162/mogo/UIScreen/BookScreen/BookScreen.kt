@@ -24,7 +24,8 @@ fun BookScreenUI(
     viewModel: BookViewModel,
     modifier: Modifier = Modifier,
     onNavigateToFutureBookRides: () -> Unit,
-    onNavigateToUploadRides: () -> Unit
+    onNavigateToUploadRides: () -> Unit,
+    onNavigateToMyRides: () -> Unit
 ) {
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -126,6 +127,22 @@ fun BookScreenUI(
             )
         ) {
             Text("Upload Future Ride", fontSize = 18.sp)
+        }
+
+        Spacer(modifier = Modifier.height(15.dp))
+
+        //  My Ride Button
+        Button(
+            onClick = { onNavigateToMyRides() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp),
+            shape = RoundedCornerShape(15.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFCEA2FD)
+            )
+        ) {
+            Text("My Future Ride (Driver)", fontSize = 18.sp)
         }
 
         Spacer(modifier = Modifier.height(10.dp))

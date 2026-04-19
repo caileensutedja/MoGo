@@ -68,6 +68,10 @@ data class Booking(
 data class HiddenRide(
         @SerialName("ride_id") val rideId: String
 )
+@Serializable
+data class BookedRideId(
+        @SerialName("ride_id") val rideId: String
+)
 class BookRepository(private val client: SupabaseClient) {
 
         /**
@@ -115,6 +119,15 @@ class BookRepository(private val client: SupabaseClient) {
                 val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
                         .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
+                val bookedRideIds = client
+                        .from("bookings")
+                        .select(Columns.raw("ride_id")) {
+                                filter { eq("rider_id", userId) }
+                        }
+                        .decodeList<HiddenRide>() // reuse HiddenRide since it's just a ride_id wrapper
+                        .map { it.rideId }
+                        .toSet()
+
                 return client
                         .from("rides")
                         .select(Columns.raw("*, users(*), vehicles(*)")) {
@@ -133,12 +146,22 @@ class BookRepository(private val client: SupabaseClient) {
                                 order("departure_time", Order.ASCENDING) // Ascending order from Now
                         }
                         .decodeList<Ride>()
+                        .filter { it.id !in bookedRideIds }
         }
 
         suspend fun getFutureRidesByDate(userId: String, date: String, genderPreference: String? = null): List<Ride> {
                 Log.d("DATE", "Date given is: ${date}")
                 Log.d("DATE", "Date given converted gta is: ${date}T00:00:00+10:00")
                 Log.d("DATE", "Date given converted gta is: ${date}T23:59:59+10:00")
+                val bookedRideIds = client
+                        .from("bookings")
+                        .select(Columns.raw("ride_id")) {
+                                filter { eq("rider_id", userId) }
+                        }
+                        .decodeList<HiddenRide>() // reuse HiddenRide since it's just a ride_id wrapper
+                        .map { it.rideId }
+                        .toSet()
+
                 return client
                         .from("rides")
                         .select(Columns.raw("*, users(*), vehicles(*)")) {
@@ -158,6 +181,7 @@ class BookRepository(private val client: SupabaseClient) {
                                 order("departure_time", Order.ASCENDING)
                         }
                         .decodeList<Ride>()
+                        .filter { it.id !in bookedRideIds }
         }
 
         /**
@@ -177,6 +201,35 @@ class BookRepository(private val client: SupabaseClient) {
                         }
                         .decodeSingleOrNull<UserPreference>()  // ← only change this line
                         ?.genderPreference
+        }
+
+        /**
+         * MY RIDES
+         */
+        /**
+         * MY RIDES (Driver's uploaded rides)
+         */
+        suspend fun getMyRides(userId: String): List<Ride> {
+                return client
+                        .from("rides")
+                        .select(Columns.raw("*, vehicles(*)")) {
+                                filter { eq("driver_id", userId) }
+                                order("departure_time", Order.ASCENDING)
+                        }
+                        .decodeList<Ride>()
+        }
+
+        suspend fun cancelRide(rideId: String): Result<Unit> {
+                return try {
+                        client.from("rides")
+                                .delete {
+                                        filter { eq("ride_id", rideId) }
+                                }
+                        Result.success(Unit)
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Cancel ride failed", e)
+                        Result.failure(e)
+                }
         }
 
         /**

@@ -26,6 +26,9 @@ import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesScreen
+import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesViewModel
+import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.OfferScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModel
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModelFactory
@@ -61,6 +64,7 @@ sealed class Screen(val route: String) {
     object Booked : Screen("booked")
     object FutureRides : Screen("futureRides")
     object UploadRide: Screen("uploadRide")
+    object MyRides: Screen("myRides")
     object Profile: Screen("profile")
     object Offer: Screen("offer")
     object Map : Screen("map")
@@ -155,6 +159,9 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
                 },
                 onNavigateToUploadRides = {
                     navController.navigate(Screen.UploadRide.route)
+                },
+                onNavigateToMyRides = {
+                    navController.navigate(Screen.MyRides.route)
                 }
             )
         }
@@ -178,6 +185,16 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
                 onNavigateToDashboard = {
                     navController.navigate(Screen.Dashboard.route) // Navigate from Welcome Screen to Login Screen.
                 })
+        }
+
+        composable(Screen.MyRides.route){
+            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
+            val viewModel: MyRidesViewModel = viewModel(
+                factory = MyRidesViewModelFactory(supabase, userId)
+            )
+            MyRidesScreen(
+                viewModel
+            )
         }
 
         // Offer UI composable.

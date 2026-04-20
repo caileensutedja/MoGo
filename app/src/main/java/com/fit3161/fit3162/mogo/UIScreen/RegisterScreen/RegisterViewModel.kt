@@ -134,7 +134,7 @@ class RegisterViewModel(private val repo: AuthRepository) : ViewModel() {
             else -> viewModelScope.launch {
                 _state.value = AuthState.Loading
 
-                val fullPhone = "$data.countryCode $data.phoneNumber"
+                val fullPhone = "${data.countryCode} ${data.phoneNumber}"
 
                 repo.register(
                     data.email.trim(),

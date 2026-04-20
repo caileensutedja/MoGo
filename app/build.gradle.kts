@@ -168,5 +168,6 @@ dependencies {
     // Maps Compose
     implementation("com.google.maps.android:maps-compose:8.2.2")
 
-
+    // Datastore for session persistance
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 }

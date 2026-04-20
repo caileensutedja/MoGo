@@ -1,6 +1,8 @@
-package com.fit3161.fit3162.mogo.UIScreen.HomeScreen
+package com.fit3161.fit3162.mogo.UIScreen.HomeDashboard
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,11 +21,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
 
 /**
@@ -31,7 +36,11 @@ import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
  */
 @Preview(showBackground = true)
 @Composable
-fun HomeScreenUI(modifier: Modifier = Modifier) {
+fun HomeScreenUI(
+    avatarUrl: String? = null,
+    onProfileClick: () -> Unit = {},
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
+){
 
     Column(
         modifier = modifier
@@ -45,6 +54,7 @@ fun HomeScreenUI(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Left box (back button)
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -54,13 +64,26 @@ fun HomeScreenUI(modifier: Modifier = Modifier) {
                 Text("<")
             }
 
+            // Right box (profile)
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color(0xFFDCCBFF), RoundedCornerShape(10.dp)),
+                    .background(Color(0xFFDCCBFF), RoundedCornerShape(10.dp))
+                    .clickable { onProfileClick() },
                 contentAlignment = Alignment.Center
             ) {
-                Text("P")
+                if (avatarUrl != null) {
+                    AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = "Profile picture",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text("P", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
 
@@ -219,7 +242,7 @@ fun PreviewHomeScreen() {
             bottomBar = { BottomNavBar() }
         ) { innerPadding ->
             HomeScreenUI(
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.padding(innerPadding),
             )
         }
     }

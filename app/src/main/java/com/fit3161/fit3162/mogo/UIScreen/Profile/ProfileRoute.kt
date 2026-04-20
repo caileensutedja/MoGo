@@ -8,12 +8,12 @@ import com.fit3161.fit3162.mogo.data.repo.AuthRepository
 import com.fit3161.fit3162.mogo.data.repo.ProfileRepository
 
 @Composable
-fun ProfileRoute(application: MogoApplication) {
+fun ProfileRoute(application: MogoApplication, onLogout: () -> Unit) {
     val supabase = application.supabase
     val authRepo = remember { AuthRepository(supabase) }
     val profileRepo = remember { ProfileRepository(supabase) }
     val viewModel = remember {
         ProfileViewModel(authRepo, profileRepo, application.applicationContext)
     }
-    ProfileScreenUI(viewModel = viewModel)
+    ProfileScreenUI(viewModel = viewModel, onLogout = onLogout)
 }

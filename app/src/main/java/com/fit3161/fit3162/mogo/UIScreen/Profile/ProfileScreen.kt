@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.CheckboxDefaults.colors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,12 +23,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileViewModel
+import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadStatus
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreenUI(
     viewModel: ProfileViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLogout: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -44,6 +48,8 @@ fun ProfileScreenUI(
     var tempName by remember { mutableStateOf("") }
     var tempMobile by remember { mutableStateOf("") }
     var tempGender by remember { mutableStateOf("") }
+
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(uiState) {
         uiState.profile?.let {
@@ -230,9 +236,21 @@ fun ProfileScreenUI(
             onClick = { /* Save all changes */ },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCEA2FD)),
-            shape = RoundedCornerShape(12.dp)
         ) {
             Text("Save Changes")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = {
+                scope.launch { onLogout() }
+            },
+            colors = ButtonDefaults.buttonColors(Color(0xFFCA3433)),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+        ) {
+            Text("Log Out")
         }
     }
 

@@ -1,5 +1,8 @@
 package com.fit3161.fit3162.mogo.ui.navigation
 
+import android.util.Log
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileRoute
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -7,6 +10,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -56,9 +60,13 @@ import com.fit3161.fit3162.mogo.ui.maps.MapsViewModelFactory
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModel
 import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModelFactory
 import com.fit3161.fit3162.mogo.data.SessionManager
+import kotlinx.coroutines.launch
 
 /**
  * Defines every screen route in the app.
@@ -91,6 +99,9 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
     val sessionManager = remember { SessionManager(application) }
     val isLoggedIn by sessionManager.isLoggedIn.collectAsState(initial = false)
     val timestamp by sessionManager.loginTimestamp.collectAsState(initial = 0L)
+    Log.d("DEBUG LOG IN/is logged in", "${isLoggedIn}")
+    Log.d("DEBUG LOG IN/session manager", "${!sessionManager.isSessionExpired(timestamp)}")
+
 
     val startDestination = if (isLoggedIn && !sessionManager.isSessionExpired(timestamp)) {
         Screen.Dashboard.route
@@ -232,9 +243,19 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
             )
         }
 
-        // Profile UI composable.
         composable(Screen.Profile.route) {
-            ProfileRoute(application = application)
+            val scope = rememberCoroutineScope()
+            ProfileRoute(
+                application = application,
+                onLogout = {
+                    scope.launch {
+                        sessionManager.clearSession()
+                        navController.navigate(Screen.Welcome.route) {
+                            popUpTo(0) { inclusive = true }  // clears the entire back stack
+                        }
+                    }
+                }
+            )
         }
 
 

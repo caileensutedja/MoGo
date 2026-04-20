@@ -30,12 +30,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fit3161.fit3162.mogo.R
 import com.fit3161.fit3162.mogo.ui.components.SemiCircleBackground
+
 @Composable
 fun WelcomeScreen(onNavigateToLogin: () -> Unit = {}) {
     SemiCircleBackground(
         color = Color(0xFFCEA2FD),
-        domeHeight = 500.dp,          // keep as is or increase slightly for more visible curve
-        cornerRadius = 5000.dp,       // huge radius → very wide, shallow dome
+        domeHeight = 550.dp,
+        cornerRadius = 5000.dp,
         backgroundColor = Color(0xFF85BBE1),
         background = {
             Image(
@@ -43,8 +44,8 @@ fun WelcomeScreen(onNavigateToLogin: () -> Unit = {}) {
                 contentDescription = "MoGo Logo",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(1200.dp)                // keep it large
-                    .offset(y = (-200).dp),        // more negative = higher up
+                    .height(1200.dp)
+                    .offset(y = (-200).dp),
                 contentScale = ContentScale.FillWidth
             )
         }
@@ -52,60 +53,83 @@ fun WelcomeScreen(onNavigateToLogin: () -> Unit = {}) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Bottom   // content sits at bottom inside dome
+            verticalArrangement = Arrangement.Bottom
         ) {
+            // Spacer to push everything further down
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Title
             Text(
                 text = buildAnnotatedString {
                     append("Welcome to ")
-                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("MoGo") }
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold)) {
+                        append("MoGo")
+                    }
                 },
-                fontSize = 32.sp,
+                fontSize = 36.sp,
                 color = Color.White,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            // More space between title and subtitle
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Subtitle
             Text(
                 text = "We hope you have a wonderful trip!",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Light,
-                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.95f),
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Info text
             Text(
                 text = "Available only for Monash University students and staff.\nPlease make sure you log in with your Monash credentials.",
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 textAlign = TextAlign.Center,
                 fontStyle = FontStyle.Italic,
-                color = Color.White.copy(alpha = 0.85f),
+                color = Color.White.copy(alpha = 0.9f),
                 modifier = Modifier.fillMaxWidth(0.85f)
             )
-            Spacer(modifier = Modifier.height(24.dp))
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Button
             Button(
                 onClick = onNavigateToLogin,
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .fillMaxWidth(0.7f)
+                    .height(50.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
             ) {
-                Text(text = "Start", fontSize = 16.sp, color = Color.White)
+                Text(
+                    text = "Start",
+                    fontSize = 18.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
             Spacer(modifier = Modifier.height(24.dp))
+
+            // Footer
             Text(
                 text = "Designed by Group 15:\nBrianna, Caileen, Jasmine, Pia",
                 fontSize = 10.sp,
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White.copy(alpha = 0.8f)
+                color = Color.White.copy(alpha = 0.85f)
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable

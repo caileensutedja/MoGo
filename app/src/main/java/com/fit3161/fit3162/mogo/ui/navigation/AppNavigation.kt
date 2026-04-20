@@ -30,12 +30,9 @@ import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeScreenUI
-import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesScreen
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesViewModel
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesViewModelFactory
-import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeScreenUI
-import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeViewModel
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.OfferScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModel
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModelFactory
@@ -58,6 +55,8 @@ import com.fit3161.fit3162.mogo.ui.maps.MapsViewModelFactory
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModel
+import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModelFactory
 import com.fit3161.fit3162.mogo.data.SessionManager
 
 /**
@@ -157,29 +156,20 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
         }
 
         // TODO: Remove during code cleanup. Dashboard only contains a single button: SignOut to go back to the previous. screen.
-        /**
-         * FIX SCREENS BELOW
-         */
-        composable(Screen.Dashboard.route) {
-            val profileRepository = ProfileRepository(supabase)
-            val homeViewModel: HomeViewModel = viewModel(
-                factory = object : ViewModelProvider.Factory {
-                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                        @Suppress("UNCHECKED_CAST")
-                        return HomeViewModel(authRepository, profileRepository) as T
-                    }
-                }
-            )
-            val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
+        composable(Screen.Dashboard.route) {
+            val viewModel: HomeViewModel = viewModel(
+                factory = HomeViewModelFactory(supabase)
+            )
             HomeScreenUI(
-                avatarUrl = uiState.profile?.avatar_url,
-                onProfileClick = {
-                    navController.navigate(Screen.Profile.route)
-                }
+                viewModel = viewModel,
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
             )
         }
 
+        /**
+         * FIX SCREENS BELOW
+         */
         // Booked UI composable.
         composable(Screen.Booked.route) {
             val userId = supabase.auth.currentUserOrNull()?.id ?: ""

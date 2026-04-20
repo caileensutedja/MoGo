@@ -1,6 +1,5 @@
 package com.fit3161.fit3162.mogo.UIScreen.HomeDashboard
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,38 +12,50 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
 
-/**
- * HomeScreen (HomeDashboard) UI.
- */
-@Preview(showBackground = true)
 @Composable
 fun HomeScreenUI(
-    avatarUrl: String? = null,
+    viewModel: HomeViewModel,
     onProfileClick: () -> Unit = {},
-    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
-){
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    if (uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    if (uiState.error != null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = uiState.error ?: "Something went wrong", color = Color.Red)
+        }
+        return
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
 
@@ -54,7 +65,6 @@ fun HomeScreenUI(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left box (back button)
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -64,7 +74,6 @@ fun HomeScreenUI(
                 Text("<")
             }
 
-            // Right box (profile)
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -72,9 +81,9 @@ fun HomeScreenUI(
                     .clickable { onProfileClick() },
                 contentAlignment = Alignment.Center
             ) {
-                if (avatarUrl != null) {
+                if (uiState.profile?.avatar_url != null) {
                     AsyncImage(
-                        model = avatarUrl,
+                        model = uiState.profile!!.avatar_url,
                         contentDescription = "Profile picture",
                         modifier = Modifier
                             .fillMaxSize()
@@ -89,161 +98,145 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Title
+        // Greeting
         Text(
-            text = "Home",
+            text = "Hello, ${uiState.profile?.user_name ?: ""}",
             fontSize = 34.sp,
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        // Bookings Section Title
         Text(
-            text = "Bookings",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold
+            text = uiState.profile?.user_email ?: "",
+            fontSize = 14.sp,
+            color = Color.Gray
         )
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Bookings Section
+        Text("Bookings", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Rider + Driver with titles ABOVE boxes
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val confirmedBookings = uiState.bookings.filter { it.bookingStatus == "confirmed" }
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Rider",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Text("Rider", fontSize = 18.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
                         .height(60.dp)
                         .fillMaxWidth()
-                        .background(Color(0xFFF3E8FF), RoundedCornerShape(15.dp))
-                )
+                        .background(Color(0xFFF3E8FF), RoundedCornerShape(15.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "${confirmedBookings.size} booked",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Driver",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Text("Driver", fontSize = 18.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
                         .height(60.dp)
                         .fillMaxWidth()
-                        .background(Color(0xFFF3E8FF), RoundedCornerShape(15.dp))
-                )
+                        .background(Color(0xFFF3E8FF), RoundedCornerShape(15.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "${uiState.driverRides.size} offered",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(30.dp))
 
         // Ongoing Ride
-        DashboardSection(title = "Ongoing Ride")
+        Text("Ongoing Ride", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        val ongoingRide = uiState.bookings.firstOrNull { it.bookingStatus == "confirmed" }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(90.dp)
+                .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (ongoingRide != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "To: ${ongoingRide.rides?.destination ?: ongoingRide.dropoffLocation}",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = "Departs: ${ongoingRide.rides?.departureTime ?: ""}",
+                        fontSize = 13.sp,
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                Text("No ongoing ride", color = Color.Gray)
+            }
+        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
         // History
-        DashboardSection(title = "History")
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Carbon Metrics
-        DashboardSection(title = "Carbon Metrics")
-    }
-}
-
-@Composable
-fun DashboardSection(title: String) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = title,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-
+        Text("History", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(90.dp)
-                .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
-        )
-    }
-}
-
-@Composable
-fun DashboardButton(
-    text: String,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .height(60.dp)
-            .background(Color(0xFFF3E8FF), RoundedCornerShape(15.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-fun BottomNavBar() {
-    NavigationBar(
-        containerColor = Color.White
-    ) {
-        NavigationBarItem(
-            selected = true,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.Gray)) },
-            label = { Text("Home") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Book") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Offer") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Box(modifier = Modifier.size(24.dp).background(Color.LightGray)) },
-            label = { Text("Profile") }
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewHomeScreen() {
-    MoGoTheme {
-        Scaffold(
-            bottomBar = { BottomNavBar() }
-        ) { innerPadding ->
-            HomeScreenUI(
-                modifier = Modifier.padding(innerPadding),
+                .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "${uiState.bookings.size} total booking(s)",
+                fontWeight = FontWeight.Medium
             )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Carbon Metrics
+        Text("Carbon Metrics", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(90.dp)
+                .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "%.2f kg CO₂".format(uiState.totalCarbonSaved),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = Color(0xFF4CAF50)
+                )
+                Text(
+                    text = "saved by carpooling",
+                    fontSize = 13.sp,
+                    color = Color.Gray
+                )
+            }
         }
     }
 }

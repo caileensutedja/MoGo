@@ -98,19 +98,11 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Greeting
+        // Greeting (name only)
         Text(
             text = "Hello, ${uiState.profile?.user_name ?: ""}",
             fontSize = 34.sp,
             fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = uiState.profile?.user_email ?: "",
-            fontSize = 14.sp,
-            color = Color.Gray
         )
 
         Spacer(modifier = Modifier.height(24.dp))

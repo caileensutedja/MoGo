@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Offer(
     @SerialName("offer_id") val id: String,
-    @SerialName("user_id") val userId: String,
+    @SerialName("user_id") val userId: String?,
     @SerialName("business_id") val businessId: String,
     @SerialName("offer_code") val offerCode: String,
     @SerialName("discount_amount") val amount: Double? = null,

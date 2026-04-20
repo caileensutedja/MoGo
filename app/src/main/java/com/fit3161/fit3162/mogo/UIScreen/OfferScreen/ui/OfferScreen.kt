@@ -72,7 +72,17 @@ fun OfferScreenUI(
 
 @Composable
 fun OfferCardSkeleton(offer: Offer) {
-    var showDialog by remember { mutableStateOf(false) }
+    var showTermsDialog by remember { mutableStateOf(false) }
+    var showCodeDialog by remember { mutableStateOf(false) }
+
+    // Determine the display title based on offer_code
+    val displayTitle = when (offer.offerCode) {
+        "CAFE10" -> "☕️ Grafalis Cafe"
+        "SIGNUP10" -> "🎉 New User Voucher"
+        "REFER5" -> "🤝 Refer a Friend (You get $5)"
+        "REFERRED5" -> "🎁 Refer a Friend (Friend gets $5)"
+        else -> offer.businesses?.name ?: "MoGo"
+    }
 
     Box(
         modifier = Modifier
@@ -83,7 +93,7 @@ fun OfferCardSkeleton(offer: Offer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = offer.businesses?.name ?: "MoGo",
+                    text = displayTitle,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -104,18 +114,20 @@ fun OfferCardSkeleton(offer: Offer) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // Claim
                     Button(
-                        onClick = { /* TODO: Generate a code? */ },
+                        onClick = { showCodeDialog = true },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFEAD7FF)
+                            containerColor = Color(0xFFB57BFF)
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text("Claim")
                     }
 
+                    // T&C button – shows terms dialog
                     Button(
-                        onClick = { showDialog = true },
+                        onClick = { showTermsDialog = true },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFB57BFF)
                         ),
@@ -125,26 +137,48 @@ fun OfferCardSkeleton(offer: Offer) {
                     }
                 }
 
-                if (showDialog) {
+                // Terms & Conditions dialog
+                if (showTermsDialog) {
                     AlertDialog(
-                        onDismissRequest = { showDialog = false },
+                        onDismissRequest = { showTermsDialog = false },
                         title = { Text("Terms & Conditions") },
                         text = { Text("Please refer to MoGo's terms and conditions.") },
                         confirmButton = {
-                            TextButton(onClick = { showDialog = false }) {
+                            TextButton(onClick = { showTermsDialog = false }) {
                                 Text("Ok")
                             }
                         }
                     )
                 }
 
+                // Offer code dialog
+                if (showCodeDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showCodeDialog = false },
+                        title = { Text("Your Offer Code") },
+                        text = {
+                            Column {
+                                Text("Use this code when paying:")
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = offer.offerCode ?: "No code available",
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFCEA2FD),
+                                    letterSpacing = 2.sp
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showCodeDialog = false }) {
+                                Text("Close")
+                            }
+                        }
+                    )
+                }
             }
-
         }
     }
-
-
-
 }
 
 fun formatDate(dateString: String?): String {

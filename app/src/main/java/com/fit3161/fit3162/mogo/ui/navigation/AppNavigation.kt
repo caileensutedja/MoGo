@@ -12,7 +12,11 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -25,14 +29,16 @@ import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
+import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesScreen
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesViewModel
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesViewModelFactory
+import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeViewModel
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.OfferScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModel
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModelFactory
-import com.fit3161.fit3162.mogo.UIScreen.ProfileScreen.ProfileScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterScreen
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInScreen
 import com.fit3161.fit3162.mogo.UIScreen.WelcomeScreen.WelcomeScreen
@@ -44,9 +50,8 @@ import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideScreen
 import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideViewModelFactory
+import com.fit3161.fit3162.mogo.data.repo.ProfileRepository
 import io.github.jan.supabase.auth.auth
-import com.fit3161.fit3162.mogo.data.repo.BookRepository
-import com.fit3161.fit3162.mogo.data.repo.OfferRepository
 import com.fit3161.fit3162.mogo.ui.maps.MapScreenUI
 import com.fit3161.fit3162.mogo.ui.maps.MapsViewModel
 import com.fit3161.fit3162.mogo.ui.maps.MapsViewModelFactory
@@ -151,13 +156,28 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
             )
         }
 
-        // TODO: Remove during code cleanup. Dashboard only contains a single button: SignOut to go back to prev. screen.
+        // TODO: Remove during code cleanup. Dashboard only contains a single button: SignOut to go back to the previous. screen.
         /**
          * FIX SCREENS BELOW
          */
-        // Home Dashboard Screen composable.
         composable(Screen.Dashboard.route) {
-            HomeScreenUI()
+            val profileRepository = ProfileRepository(supabase)
+            val homeViewModel: HomeViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        @Suppress("UNCHECKED_CAST")
+                        return HomeViewModel(authRepository, profileRepository) as T
+                    }
+                }
+            )
+            val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+
+            HomeScreenUI(
+                avatarUrl = uiState.profile?.avatar_url,
+                onProfileClick = {
+                    navController.navigate(Screen.Profile.route)
+                }
+            )
         }
 
         // Booked UI composable.
@@ -245,6 +265,9 @@ data class BottomNavItem(
     val label: String,
     val icon: ImageVector
 )
+
+// val profileRepository = ProfileRepository(supabase)
+
 
 /**
  * Composable bottom bar for easy navigation.

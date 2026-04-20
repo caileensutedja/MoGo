@@ -1,5 +1,6 @@
 package com.fit3161.fit3162.mogo.UIScreen.RegisterScreen
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -134,19 +135,16 @@ class RegisterViewModel(private val repo: AuthRepository) : ViewModel() {
             else -> viewModelScope.launch {
                 _state.value = AuthState.Loading
 
-                val fullPhone = "$data.countryCode $data.phoneNumber"
-
+                val fullPhone = "${data.countryCode} ${data.phoneNumber}"
+                Log.d("RegisterDebug", "Full phone to send: '$fullPhone'")
                 repo.register(
                     data.email.trim(),
                     data.password,
                     data.name,
-                    fullPhone,
+                    fullPhone,   // <- must be the string
                     data.gender
-                )
-                    .onSuccess { _state.value = AuthState.AwaitingEmailConfirmation }
-                    .onFailure {
-                        _state.value = AuthState.Error(it.message ?: "Registration failed.")
-                    }
+                ).onSuccess { _state.value = AuthState.AwaitingEmailConfirmation }
+                    .onFailure { _state.value = AuthState.Error(it.message ?: "Registration failed.") }
             }
         }
     }

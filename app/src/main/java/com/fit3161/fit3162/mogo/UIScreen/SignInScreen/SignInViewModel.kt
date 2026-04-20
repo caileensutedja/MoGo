@@ -3,6 +3,7 @@ package com.fit3161.fit3162.mogo.UIScreen.SignInScreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.fit3161.fit3162.mogo.data.SessionManager
 import com.fit3161.fit3162.mogo.data.model.AuthState
 import com.fit3161.fit3162.mogo.data.repo.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,7 @@ import kotlinx.coroutines.launch
 /**
  * LoginViewModel manages LoginScreen state and business logic.
  */
-class SignInViewModel(private val repo: AuthRepository) : ViewModel() {
+class SignInViewModel(private val repo: AuthRepository, private val sessionManager: SessionManager) : ViewModel() {
 
     private val _state = MutableStateFlow<AuthState>(AuthState.Idle)
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -31,7 +32,9 @@ class SignInViewModel(private val repo: AuthRepository) : ViewModel() {
         viewModelScope.launch { // Login attempt happens here.
             _state.value = AuthState.Loading
             repo.login(email.trim(), password)
-                .onSuccess { _state.value = AuthState.Success }
+                .onSuccess {
+                    sessionManager.saveSession()
+                    _state.value = AuthState.Success }
                 .onFailure { _state.value = AuthState.Error(it.message ?: "Login failed.") }
         }
     }
@@ -62,12 +65,13 @@ class SignInViewModel(private val repo: AuthRepository) : ViewModel() {
  * without a factory.
  */
 class SignInViewModelFactory(
-    private val repo: AuthRepository
+    private val repo: AuthRepository,
+    private val sessionManager: SessionManager
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SignInViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SignInViewModel(repo) as T
+            return SignInViewModel(repo, sessionManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

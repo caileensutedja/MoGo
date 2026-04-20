@@ -55,6 +55,10 @@ import io.github.jan.supabase.auth.auth
 import com.fit3161.fit3162.mogo.ui.maps.MapScreenUI
 import com.fit3161.fit3162.mogo.ui.maps.MapsViewModel
 import com.fit3161.fit3162.mogo.ui.maps.MapsViewModelFactory
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.fit3161.fit3162.mogo.data.SessionManager
 
 /**
  * Defines every screen route in the app.
@@ -84,6 +88,16 @@ sealed class Screen(val route: String) {
 @Composable
 fun AppNavigation(application: MogoApplication, navController: NavHostController) {
 
+    val sessionManager = remember { SessionManager(application) }
+    val isLoggedIn by sessionManager.isLoggedIn.collectAsState(initial = false)
+    val timestamp by sessionManager.loginTimestamp.collectAsState(initial = 0L)
+
+    val startDestination = if (isLoggedIn && !sessionManager.isSessionExpired(timestamp)) {
+        Screen.Dashboard.route
+    } else {
+        Screen.Welcome.route
+    }
+
     // Get Supabase client instance.
     val supabase = application.supabase
 
@@ -102,21 +116,21 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
     NavHost(
         navController = navController,
         // TODO: Logic fix if alr logged in or not -> Session Persistence
-        startDestination = Screen.Welcome.route // App starts in Welcome Screen when first launched.
+        startDestination = startDestination // App starts in Welcome Screen when first launched.
     ) {
 
         // Welcome Screen composable.
         composable(Screen.Welcome.route) {
             WelcomeScreen(
                 onNavigateToLogin = {
-                navController.navigate(Screen.Login.route) // Navigate from Welcome Screen to Login Screen.
-            })
+                    navController.navigate(Screen.Login.route) // Navigate from Welcome Screen to Login Screen.
+                })
         }
 
         // Login Screen composable.
         composable(Screen.Login.route) {
             val viewModel: SignInViewModel = viewModel(
-                factory = SignInViewModelFactory(authRepository)
+                factory = SignInViewModelFactory(authRepository, sessionManager)
             )
             SignInScreen(
                 viewModel = viewModel,

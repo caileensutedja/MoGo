@@ -105,12 +105,13 @@ class BookRepository(private val client: SupabaseClient) {
                         .select(Columns.raw("*, rides(*, users(*), vehicles(*))")) {
                                 filter {
                                         eq("rider_id", userId)
-                                        eq("booking_status", "confirmed")
+                                        eq("booking_status", "confirmed")   // ← ONLY confirmed, NOT completed
                                 }
-                                order("time_created", Order.ASCENDING) // Change it to ride's date
+                                order("time_created", Order.ASCENDING)
                         }
                         .decodeList<Booking>()
         }
+
 
         /**
          * FUTURE RIDES
@@ -280,6 +281,9 @@ class BookRepository(private val client: SupabaseClient) {
         /**
          * RIDER HISTORY - Completed past bookings
          */
+        /**
+         * Get completed past bookings for rider history
+         */
         suspend fun getRiderHistory(userId: String): List<Booking> {
                 return try {
                         client
@@ -291,7 +295,7 @@ class BookRepository(private val client: SupabaseClient) {
                                                         eq("booking_status", "completed")
                                                 }
                                         }
-                                        order("time_created", Order.DESCENDING)  // most recent first
+                                        order("time_created", Order.DESCENDING)
                                 }
                                 .decodeList<Booking>()
                 } catch (e: Exception) {

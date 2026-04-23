@@ -59,12 +59,13 @@ fun HomeScreenUI(
             .padding(16.dp)
     ) {
 
-        // Top Row: Back + Profile
+        // Top Row: Back + Profile + Fire Streak
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Back button
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -74,31 +75,54 @@ fun HomeScreenUI(
                 Text("<")
             }
 
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color(0xFFDCCBFF), RoundedCornerShape(10.dp))
-                    .clickable { onProfileClick() },
-                contentAlignment = Alignment.Center
+            // Profile + Fire Streak
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (uiState.profile?.avatar_url != null) {
-                    AsyncImage(
-                        model = uiState.profile!!.avatar_url,
-                        contentDescription = "Profile picture",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(10.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Text("P", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                // Fire streak indicator
+                if (uiState.rideStreak > 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(text = "🔥", fontSize = 18.sp)
+                        Text(
+                            text = "${uiState.rideStreak}",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFF9800)
+                        )
+                    }
+                }
+
+                // Profile picture
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFDCCBFF), RoundedCornerShape(10.dp))
+                        .clickable { onProfileClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (uiState.profile?.avatar_url != null) {
+                        AsyncImage(
+                            model = uiState.profile!!.avatar_url,
+                            contentDescription = "Profile picture",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(10.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text("P", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Greeting (name only)
+        // Greeting
         Text(
             text = "Hello, ${uiState.profile?.user_name ?: ""}",
             fontSize = 34.sp,
@@ -107,8 +131,7 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ========== HISTORY & BOOKINGS TOGETHER ==========
-        // Row 1: Rider History + Driver History
+        // History Section
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -124,25 +147,25 @@ fun HomeScreenUI(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Rider History",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF4A2B7A)
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Gray
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (uiState.riderHistory.isNotEmpty()) {
                         Text(
                             text = "${uiState.riderHistory.size}",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 36.sp,
+                            fontSize = 40.sp,
                             color = Color(0xFF4A2B7A)
                         )
                         Text(
                             text = "completed rides",
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = Color.Gray
                         )
                     } else {
-                        Text("No past rides", fontSize = 14.sp, color = Color.Gray)
+                        Text("No past rides", fontSize = 12.sp, color = Color.Gray)
                     }
                 }
             }
@@ -158,25 +181,25 @@ fun HomeScreenUI(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Driver History",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF4A2B7A)
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Gray
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (uiState.driverHistory.isNotEmpty()) {
                         Text(
                             text = "${uiState.driverHistory.size}",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 36.sp,
+                            fontSize = 40.sp,
                             color = Color(0xFF4A2B7A)
                         )
                         Text(
                             text = "completed drives",
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = Color.Gray
                         )
                     } else {
-                        Text("No past drives", fontSize = 14.sp, color = Color.Gray)
+                        Text("No past drives", fontSize = 12.sp, color = Color.Gray)
                     }
                 }
             }
@@ -184,7 +207,7 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Row 2: Rider Bookings + Driver Bookings
+        // ========== BOOKINGS SECTION ==========
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -195,23 +218,28 @@ fun HomeScreenUI(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(100.dp)
+                    .height(110.dp)
                     .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Rider Bookings",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "${confirmedBookings.size}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 40.sp,
                         color = Color(0xFF4A2B7A)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "${confirmedBookings.size} booked",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Color(0xFF4A2B7A)
+                        text = "booked",
+                        fontSize = 11.sp,
+                        color = Color.Gray
                     )
                 }
             }
@@ -220,23 +248,28 @@ fun HomeScreenUI(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(100.dp)
+                    .height(110.dp)
                     .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Driver Bookings",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "${uiState.driverRides.size}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 40.sp,
                         color = Color(0xFF4A2B7A)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "${uiState.driverRides.size} offered",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Color(0xFF4A2B7A)
+                        text = "offered",
+                        fontSize = 11.sp,
+                        color = Color.Gray
                     )
                 }
             }
@@ -277,28 +310,81 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Carbon Metrics
+        // Carbon metrics
         Text("Carbon Metrics", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
-                .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
-            contentAlignment = Alignment.Center
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "%.2f kg CO₂".format(uiState.totalCarbonSaved),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
-                    color = Color(0xFF4CAF50)
-                )
-                Text(
-                    text = "saved by carpooling",
-                    fontSize = 13.sp,
-                    color = Color.Gray
-                )
+            // Box 1: CO₂ saved
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(100.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "%.2f".format(uiState.totalCarbonSaved),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                        color = Color(0xFF4CAF50)
+                    )
+                    Text(
+                        text = "kg CO₂ saved",
+                        fontSize = 11.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            // Box 2: Trees equivalent
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(100.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "↟ ${uiState.treesEquivalent}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                        color = Color(0xFF4CAF50)
+                    )
+                    Text(
+                        text = "trees equivalent",
+                        fontSize = 11.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            // Box 3: Empty (placeholder for future metric)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(100.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "?",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                        color = Color(0xFFCEA2FD)
+                    )
+                    Text(
+                        text = "coming soon",
+                        fontSize = 11.sp,
+                        color = Color.Gray
+                    )
+                }
             }
         }
     }

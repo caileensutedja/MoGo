@@ -21,6 +21,8 @@ data class HomeUiState(
     val driverHistory: List<Ride> = emptyList(),
     val driverRides: List<Ride> = emptyList(),
     val totalCarbonSaved: Double = 0.0,
+    val rideStreak: Int = 0,
+    val treesEquivalent: Int = 5,      // streaks are arbitrary for now
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -49,24 +51,22 @@ class HomeViewModel(
             try {
                 val profile = profileRepo.getProfile(userId)
 
-                // Get all bookings for rider (then filter in ViewModel)
-                val allBookings = bookRepo.getBookedRides(userId)
+                // Rider data
+                val ongoingBookings = bookRepo.getBookedRides(userId)
+                val riderHistory = bookRepo.getRiderHistory(userId)
 
-                // Split bookings into ongoing vs completed (rider history)
-                val ongoingBookings = allBookings.filter { it.bookingStatus == "confirmed" }
-                val riderHistory = allBookings.filter { it.bookingStatus == "completed" }
-
-                // Get all rides for driver (then filter in ViewModel)
+                // Driver data
                 val allDriverRides = bookRepo.getMyRides(userId)
-
-                // Split driver rides into upcoming vs completed (driver history)
                 val upcomingDriverRides = allDriverRides.filter { it.rideStatus == "scheduled" }
                 val driverHistory = allDriverRides.filter { it.rideStatus == "completed" }
 
-                // ✅ FIXED: Calculate carbon from BOTH rider history AND driver history
+                // Calculate carbon from BOTH rider history AND driver history
                 val riderCarbon = riderHistory.mapNotNull { it.rides?.carbonEstimate }.sum()
                 val driverCarbon = driverHistory.mapNotNull { it.carbonEstimate }.sum()
                 val totalCarbonSaved = riderCarbon + driverCarbon
+
+                // Calculate ride streak
+                val rideStreak = minOf(riderHistory.size + driverHistory.size, 7)
 
                 _uiState.value = _uiState.value.copy(
                     profile = profile,
@@ -75,6 +75,8 @@ class HomeViewModel(
                     driverHistory = driverHistory,
                     driverRides = upcomingDriverRides,
                     totalCarbonSaved = totalCarbonSaved,
+                    rideStreak = rideStreak,
+                    treesEquivalent = 5,
                     isLoading = false
                 )
 
@@ -83,7 +85,7 @@ class HomeViewModel(
             }
         }
     }
-    }
+}
 
 class HomeViewModelFactory(
     private val client: SupabaseClient

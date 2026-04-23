@@ -27,6 +27,7 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
     var email by remember { mutableStateOf("") }
     var mobile by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
+    var user_role by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -95,6 +96,16 @@ fun ProfileScreenUI(modifier: Modifier = Modifier) {
             value = gender,
             onValueChange = { gender = it },
             label = { Text("Gender (Male/Female/Other)") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // User Role field
+        OutlinedTextField(
+            value = user_role,
+            onValueChange = { user_role = it },
+            label = { Text("Role (Rider/Driver)") },
             modifier = Modifier.fillMaxWidth()
         )
 

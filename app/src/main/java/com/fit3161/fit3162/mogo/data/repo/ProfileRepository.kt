@@ -47,13 +47,15 @@ class ProfileRepository(private val supabase: SupabaseClient) {
         userId: String,
         name: String? = null,
         phone: String? = null,
-        gender: String? = null
+        gender: String? = null,
+        user_role: String? = null
     ): Result<Unit> {
         return try {
             val updates = buildJsonObject {
                 name?.let { put("user_name", it) }
                 phone?.let { put("user_phone", it) }
                 gender?.let { put("user_gender", it) }
+                user_role?.let {put("user_role", it)}
             }
             supabase.from("users")
                 .update(updates) {

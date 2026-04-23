@@ -6,8 +6,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material3.CheckboxDefaults.colors
 import androidx.compose.runtime.*
@@ -40,14 +42,18 @@ fun ProfileScreenUI(
     var email by remember { mutableStateOf("") }
     var mobile by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
+    var userRole by remember { mutableStateOf("") }
+
 
     var showNameDialog by remember { mutableStateOf(false) }
     var showMobileDialog by remember { mutableStateOf(false) }
     var showGenderDialog by remember { mutableStateOf(false) }
+    var showRoleDialog by remember { mutableStateOf(false) }
 
     var tempName by remember { mutableStateOf("") }
     var tempMobile by remember { mutableStateOf("") }
     var tempGender by remember { mutableStateOf("") }
+    var tempUserRole by remember { mutableStateOf("") }
 
     val scope = rememberCoroutineScope()
 
@@ -57,6 +63,7 @@ fun ProfileScreenUI(
             email = it.user_email
             mobile = it.user_phone
             gender = it.user_gender
+            userRole = it.user_role
         }
     }
 
@@ -86,7 +93,8 @@ fun ProfileScreenUI(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Settings icon
@@ -220,7 +228,28 @@ fun ProfileScreenUI(
                 }
             }
         )
-        Spacer(modifier = Modifier.height(100.dp))
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Role field
+        OutlinedTextField(
+            value = userRole,
+            onValueChange = {},
+            textStyle = TextStyle(color = Color.Black),
+            label = { Text("Role (Rider/Driver)") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false,
+            trailingIcon = {
+                IconButton(onClick = {
+                    tempUserRole = userRole
+                    showRoleDialog = true
+                }) {
+                    Text("✎", fontSize = 20.sp)
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(80.dp))
 
         Button(
             onClick = { /* TODO: change password */ },
@@ -230,25 +259,14 @@ fun ProfileScreenUI(
         ) {
             Text("Change Password", color = Color.White)
         }
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
-            onClick = { /* Save all changes */ },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCEA2FD)),
-        ) {
-            Text("Save Changes")
-        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Button(
-            onClick = {
-                scope.launch { onLogout() }
-            },
-            colors = ButtonDefaults.buttonColors(Color(0xFFCA3433)),
-            shape = RoundedCornerShape(12.dp),
+            onClick = { scope.launch { onLogout() } },
             modifier = Modifier.fillMaxWidth().height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCA3433)),
+            shape = RoundedCornerShape(12.dp)
         ) {
             Text("Log Out")
         }
@@ -358,6 +376,47 @@ fun ProfileScreenUI(
             },
             dismissButton = {
                 TextButton(onClick = { showGenderDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+    // Show Role
+    if (showRoleDialog) {
+        val roleOptions = listOf("rider", "driver")
+        AlertDialog(
+            onDismissRequest = { showRoleDialog = false },
+            title = { Text("Edit Role") },
+            text = {
+                Column {
+                    roleOptions.forEach { option ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { tempUserRole = option }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            RadioButton(
+                                selected = tempUserRole == option,
+                                onClick = { tempUserRole = option }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(option)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (tempUserRole.isNotBlank()) {
+                            viewModel.updateField("user_role", tempUserRole)
+                        }
+                        showRoleDialog = false
+                    }
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRoleDialog = false }) { Text("Cancel") }
             }
         )
     }

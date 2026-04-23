@@ -26,7 +26,7 @@ class ProfileViewModel(
     private val context: Context
 ) : ViewModel() {
 
-    private val imageUploadRepo = ImageUploadRepository(authRepo.getSupabaseClient(), context)   // ✅ pass context
+    private val imageUploadRepo = ImageUploadRepository(authRepo.getSupabaseClient(), context)   // pass context
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -53,6 +53,7 @@ class ProfileViewModel(
                 "name" -> profileRepo.updateProfile(userId, name = value)
                 "mobile" -> profileRepo.updateProfile(userId, phone = value)
                 "gender" -> profileRepo.updateProfile(userId, gender = value)
+                "user_role" -> profileRepo.updateProfile(userId, user_role = value)
             }
             loadProfile()
         }

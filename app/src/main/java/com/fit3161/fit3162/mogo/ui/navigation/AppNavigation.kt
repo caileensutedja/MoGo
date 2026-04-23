@@ -1,8 +1,6 @@
 package com.fit3161.fit3162.mogo.ui.navigation
 
 import android.util.Log
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileRoute
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -10,7 +8,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -18,9 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -34,7 +28,6 @@ import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeScreenUI
-// import com.fit3161.fit3162.mogo.UIScreen.HomeScreen.HomeScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesScreen
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesViewModel
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesViewModelFactory
@@ -52,17 +45,13 @@ import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideScreen
 import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideViewModelFactory
-import com.fit3161.fit3162.mogo.data.repo.ProfileRepository
 import io.github.jan.supabase.auth.auth
 import com.fit3161.fit3162.mogo.ui.maps.MapScreenUI
 import com.fit3161.fit3162.mogo.ui.maps.MapsViewModel
 import com.fit3161.fit3162.mogo.ui.maps.MapsViewModelFactory
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModel
 import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModelFactory
 import com.fit3161.fit3162.mogo.data.SessionManager
@@ -94,7 +83,10 @@ sealed class Screen(val route: String) {
  * @param application [MogoApplication] instance used to access the shared Supabase client.
  */
 @Composable
-fun AppNavigation(application: MogoApplication, navController: NavHostController) {
+fun AppNavigation(
+    application: MogoApplication,
+    navController: NavHostController,
+    onRoleChanged: () -> Unit = {}) {
 
     val sessionManager = remember { SessionManager(application) }
     val isLoggedIn by sessionManager.isLoggedIn.collectAsState(initial = false)
@@ -192,13 +184,13 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
                 viewModel = viewModel,
                 onNavigateToFutureBookRides = {
                     navController.navigate(Screen.FutureRides.route)
-                },
-                onNavigateToUploadRides = {
-                    navController.navigate(Screen.UploadRide.route)
-                },
-                onNavigateToMyRides = {
-                    navController.navigate(Screen.MyRides.route)
                 }
+//                onNavigateToUploadRides = {
+//                    navController.navigate(Screen.UploadRide.route)
+//                },
+//                onNavigateToMyRides = {
+//                    navController.navigate(Screen.MyRides.route)
+//                }
             )
         }
 
@@ -208,7 +200,9 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
             val viewModel: FutureRideViewModel = viewModel(
                 factory = FutureRideViewModelFactory(supabase, userId)
             )
-            FutureRideScreenUI(viewModel = viewModel)
+            FutureRideScreenUI(
+                viewModel = viewModel,
+                )
         }
 
         composable(Screen.UploadRide.route) {
@@ -229,7 +223,10 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
                 factory = MyRidesViewModelFactory(supabase, userId)
             )
             MyRidesScreen(
-                viewModel
+                viewModel,
+                onNavigateToUploadRides = {
+                    navController.navigate(Screen.UploadRide.route)
+                }
             )
         }
 
@@ -254,7 +251,8 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
                             popUpTo(0) { inclusive = true }  // clears the entire back stack
                         }
                     }
-                }
+                },
+                onRoleChanged = onRoleChanged
             )
         }
 
@@ -285,15 +283,21 @@ data class BottomNavItem(
  * Composable bottom bar for easy navigation.
  */
 @Composable
-fun BottomBar(navController: NavHostController) {
+fun BottomBar(navController: NavHostController, userRole: String = "rider") {
 
     val currentRoute =
         navController.currentBackStackEntryAsState().value?.destination?.route
 
+    val riderOrDriver = if (userRole.lowercase() == "driver") {
+        BottomNavItem(Screen.MyRides.route, "My Rides", Icons.Filled.CalendarMonth)
+    } else {
+        BottomNavItem(Screen.Booked.route, "Booked", Icons.Filled.CalendarMonth)
+    }
+
     // Lists within the bottom bar
     val items = listOf(
         BottomNavItem(Screen.Dashboard.route, "Home", Icons.Filled.Home),
-        BottomNavItem(Screen.Booked.route, "booked", Icons.Filled.CalendarMonth),
+        riderOrDriver,
         BottomNavItem(Screen.Offer.route, "Offer", Icons.Filled.LocalOffer),
         BottomNavItem(Screen.Profile.route, "Profile", Icons.Filled.Person),
 
@@ -311,7 +315,6 @@ fun BottomBar(navController: NavHostController) {
                     Text(item.label)
                 },
                 selected = currentRoute == item.route,
-                // TODO: Check if it stores previous screen states
                 onClick = {
                     navController.navigate(item.route) {
                         popUpTo(navController.graph.startDestinationId)

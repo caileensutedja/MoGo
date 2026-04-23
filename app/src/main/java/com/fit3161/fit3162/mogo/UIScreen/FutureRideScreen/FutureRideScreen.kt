@@ -28,7 +28,7 @@ import java.util.Locale
 fun FutureRideScreenUI(
     viewModel: FutureRideViewModel,
     modifier: Modifier = Modifier
-) {
+    ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()

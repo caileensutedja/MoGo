@@ -26,7 +26,8 @@ import com.fit3161.fit3162.mogo.data.repo.Ride
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyRidesScreen(
-    viewModel: MyRidesViewModel
+    viewModel: MyRidesViewModel,
+    onNavigateToUploadRides: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -79,6 +80,22 @@ fun MyRidesScreen(
                 }
             }
         }
+
+
+        //  Upload Ride Button
+        Button(
+            onClick = { onNavigateToUploadRides() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp),
+            shape = RoundedCornerShape(15.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFCEA2FD)
+            )
+        ) {
+            Text("Upload Future Ride", fontSize = 18.sp)
+        }
+        Spacer(modifier = Modifier.height(10.dp))
     }
 }
 

@@ -46,7 +46,7 @@ class ProfileViewModel(
         }
     }
 
-    fun updateField(field: String, value: String) {
+    fun updateField(field: String, value: String, onRoleChanged: () -> Unit = {}) {
         viewModelScope.launch {
             val userId = authRepo.getCurrentUserId() ?: return@launch
             when (field) {
@@ -56,6 +56,10 @@ class ProfileViewModel(
                 "user_role" -> profileRepo.updateProfile(userId, user_role = value)
             }
             loadProfile()
+            if (field == "user_role") {
+                _uiState.update { it.copy(profile = it.profile?.copy(user_role = value)) }
+                onRoleChanged()  // called AFTER save completes
+            }
         }
     }
 

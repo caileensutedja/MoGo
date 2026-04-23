@@ -33,7 +33,8 @@ import kotlinx.coroutines.launch
 fun ProfileScreenUI(
     viewModel: ProfileViewModel,
     modifier: Modifier = Modifier,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onRoleChanged: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -409,7 +410,8 @@ fun ProfileScreenUI(
                 TextButton(
                     onClick = {
                         if (tempUserRole.isNotBlank()) {
-                            viewModel.updateField("user_role", tempUserRole)
+                            // Passes the updated value before it stores in DB because of delays of fetching
+                            viewModel.updateField("user_role", tempUserRole, onRoleChanged)
                         }
                         showRoleDialog = false
                     }

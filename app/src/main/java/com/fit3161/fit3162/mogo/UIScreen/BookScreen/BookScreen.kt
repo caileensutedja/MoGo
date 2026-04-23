@@ -17,15 +17,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fit3161.fit3162.mogo.data.repo.Booking
-import com.fit3161.fit3162.mogo.data.repo.Ride
 
 @Composable
 fun BookScreenUI(
     viewModel: BookViewModel,
     modifier: Modifier = Modifier,
-    onNavigateToFutureBookRides: () -> Unit,
-    onNavigateToUploadRides: () -> Unit,
-    onNavigateToMyRides: () -> Unit
+    onNavigateToFutureBookRides: () -> Unit
 ) {
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -115,37 +112,37 @@ fun BookScreenUI(
 
         Spacer(modifier = Modifier.height(15.dp))
 
-        //  Upload Ride Button
-        Button(
-            onClick = { onNavigateToUploadRides() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            shape = RoundedCornerShape(15.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFCEA2FD)
-            )
-        ) {
-            Text("Upload Future Ride", fontSize = 18.sp)
-        }
+//        //  Upload Ride Button
+//        Button(
+//            onClick = { onNavigateToUploadRides() },
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(55.dp),
+//            shape = RoundedCornerShape(15.dp),
+//            colors = ButtonDefaults.buttonColors(
+//                containerColor = Color(0xFFCEA2FD)
+//            )
+//        ) {
+//            Text("Upload Future Ride", fontSize = 18.sp)
+//        }
 
         Spacer(modifier = Modifier.height(15.dp))
 
         //  My Ride Button
-        Button(
-            onClick = { onNavigateToMyRides() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            shape = RoundedCornerShape(15.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFCEA2FD)
-            )
-        ) {
-            Text("My Future Ride (Driver)", fontSize = 18.sp)
-        }
+//        Button(
+//            onClick = { onNavigateToMyRides() },
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(55.dp),
+//            shape = RoundedCornerShape(15.dp),
+//            colors = ButtonDefaults.buttonColors(
+//                containerColor = Color(0xFFCEA2FD)
+//            )
+//        ) {
+//            Text("My Future Ride (Driver)", fontSize = 18.sp)
+//        }
 
-        Spacer(modifier = Modifier.height(10.dp))
+//        Spacer(modifier = Modifier.height(10.dp))
     }
 }
 

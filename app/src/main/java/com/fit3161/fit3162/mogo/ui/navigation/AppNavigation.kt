@@ -167,7 +167,9 @@ fun AppNavigation(
             )
             HomeScreenUI(
                 viewModel = viewModel,
-                onProfileClick = { navController.navigate(Screen.Profile.route) }
+                onProfileClick = { navController.navigate(Screen.Profile.route)},
+                onBookedClick = { navController.navigate(Screen.Booked.route) },
+                onMyRidesClick = { navController.navigate(Screen.MyRides.route) }
             )
         }
 

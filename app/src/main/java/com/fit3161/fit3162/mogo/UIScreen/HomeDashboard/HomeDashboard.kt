@@ -34,6 +34,8 @@ import coil.compose.AsyncImage
 fun HomeScreenUI(
     viewModel: HomeViewModel,
     onProfileClick: () -> Unit = {},
+    onBookedClick: () -> Unit = {},
+    onMyRidesClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -124,6 +126,7 @@ fun HomeScreenUI(
                     modifier = Modifier
                         .height(60.dp)
                         .fillMaxWidth()
+                        .clickable { onBookedClick() } // Redirects to 'Booked' page
                         .background(Color(0xFFF3E8FF), RoundedCornerShape(15.dp)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -141,6 +144,7 @@ fun HomeScreenUI(
                     modifier = Modifier
                         .height(60.dp)
                         .fillMaxWidth()
+                        .clickable { onMyRidesClick() } // Redirects to 'Ny Rides' page
                         .background(Color(0xFFF3E8FF), RoundedCornerShape(15.dp)),
                     contentAlignment = Alignment.Center
                 ) {

@@ -276,5 +276,101 @@ class BookRepository(private val client: SupabaseClient) {
                         .map { it.rideId }
                         .toSet()
         }
+
+        /**
+         * RIDER HISTORY - Completed past bookings
+         */
+        suspend fun getRiderHistory(userId: String): List<Booking> {
+                return try {
+                        client
+                                .from("bookings")
+                                .select(Columns.raw("*, rides(*, users(*), vehicles(*))")) {
+                                        filter {
+                                                and {
+                                                        eq("rider_id", userId)
+                                                        eq("booking_status", "completed")
+                                                }
+                                        }
+                                        order("time_created", Order.DESCENDING)  // most recent first
+                                }
+                                .decodeList<Booking>()
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Failed to get rider history", e)
+                        emptyList()
+                }
+        }
+
+        /**
+         * DRIVER HISTORY - Completed past rides
+         */
+        suspend fun getDriverHistory(userId: String): List<Ride> {
+                return try {
+                        client
+                                .from("rides")
+                                .select(Columns.raw("*, users(*), vehicles(*)")) {
+                                        filter {
+                                                and {
+                                                        eq("driver_id", userId)
+                                                        eq("ride_status", "completed")
+                                                }
+                                        }
+                                        order("departure_time", Order.DESCENDING)  // most recent first
+                                }
+                                .decodeList<Ride>()
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Failed to get driver history", e)
+                        emptyList()
+                }
+        }
+
+        /**
+         * ONGOING/CONFIRMED RIDER BOOKINGS (not yet completed)
+         */
+        suspend fun getOngoingRiderBookings(userId: String): List<Booking> {
+                return try {
+                        client
+                                .from("bookings")
+                                .select(Columns.raw("*, rides(*, users(*), vehicles(*))")) {
+                                        filter {
+                                                and {
+                                                        eq("rider_id", userId)
+                                                        eq("booking_status", "confirmed")
+                                                }
+                                        }
+                                        order("time_created", Order.ASCENDING)
+                                }
+                                .decodeList<Booking>()
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Failed to get ongoing bookings", e)
+                        emptyList()
+                }
+        }
+
+        /**
+         * UPCOMING DRIVER RIDES (scheduled, not yet completed)
+         */
+        suspend fun getUpcomingDriverRides(userId: String): List<Ride> {
+                val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
+                        .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+
+                return try {
+                        client
+                                .from("rides")
+                                .select(Columns.raw("*, users(*), vehicles(*)")) {
+                                        filter {
+                                                and {
+                                                        eq("driver_id", userId)
+                                                        eq("ride_status", "scheduled")
+                                                        gte("departure_time", now)  // only future rides
+                                                }
+                                        }
+                                        order("departure_time", Order.ASCENDING)
+                                }
+                                .decodeList<Ride>()
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Failed to get upcoming driver rides", e)
+                        emptyList()
+                }
+        }
 }
 

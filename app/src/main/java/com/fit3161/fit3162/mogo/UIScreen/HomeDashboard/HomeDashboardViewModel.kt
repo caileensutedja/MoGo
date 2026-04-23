@@ -17,8 +17,10 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val profile: UserProfile? = null,
     val bookings: List<Booking> = emptyList(),
+    val riderHistory: List<Booking> = emptyList(),
+    val driverHistory: List<Ride> = emptyList(),
     val driverRides: List<Ride> = emptyList(),
-    val totalCarbonSaved: Double = 0.0,  // add this
+    val totalCarbonSaved: Double = 0.0,
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -46,15 +48,32 @@ class HomeViewModel(
             }
             try {
                 val profile = profileRepo.getProfile(userId)
-                val bookings = bookRepo.getBookedRides(userId)
-                val driverRides = bookRepo.getMyRides(userId)
-                val totalCarbonSaved = bookings
-                    .mapNotNull { it.rides?.carbonEstimate }
-                    .sum()
+
+                // Get all bookings for rider (then filter in ViewModel)
+                val allBookings = bookRepo.getBookedRides(userId)
+
+                // Split bookings into ongoing vs completed (rider history)
+                val ongoingBookings = allBookings.filter { it.bookingStatus == "confirmed" }
+                val riderHistory = allBookings.filter { it.bookingStatus == "completed" }
+
+                // Get all rides for driver (then filter in ViewModel)
+                val allDriverRides = bookRepo.getMyRides(userId)
+
+                // Split driver rides into upcoming vs completed (driver history)
+                val upcomingDriverRides = allDriverRides.filter { it.rideStatus == "scheduled" }
+                val driverHistory = allDriverRides.filter { it.rideStatus == "completed" }
+
+                // ✅ FIXED: Calculate carbon from BOTH rider history AND driver history
+                val riderCarbon = riderHistory.mapNotNull { it.rides?.carbonEstimate }.sum()
+                val driverCarbon = driverHistory.mapNotNull { it.carbonEstimate }.sum()
+                val totalCarbonSaved = riderCarbon + driverCarbon
+
                 _uiState.value = _uiState.value.copy(
                     profile = profile,
-                    bookings = bookings,
-                    driverRides = driverRides,
+                    bookings = ongoingBookings,
+                    riderHistory = riderHistory,
+                    driverHistory = driverHistory,
+                    driverRides = upcomingDriverRides,
                     totalCarbonSaved = totalCarbonSaved,
                     isLoading = false
                 )
@@ -64,7 +83,7 @@ class HomeViewModel(
             }
         }
     }
-}
+    }
 
 class HomeViewModelFactory(
     private val client: SupabaseClient

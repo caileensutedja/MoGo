@@ -72,10 +72,17 @@ class MapsRepository(
             apiKey = apiKey,
             request = request
         )
+
+// ADD THIS TEMPORARILY
+        Log.d(TAG, "Raw response: $response")
+        Log.d(TAG, "Routes null? ${response.routes == null}")
+        Log.d(TAG, "Routes empty? ${response.routes?.isEmpty()}")
+
+
         // REMOVED: commented-out fieldMask, packageName, sha1Fingerprint parameters
         // (these are now handled by the OkHttp interceptor in MogoApplication)
 
-        check(response.routes.isNotEmpty()) {
+        check(!response.routes.isNullOrEmpty()) {
             "Routes API returned no routes. Check coordinates and API key."
         }
 

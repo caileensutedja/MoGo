@@ -107,46 +107,136 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Bookings Section
-        Text("Bookings", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(12.dp))
+        // ========== HISTORY & BOOKINGS TOGETHER ==========
+        // Row 1: Rider History + Driver History
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Rider History Box
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(110.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Rider History",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF4A2B7A)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (uiState.riderHistory.isNotEmpty()) {
+                        Text(
+                            text = "${uiState.riderHistory.size}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 36.sp,
+                            color = Color(0xFF4A2B7A)
+                        )
+                        Text(
+                            text = "completed rides",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    } else {
+                        Text("No past rides", fontSize = 14.sp, color = Color.Gray)
+                    }
+                }
+            }
 
+            // Driver History Box
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(110.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Driver History",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF4A2B7A)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (uiState.driverHistory.isNotEmpty()) {
+                        Text(
+                            text = "${uiState.driverHistory.size}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 36.sp,
+                            color = Color(0xFF4A2B7A)
+                        )
+                        Text(
+                            text = "completed drives",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    } else {
+                        Text("No past drives", fontSize = 14.sp, color = Color.Gray)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Row 2: Rider Bookings + Driver Bookings
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             val confirmedBookings = uiState.bookings.filter { it.bookingStatus == "confirmed" }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Rider", fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .height(60.dp)
-                        .fillMaxWidth()
-                        .background(Color(0xFFF3E8FF), RoundedCornerShape(15.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
+            // Rider Bookings Box
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(100.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Rider Bookings",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF4A2B7A)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "${confirmedBookings.size} booked",
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = Color(0xFF4A2B7A)
                     )
                 }
             }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Driver", fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .height(60.dp)
-                        .fillMaxWidth()
-                        .background(Color(0xFFF3E8FF), RoundedCornerShape(15.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
+            // Driver Bookings Box
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(100.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Driver Bookings",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF4A2B7A)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "${uiState.driverRides.size} offered",
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = Color(0xFF4A2B7A)
                     )
                 }
             }
@@ -163,7 +253,7 @@ fun HomeScreenUI(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(90.dp)
+                .height(100.dp)
                 .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
             contentAlignment = Alignment.Center
         ) {
@@ -181,27 +271,8 @@ fun HomeScreenUI(
                     )
                 }
             } else {
-                Text("No ongoing ride", color = Color.Gray)
+                Text("No ongoing ride", fontSize = 14.sp, color = Color.Gray)
             }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // History
-        Text("History", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(90.dp)
-                .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "${uiState.bookings.size} total booking(s)",
-                fontWeight = FontWeight.Medium
-            )
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -212,7 +283,7 @@ fun HomeScreenUI(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(90.dp)
+                .height(100.dp)
                 .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
             contentAlignment = Alignment.Center
         ) {
@@ -220,7 +291,7 @@ fun HomeScreenUI(
                 Text(
                     text = "%.2f kg CO₂".format(uiState.totalCarbonSaved),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
+                    fontSize = 24.sp,
                     color = Color(0xFF4CAF50)
                 )
                 Text(

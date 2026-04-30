@@ -1,4 +1,4 @@
-package com.fit3161.fit3162.mogo.data.repo;
+package com.fit3161.fit3162.mogo.data.repo
 
 import android.util.Log
 import io.github.jan.supabase.SupabaseClient
@@ -7,22 +7,32 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 @Serializable
 data class RideUser(
         @SerialName("user_id")            val userId: String,
-        @SerialName("user_name")          val userName: String,
-        @SerialName("user_phone")         val userPhone: String,
-        @SerialName("user_email")         val userEmail: String,
+        @SerialName("user_name")          val userName: String? = null,     // ← Made nullable with default null
+        @SerialName("user_phone")         val userPhone: String? = null,    // ← Made nullable with default null
+        @SerialName("user_email")         val userEmail: String? = null,    // ← Made nullable with default null
         @SerialName("user_dob")           val userDob: String? = null,
-        @SerialName("user_gender")        val userGender: String,
-        @SerialName("user_role")          val userRole: String,
+        @SerialName("user_gender")        val userGender: String? = null,   // ← Made nullable with default null
+        @SerialName("user_role")          val userRole: String? = null,     // ← Made nullable with default null
         @SerialName("driver_rating")      val driverRating: Double? = null,
         @SerialName("home_campus")        val homeCampus: String? = null,
         @SerialName("time_created")       val timeCreated: String? = null,
         @SerialName("updated_at")         val updatedAt: String? = null,
         @SerialName("gender_preference")  val genderPreference: String? = null
 )
+
+@Serializable
+data class BookedRideId(
+        @SerialName("ride_id") val rideId: String
+)
+
 @Serializable
 data class Vehicle(
         @SerialName("vehicle_id")       val vehicleId: String,
@@ -33,21 +43,26 @@ data class Vehicle(
         @SerialName("vehicle_capacity") val vehicleCapacity: Int,
         @SerialName("plate_number")     val plateNumber: String
 )
+
 @Serializable
 data class Ride(
-        @SerialName("ride_id")          val id: String,
-        @SerialName("driver_id")        val driverId: String,
-        @SerialName("vehicle_id")       val vehicleId: String? = null,  // make nullable for now
-        @SerialName("origin")           val origin: String,
-        @SerialName("destination")      val destination: String,
-        @SerialName("ride_status")      val rideStatus: String,
-        @SerialName("available_seats")  val availableSeats: Int,
-        @SerialName("departure_time")   val departureTime: String,
-        @SerialName("carbon_estimate")  val carbonEstimate: Double? = null,
-        @SerialName("is_recurring")     val isRecurring: Boolean,
-        @SerialName("time_created")     val timeCreated: String? = null,
-        @SerialName("vehicle_type")     val vehicleType: String,
-        @SerialName("plate_number")     val plateNumber: String,
+        @SerialName("ride_id")         val id: String,
+        @SerialName("driver_id")       val driverId: String,
+        @SerialName("vehicle_id")      val vehicleId: String? = null,
+        @SerialName("origin")          val origin: String,
+        @SerialName("destination")     val destination: String,
+        @SerialName("origin_lat")      val originLat: Double? = null,
+        @SerialName("origin_lng")      val originLng: Double? = null,
+        @SerialName("destination_lat") val destinationLat: Double? = null,
+        @SerialName("destination_lng") val destinationLng: Double? = null,
+        @SerialName("ride_status")     val rideStatus: String,
+        @SerialName("available_seats") val availableSeats: Int,
+        @SerialName("departure_time")  val departureTime: String,
+        @SerialName("carbon_estimate") val carbonEstimate: Double? = null,
+        @SerialName("is_recurring")    val isRecurring: Boolean,
+        @SerialName("time_created")    val timeCreated: String? = null,
+        @SerialName("vehicle_type")    val vehicleType: String,
+        @SerialName("plate_number")    val plateNumber: String,
         val users: RideUser? = null,
         val vehicles: Vehicle? = null
 )
@@ -62,12 +77,14 @@ data class Booking(
         @SerialName("seats_booked")     val seatsBooked: Int,
         @SerialName("booking_status")   val bookingStatus: String,
         @SerialName("time_created")     val timeCreated: String? = null,
-        val rides: Ride? = null         // joined ride data
+        val rides: Ride? = null
 )
+
 @Serializable
 data class HiddenRide(
         @SerialName("ride_id") val rideId: String
 )
+
 class BookRepository(private val client: SupabaseClient) {
 
         suspend fun uploadRide(ride: Ride): Result<Unit> {
@@ -82,13 +99,10 @@ class BookRepository(private val client: SupabaseClient) {
 
         suspend fun getUserVehicles(userId: String): List<Vehicle> {
                 return client.from("vehicles")
-                        .select() {
-                                filter { eq("driver_id", userId) }
-                        }
+                        .select() { filter { eq("driver_id", userId) } }
                         .decodeList<Vehicle>()
         }
 
-        // BookScreen: current user's confirmed bookings, with ride + driver + vehicle
         suspend fun getBookedRides(userId: String): List<Booking> {
                 return client
                         .from("bookings")
@@ -97,48 +111,145 @@ class BookRepository(private val client: SupabaseClient) {
                                         eq("rider_id", userId)
                                         eq("booking_status", "confirmed")
                                 }
-                                order("time_created", Order.ASCENDING) // Change it to ride's date
+                                order("time_created", Order.ASCENDING)
                         }
                         .decodeList<Booking>()
         }
 
-        suspend fun getAllFutureRides(genderPreference: String? = null): List<Ride> {
-                val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
+        suspend fun getBookedRideIds(userId: String): Set<String> {
+                return client
+                        .from("bookings")
+                        .select(Columns.raw("ride_id")) {
+                                filter {
+                                        eq("rider_id", userId)
+                                        neq("booking_status", "cancelled")
+                                }
+                        }
+                        .decodeList<BookedRideId>()
+                        .map { it.rideId }
+                        .toSet()
+        }
+
+        fun passesHardMemoryFilters(
+                ride: Ride,
+                riderId: String,
+                rider: RideUser,
+                alreadyBookedIds: Set<String>,
+                blockedByRider: Set<String>,
+                blockedByDriver: Set<String>
+        ): Boolean {
+                // Use UTC consistently
+                val nowUtc = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
+                val departure = runCatching {
+                        java.time.OffsetDateTime.parse(ride.departureTime)
+                }.getOrNull() ?: return false
+
+                return ride.id !in alreadyBookedIds
+                        && departure.isAfter(nowUtc.plusMinutes(30))  // 30 minutes in UTC
+                        && ride.driverId !in blockedByRider
+                        && riderId !in blockedByDriver
+        }
+
+        fun passesSoftFilters(ride: Ride, riderId: String, rider: RideUser): Boolean {
+                val riderPref = rider.genderPreference == null
+                        || rider.genderPreference == "ANY"
+                        || rider.genderPreference == ride.users?.userGender
+                val driverPref = ride.users?.genderPreference == null
+                        || ride.users.genderPreference == "ANY"
+                        || ride.users.genderPreference == rider.userGender
+                return riderPref && driverPref
+        }
+
+        fun isWithinRadiusKm(
+                pickupLat: Double, pickupLng: Double,
+                centerLat: Double, centerLng: Double,
+                radiusKm: Double
+        ): Boolean {
+                val R = 6371.0
+                val dLat = Math.toRadians(pickupLat - centerLat)
+                val dLng = Math.toRadians(pickupLng - centerLng)
+                val a = Math.sin(dLat / 2) * sin(dLat / 2) +
+                        cos(Math.toRadians(centerLat)) *
+                        cos(Math.toRadians(pickupLat)) *
+                        sin(dLng / 2) * sin(dLng / 2)
+                val c = 2 * atan2(Math.sqrt(a), sqrt(1 - a))
+                return R * c <= radiusKm
+        }
+
+        fun sortRides(rides: List<MapsRepository.RideWithDetour>): List<MapsRepository.RideWithDetour> {
+                val nowUtc = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
+                return rides.sortedWith(compareBy(
+                        { ride ->
+                                val dep = runCatching {
+                                        java.time.OffsetDateTime.parse(ride.ride.departureTime)
+                                }.getOrNull()
+                                // Check if departure is within 15 minutes from now (in UTC)
+                                if (dep != null && dep.isBefore(nowUtc.plusMinutes(15))) 0 else 1
+                        },
+                        { ride -> when (ride.ride.vehicleType.uppercase()) {
+                                "EV" -> 0; "HYBRID" -> 1; else -> 2
+                        }},
+                        { ride -> -(ride.ride.users?.driverRating ?: 0.0) },
+                        { ride -> ride.addedMinutes }
+                ))
+        }
+
+        // In BookRepository.kt - Fix getAllFutureRides()
+        suspend fun getAllFutureRides(userId: String, genderPreference: String? = null): List<Ride> {
+                // Get current time in UTC
+                val nowUtc = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
+                val thirtyMinsFromNowUtc = nowUtc.plusMinutes(30)
                         .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
                 return client
                         .from("rides")
-                        .select(Columns.raw("*, users(*), vehicles(*)")) {
+                        .select(Columns.raw("*, users!inner(*), vehicles!left(*)")) {
                                 filter {
                                         and {
-                                                gte("departure_time", now)
+                                                // Compare UTC with UTC
+                                                gte("departure_time", thirtyMinsFromNowUtc)
                                                 eq("ride_status", "scheduled")
                                                 gt("available_seats", 0)
-                                                // Filter by driver gender at DB level if preference is set
+                                                neq("driver_id", userId)
                                                 if (genderPreference != null) {
                                                         eq("users.user_gender", genderPreference)
                                                 }
                                         }
                                 }
-                                order("departure_time", Order.ASCENDING) // Ascending order from Now
+                                order("departure_time", Order.ASCENDING)
                         }
                         .decodeList<Ride>()
         }
 
-        suspend fun getFutureRidesByDate(date: String, genderPreference: String? = null): List<Ride> {
-                Log.d("DATE", "Date given is: ${date}")
-                Log.d("DATE", "Date given converted gta is: ${date}T00:00:00+10:00")
-                Log.d("DATE", "Date given converted gta is: ${date}T23:59:59+10:00")
+        suspend fun getFutureRidesByDate(
+                userId: String,
+                date: String,  // Format: "2026-04-28" (local date)
+                genderPreference: String? = null
+        ): List<Ride> {
+                // Convert local date to UTC date range
+                // Assuming AEST (UTC+10) or AEDT (UTC+11)
+                val zoneOffset = java.time.ZoneOffset.ofHours(10) // AEST
+                val localDate = java.time.LocalDate.parse(date)
+
+                val startOfDayUtc = localDate.atStartOfDay()
+                        .atOffset(zoneOffset)
+                        .withOffsetSameInstant(java.time.ZoneOffset.UTC)
+
+                val endOfDayUtc = localDate.plusDays(1).atStartOfDay()
+                        .atOffset(zoneOffset)
+                        .withOffsetSameInstant(java.time.ZoneOffset.UTC)
+                        .minusNanos(1)
+
                 return client
                         .from("rides")
-                        .select(Columns.raw("*, users(*), vehicles(*)")) {
+                        .select(Columns.raw("*, users!inner(*), vehicles!left(*)")) {
                                 filter {
                                         and {
-                                                gte("departure_time", "${date}T00:00:00+00:00")
-                                                lte("departure_time", "${date}T23:59:59+00:00")
+                                                gte("departure_time", startOfDayUtc.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                                                lte("departure_time", endOfDayUtc.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))
                                                 eq("ride_status", "scheduled")
                                                 gt("available_seats", 0)
-                                                // Filter by driver gender at DB level if preference is set
+                                                neq("driver_id", userId)
                                                 if (genderPreference != null) {
                                                         eq("users.user_gender", genderPreference)
                                                 }
@@ -162,32 +273,24 @@ class BookRepository(private val client: SupabaseClient) {
 
         suspend fun hideRide(userId: String, rideId: String) {
                 try {
-                        Log.d("MOGO_DEBUG", "Attempting to hide ride: $rideId for user: $userId")
-
                         client.from("hidden_rides").insert(mapOf(
                                 "user_id" to userId,
                                 "ride_id" to rideId
                         ))
-
-                        Log.d("MOGO_DEBUG", "Successfully hidden ride!")
                 } catch (e: Exception) {
-                        // This will print the exact SQL error (e.g., Foreign Key violation, 403 Forbidden, etc.)
                         Log.e("MOGO_DEBUG", "FAILED to hide ride. Error: ${e.message}")
-                        Log.e("MOGO_DEBUG", "Full StackTrace: ${e.stackTraceToString()}")
                 }
         }
 
         suspend fun unhideRide(userId: String, rideId: String) {
-                client
-                        .from("hidden_rides")
-                        .delete {
-                                filter {
-                                        and {
-                                                eq("user_id", userId)
-                                                eq("ride_id", rideId)
-                                        }
+                client.from("hidden_rides").delete {
+                        filter {
+                                and {
+                                        eq("user_id", userId)
+                                        eq("ride_id", rideId)
                                 }
                         }
+                }
         }
 
         suspend fun getHiddenRideIds(userId: String): Set<String> {
@@ -201,4 +304,3 @@ class BookRepository(private val client: SupabaseClient) {
                         .toSet()
         }
 }
-

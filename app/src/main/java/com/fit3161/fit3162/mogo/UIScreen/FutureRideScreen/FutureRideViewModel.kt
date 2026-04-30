@@ -65,7 +65,6 @@ class FutureRideViewModel (
         }
     }
 
-
     fun onDateSelected(date: String) {
         _uiState.value = _uiState.value.copy(
             selectedDate = date,
@@ -88,7 +87,8 @@ class FutureRideViewModel (
         viewModelScope.launch {
             try {
                 val rides = repo.getAllFutureRides(
-                    genderPreference = _uiState.value.genderPreference
+                    userId = userId,  // ← userId FIRST
+                    genderPreference = _uiState.value.genderPreference  // ← SECOND (optional)
                 )
                 _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
             } catch (e: Exception) {
@@ -97,12 +97,16 @@ class FutureRideViewModel (
         }
     }
 
-    private fun loadRidesByDate(date: String) {
+    fun loadRidesByDate(date: String) {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val rides = repo.getFutureRidesByDate(
-                    date,
-                    genderPreference = _uiState.value.genderPreference)
+                    userId = userId,           // ✅ Pass the actual user ID
+                    date = date,              // ✅ Pass the selected date
+                    genderPreference = _uiState.value.genderPreference
+
+                )
                 _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)

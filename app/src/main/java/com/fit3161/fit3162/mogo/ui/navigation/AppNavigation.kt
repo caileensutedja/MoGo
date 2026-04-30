@@ -161,10 +161,15 @@ fun AppNavigation(application: MogoApplication, navController: NavHostController
         }
 
         // Booked UI composable.
+        // Booked UI composable.
         composable(Screen.Booked.route) {
             val userId = supabase.auth.currentUserOrNull()?.id ?: ""
             val viewModel: BookViewModel = viewModel(
-                factory = BookViewModelFactory(supabase, userId)
+                factory = BookViewModelFactory(
+                    client = supabase,
+                    mapsRepo = application.mapsRepository,  // ← ADD THIS
+                    userId = userId
+                )
             )
             BookScreenUI(
                 viewModel = viewModel,

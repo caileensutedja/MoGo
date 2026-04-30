@@ -7,6 +7,7 @@ package com.fit3161.fit3162.mogo.data.remote.dto
 data class RoutesRequest(
     val origin: Waypoint,
     val destination: Waypoint,
+    val intermediates: List<Waypoint> = emptyList(),
     val travelMode: String = "DRIVE",
     val routingPreference: String = "TRAFFIC_AWARE",
     val computeAlternativeRoutes: Boolean = false

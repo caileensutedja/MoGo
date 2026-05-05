@@ -12,6 +12,7 @@ import com.fit3161.fit3162.mogo.data.repo.UserProfile
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class HomeUiState(
@@ -62,6 +63,16 @@ class HomeViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
+        }
+    }
+
+    fun switchRole(newRole: String, onRoleChanged: () -> Unit = {}) {
+        viewModelScope.launch {
+            val userId = authRepo.getCurrentUserId() ?: return@launch
+            profileRepo.updateProfile(userId, user_role = newRole)
+            loadData()
+            _uiState.update { it.copy(profile = it.profile?.copy(user_role = newRole)) }
+            onRoleChanged()
         }
     }
 }

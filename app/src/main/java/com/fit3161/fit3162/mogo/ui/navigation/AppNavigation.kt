@@ -13,6 +13,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -86,7 +87,8 @@ sealed class Screen(val route: String) {
 fun AppNavigation(
     application: MogoApplication,
     navController: NavHostController,
-    onRoleChanged: () -> Unit = {}) {
+    onRoleChanged: () -> Unit = {},
+    roleTrigger: Int = 0) {
 
     val sessionManager = remember { SessionManager(application) }
     val isLoggedIn by sessionManager.isLoggedIn.collectAsState(initial = false)
@@ -165,11 +167,17 @@ fun AppNavigation(
             val viewModel: HomeViewModel = viewModel(
                 factory = HomeViewModelFactory(supabase)
             )
+            LaunchedEffect(roleTrigger) {
+                viewModel.loadData()
+            }
             HomeScreenUI(
                 viewModel = viewModel,
                 onProfileClick = { navController.navigate(Screen.Profile.route)},
                 onBookedClick = { navController.navigate(Screen.Booked.route) },
-                onMyRidesClick = { navController.navigate(Screen.MyRides.route) }
+                onMyRidesClick = { navController.navigate(Screen.MyRides.route) },
+                onRoleToggle = { newRole ->
+                    viewModel.switchRole(newRole, onRoleChanged)
+                }
             )
         }
 

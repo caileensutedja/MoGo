@@ -1,6 +1,5 @@
 package com.fit3161.fit3162.mogo.UIScreen.UploadRide
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.convertMillisToDate
+import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,15 +67,21 @@ fun UploadRideScreen(
 
     // Date Picker State
     var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    val minMillis = Instant.now().plusSeconds(24 * 60 * 60).toEpochMilli()
+
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                // Allow only dates whose day is >= the day of (now + 24h)
+                return utcTimeMillis >= minMillis
+            }
+        }
+    )
 
 
     // Time Picker State
     var showTimePicker by remember { mutableStateOf(false) }
     val timePickerState = rememberTimePickerState()
-
-//    // Vehicle Option
-//    var showVehiclePopup by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -229,107 +236,6 @@ fun UploadRideScreen(
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = { Icon(Icons.Default.DirectionsCar, null) }
         )
-//        Text("Vehicle Selection", style = MaterialTheme.typography.titleMedium)
-//
-//        OutlinedTextField(
-//            value = form.selectedVehicle?.let { "${it.vehicleMake} (${it.plateNumber})" } ?: "No Vehicle Selected",
-//            onValueChange = {},
-//            readOnly = true,
-//            label = { Text("Vehicle") },
-//            modifier = Modifier.fillMaxWidth().clickable { showVehiclePopup = true },
-//            enabled = false,
-//            leadingIcon = { Icon(Icons.Default.DirectionsCar, null) },
-//            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
-//            colors = OutlinedTextFieldDefaults.colors(
-//                disabledTextColor = Color.Black,
-//                disabledBorderColor = MaterialTheme.colorScheme.outline
-//            )
-//        )
-//
-//        if (showVehiclePopup) {
-//            AlertDialog(
-//                onDismissRequest = { showVehiclePopup = false },
-//                title = { Text("Select Vehicle") },
-//                text = {
-//                    Column {
-//                        form.availableVehicles.forEach { vehicle ->
-//                            TextButton(
-//                                onClick = {
-//                                    viewModel.onVehicleSelected(vehicle)
-//                                    showVehiclePopup = false
-//                                },
-//                                modifier = Modifier.fillMaxWidth()
-//                            ) {
-//                                Text("${vehicle.vehicleMake} ${vehicle.vehicleModel} - ${vehicle.plateNumber}")
-//                            }
-//                        }
-//                        HorizontalDivider()
-//                        TextButton(
-//                            onClick = { /* TODO: Navigate to Add Vehicle Screen */ },
-//                            modifier = Modifier.fillMaxWidth()
-//                        ) {
-//                            Icon(Icons.Default.Add, contentDescription = null)
-//                            Spacer(Modifier.width(8.dp))
-//                            Text("Add New Vehicle")
-//                        }
-//                    }
-//                },
-//                confirmButton = {
-//                    TextButton(onClick = { showVehiclePopup = false }) { Text("Close") }
-//                }
-//            )
-//        }
-        // Vehicle
-//        Text("Vehicle Selection", style = MaterialTheme.typography.titleMedium)
-//
-//        OutlinedTextField(
-//            value = form.selectedVehicle?.let { "${it.vehicleMake} (${it.plateNumber})" } ?: "No Vehicle Selected",
-//            onValueChange = {},
-//            readOnly = true,
-//            label = { Text("Vehicle") },
-//            modifier = Modifier.fillMaxWidth().clickable { showVehiclePopup = true },
-//            enabled = false,
-//            leadingIcon = { Icon(Icons.Default.DirectionsCar, null) },
-//            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
-//            colors = OutlinedTextFieldDefaults.colors(
-//                disabledTextColor = Color.Black,
-//                disabledBorderColor = MaterialTheme.colorScheme.outline
-//            )
-//        )
-//
-//        if (showVehiclePopup) {
-//            AlertDialog(
-//                onDismissRequest = { showVehiclePopup = false },
-//                title = { Text("Select Vehicle") },
-//                text = {
-//                    Column {
-//                        form.availableVehicles.forEach { vehicle ->
-//                            TextButton(
-//                                onClick = {
-//                                    viewModel.onVehicleSelected(vehicle)
-//                                    showVehiclePopup = false
-//                                },
-//                                modifier = Modifier.fillMaxWidth()
-//                            ) {
-//                                Text("${vehicle.vehicleMake} ${vehicle.vehicleModel} - ${vehicle.plateNumber}")
-//                            }
-//                        }
-//                        HorizontalDivider()
-//                        TextButton(
-//                            onClick = { /* TODO: Navigate to Add Vehicle Screen */ },
-//                            modifier = Modifier.fillMaxWidth()
-//                        ) {
-//                            Icon(Icons.Default.Add, contentDescription = null)
-//                            Spacer(Modifier.width(8.dp))
-//                            Text("Add New Vehicle")
-//                        }
-//                    }
-//                },
-//                confirmButton = {
-//                    TextButton(onClick = { showVehiclePopup = false }) { Text("Close") }
-//                }
-//            )
-//        }
 
         if (status is UploadStatus.Error) {
             Text((status as UploadStatus.Error).message, color = Color.Red)

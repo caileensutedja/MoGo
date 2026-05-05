@@ -5,12 +5,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
 import com.fit3161.fit3162.mogo.data.repo.Ride
-import com.fit3161.fit3162.mogo.data.repo.Vehicle
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 data class UploadRideForm(
@@ -77,21 +79,11 @@ class UploadRideViewModel(
             data.destination.isBlank() -> _status.value = UploadStatus.Error("Destination cannot be empty")
             data.departureDate.isBlank() -> _status.value = UploadStatus.Error("Please select a date")
             data.departureTime.isBlank() -> _status.value = UploadStatus.Error("Please select a time")
+            !isDepartureValid(data.departureDate, data.departureTime) ->
+                _status.value = UploadStatus.Error("Departure must be at least 24 hours from now")
             else -> {
                 viewModelScope.launch {
                     _status.value = UploadStatus.Loading
-
-//                    val newRide = Ride(
-//                        id = UUID.randomUUID().toString(),
-//                        driverId = userId,
-//                        vehicleId = "v1", // Note: Usually fetched from driver profile
-//                        origin = data.origin,
-//                        destination = data.destination,
-//                        rideStatus = "scheduled",
-//                        availableSeats = data.availableSeats.toIntOrNull() ?: 1,
-//                        departureTime = "${data.departureDate}T${data.departureTime}:00Z",
-//                        isRecurring = data.isRecurring
-//                    )
 
                     val newRide = Ride(
                         id = UUID.randomUUID().toString(),
@@ -112,6 +104,16 @@ class UploadRideViewModel(
                         .onFailure { _status.value = UploadStatus.Error(it.message ?: "Failed to post ride") }
                 }
             }
+        }
+    }
+    private fun isDepartureValid(date: String, time: String): Boolean {
+        return try {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
+            val departure = LocalDateTime.parse("${date}T${time}", formatter)
+            val earliest = LocalDateTime.now(ZoneOffset.UTC).plusHours(24)
+            !departure.isBefore(earliest)
+        } catch (e: Exception) {
+            false
         }
     }
 

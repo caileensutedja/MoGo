@@ -5,11 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,9 +56,6 @@ fun FutureRideScreenUI(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        /**
-         * Date & Date Picker
-         */
         // Selected Date Text
         Text(
             text = state.selectedDate.ifEmpty { "No Date selected" },
@@ -70,7 +63,7 @@ fun FutureRideScreenUI(
             color = Color.Gray
         )
 
-        // Button for Date Picker
+        // Buttons for Date Picker and Clear
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -85,7 +78,7 @@ fun FutureRideScreenUI(
             }
         }
 
-        // DATE PICKER DIALOG
+        // Date Picker Dialog
         if (showDatePicker) {
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
@@ -122,8 +115,10 @@ fun FutureRideScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        if (!state.isLoading && state.error == null){
-            if (state.visibleRides.isEmpty()) {
+        // Main content: rides list
+        if (!state.isLoading && state.error == null) {
+            // Case: no visible rides and no hidden rides
+            if (state.visibleRides.isEmpty() && state.hiddenRides.isEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Text(
                         text = if (state.selectedDate.isNotEmpty())
@@ -146,7 +141,7 @@ fun FutureRideScreenUI(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    // Hidden rides toggle
+                    // Hidden rides section (always shown if there are hidden rides)
                     if (state.hiddenRides.isNotEmpty()) {
                         item {
                             TextButton(onClick = { showHidden = !showHidden }) {
@@ -177,7 +172,6 @@ fun FutureRideScreenUI(
         }
     }
 }
-
 
 @Composable
 fun FutureRideCard(
@@ -245,7 +239,7 @@ fun FutureRideCard(
                 ) {
                     if (isHidden) {
                         Button(
-                            onClick = { onUnhide() },
+                            onClick = onUnhide,
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -253,7 +247,7 @@ fun FutureRideCard(
                         }
                     } else {
                         Button(
-                            onClick = { onHide() },
+                            onClick = onHide,
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEAD7FF)),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -266,90 +260,6 @@ fun FutureRideCard(
                         ) {
                             Text("Book")
                         }
-                    }
-                }
-            }
-        }
-    }
-}
-@Composable
-fun FutureRideCard_2(ride: Ride) {
-    val driver = ride.users
-    val vehicle = ride.vehicles
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
-            .padding(16.dp)
-    ) {
-
-        Row(verticalAlignment = Alignment.CenterVertically
-        ) {
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = driver?.userName ?: "Unknown Driver",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
-                    fontSize = 16.sp,
-                    color = Color.DarkGray
-                )
-                Text(
-                    text = "📍 ${ride.origin} → ${ride.destination}",
-                    fontSize = 16.sp,
-                    color = Color.DarkGray
-                )
-                Text(
-                    text = "🕐 ${formatDepartureTime(ride.departureTime)}",
-                    fontSize = 16.sp,
-                    color = Color.DarkGray
-                )
-                Text(
-                    text = "💺 ${ride.availableSeats} seats available",
-                    fontSize = 14.sp,
-                    color = Color.DarkGray
-                )
-                ride.carbonEstimate?.let {
-                    Text(
-                        text = "🌿 %.2f kg CO₂".format(it),
-                        fontSize = 14.sp,
-                        color = Color(0xFF4CAF50)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Buttons
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-
-                    Button(
-                        onClick = { /* TODO: hide */ },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFEAD7FF)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Not Interested")
-                    }
-
-                    Button(
-                        onClick = { /* TODO: book the ride */ },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFB57BFF)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Book")
                     }
                 }
             }

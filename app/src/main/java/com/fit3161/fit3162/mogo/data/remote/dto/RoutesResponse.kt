@@ -6,7 +6,7 @@ package com.fit3161.fit3162.mogo.data.remote.dto
  * This is mapped → RouteResult domain model in MapsRepository.
  */
 data class RoutesResponse(
-    val routes: List<Route>
+    val routes: List<Route>? = null
 ) {
     data class Route(
         val distanceMeters: Int,

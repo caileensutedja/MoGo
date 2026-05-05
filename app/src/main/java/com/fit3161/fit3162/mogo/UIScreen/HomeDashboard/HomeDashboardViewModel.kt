@@ -18,8 +18,12 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val profile: UserProfile? = null,
     val bookings: List<Booking> = emptyList(),
+    val riderHistory: List<Booking> = emptyList(),
+    val driverHistory: List<Ride> = emptyList(),
     val driverRides: List<Ride> = emptyList(),
-    val totalCarbonSaved: Double = 0.0,  // add this
+    val totalCarbonSaved: Double = 0.0,
+    val rideStreak: Int = 0,
+    val treesEquivalent: Int = 5,      // streaks are arbitrary for now
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -47,16 +51,33 @@ class HomeViewModel(
             }
             try {
                 val profile = profileRepo.getProfile(userId)
-                val bookings = bookRepo.getBookedRides(userId)
-                val driverRides = bookRepo.getMyRides(userId)
-                val totalCarbonSaved = bookings
-                    .mapNotNull { it.rides?.carbonEstimate }
-                    .sum()
+
+                // Rider data
+                val ongoingBookings = bookRepo.getBookedRides(userId)
+                val riderHistory = bookRepo.getRiderHistory(userId)
+
+                // Driver data
+                val allDriverRides = bookRepo.getMyRides(userId)
+                val upcomingDriverRides = allDriverRides.filter { it.rideStatus == "scheduled" }
+                val driverHistory = allDriverRides.filter { it.rideStatus == "completed" }
+
+                // Calculate carbon from BOTH rider history AND driver history
+                val riderCarbon = riderHistory.mapNotNull { it.rides?.carbonEstimate }.sum()
+                val driverCarbon = driverHistory.mapNotNull { it.carbonEstimate }.sum()
+                val totalCarbonSaved = riderCarbon + driverCarbon
+
+                // Calculate ride streak
+                val rideStreak = minOf(riderHistory.size + driverHistory.size, 7)
+
                 _uiState.value = _uiState.value.copy(
                     profile = profile,
-                    bookings = bookings,
-                    driverRides = driverRides,
+                    bookings = ongoingBookings,
+                    riderHistory = riderHistory,
+                    driverHistory = driverHistory,
+                    driverRides = upcomingDriverRides,
                     totalCarbonSaved = totalCarbonSaved,
+                    rideStreak = rideStreak,
+                    treesEquivalent = 5,
                     isLoading = false
                 )
 

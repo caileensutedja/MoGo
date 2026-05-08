@@ -21,7 +21,6 @@ import com.fit3161.fit3162.mogo.ui.theme.MoGoTheme
 
 @Composable
 fun ProfileScreenUI(modifier: Modifier = Modifier) {
-
     // Editable state variables
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.fit3161.fit3162.mogo.UIScreen.Profile.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileViewModel
 import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadStatus
 import kotlinx.coroutines.launch
@@ -44,17 +45,21 @@ fun ProfileScreenUI(
     var mobile by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
     var userRole by remember { mutableStateOf("") }
+    val homeCampus = uiState.homeCampus
+
 
 
     var showNameDialog by remember { mutableStateOf(false) }
     var showMobileDialog by remember { mutableStateOf(false) }
     var showGenderDialog by remember { mutableStateOf(false) }
     var showRoleDialog by remember { mutableStateOf(false) }
+    var showCampusDialog by remember { mutableStateOf(false) }
 
     var tempName by remember { mutableStateOf("") }
     var tempMobile by remember { mutableStateOf("") }
     var tempGender by remember { mutableStateOf("") }
     var tempUserRole by remember { mutableStateOf("") }
+    var tempHomeCampus by remember { mutableStateOf("") }
 
     val scope = rememberCoroutineScope()
 
@@ -250,6 +255,26 @@ fun ProfileScreenUI(
             }
         )
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Home Campus
+        OutlinedTextField(
+            value = homeCampus?.name ?: "",
+            onValueChange = {},
+            textStyle = TextStyle(color = Color.Black),
+            label = { Text("Home Campus") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false,
+            trailingIcon = {
+                IconButton(onClick = {
+                    tempHomeCampus = homeCampus?.name ?: ""
+                    showCampusDialog = true
+                }) {
+                    Text("✎", fontSize = 20.sp)
+                }
+            }
+        )
+
         Spacer(modifier = Modifier.height(80.dp))
 
         Button(
@@ -272,6 +297,7 @@ fun ProfileScreenUI(
             Text("Log Out")
         }
     }
+
 
     // Dialogs (unchanged – they don't use LocalTextStyle)
     if (showNameDialog) {
@@ -419,6 +445,52 @@ fun ProfileScreenUI(
             },
             dismissButton = {
                 TextButton(onClick = { showRoleDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    // Campus dialog
+    if (showCampusDialog) {
+        var expanded by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = { showCampusDialog = false },
+            title = { Text("Select Home Campus") },
+            text = {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = tempHomeCampus,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Campus") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        CAMPUS_OPTIONS.keys.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = { tempHomeCampus = option; expanded = false }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (tempHomeCampus.isNotBlank()) {
+                        viewModel.updateField("home_campus", tempHomeCampus)
+                    }
+                    showCampusDialog = false
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCampusDialog = false }) { Text("Cancel") }
             }
         )
     }

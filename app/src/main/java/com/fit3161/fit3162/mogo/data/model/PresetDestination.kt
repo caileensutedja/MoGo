@@ -14,3 +14,8 @@ data class PresetDestination(
     val latLng: LatLng,
     val description: String = ""
 )
+
+data class Location(
+    val name: String,
+    val latLng: LatLng
+)

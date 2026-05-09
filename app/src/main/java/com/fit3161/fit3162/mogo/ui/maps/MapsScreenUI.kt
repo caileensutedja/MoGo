@@ -56,7 +56,7 @@ import com.google.maps.android.compose.rememberUpdatedMarkerState
 fun MapScreenUI(viewModel: MapsViewModel) {
     val context = LocalContext.current
 
-    // ── Permission handling ──────────────────────────────────────────
+    // Permission handling
     var locationPermissionGranted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -90,14 +90,14 @@ fun MapScreenUI(viewModel: MapsViewModel) {
         }
     }
 
-    // ── Observe state ────────────────────────────────────────────────
+    // Observe state
     val locationState by viewModel.userLocation.collectAsState()
     val routeState by viewModel.routeState.collectAsState()
     val selectedDestination by viewModel.selectedDestination.collectAsState()
     val nearbyDrivers by viewModel.nearbyDrivers.collectAsState()
     val searchRadius by viewModel.searchRadiusMeters.collectAsState()
 
-    // ── Camera ───────────────────────────────────────────────────────
+    //  Camera
     val defaultPosition = LatLng(-37.8136, 144.9631)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(defaultPosition, 14f)
@@ -134,7 +134,7 @@ fun MapScreenUI(viewModel: MapsViewModel) {
         }
     }
 
-    // ── UI ───────────────────────────────────────────────────────────
+    // UI
     Box(modifier = Modifier.fillMaxSize()) {
 
         GoogleMap(
@@ -196,7 +196,7 @@ fun MapScreenUI(viewModel: MapsViewModel) {
             }
         }
 
-        // ── Destination picker card (top) ───────────────────────────
+        // Destination picker card (top)
         Card(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -283,14 +283,14 @@ fun MapScreenUI(viewModel: MapsViewModel) {
             }
         }
 
-        // ── Loading indicator ───────────────────────────────────────
+        // Loading indicator
         if (locationState is LocationState.Loading || routeState is RouteState.Loading) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center)
             )
         }
 
-        // ── Route info card (bottom) ────────────────────────────────
+        // Route info card (bottom)
         if (routeState is RouteState.Success) {
             val route = (routeState as RouteState.Success).route
             Card(
@@ -338,7 +338,7 @@ fun MapScreenUI(viewModel: MapsViewModel) {
             }
         }
 
-        // ── Error snackbar ──────────────────────────────────────────
+        // Error snackbar
         val errorMessage = when {
             locationState is LocationState.Error ->
                 (locationState as LocationState.Error).message

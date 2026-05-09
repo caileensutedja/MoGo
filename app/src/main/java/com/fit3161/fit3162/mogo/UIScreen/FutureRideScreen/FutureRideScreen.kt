@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
 import com.fit3161.fit3162.mogo.data.repo.Ride
 import java.text.SimpleDateFormat
@@ -24,11 +25,30 @@ import java.util.Locale
 fun FutureRideScreenUI(
     viewModel: FutureRideViewModel,
     modifier: Modifier = Modifier
-    ) {
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
     var showHidden by remember { mutableStateOf(false) }
+
+    // When non-null, the pickup dialog is open for this ride id.
+    var bookingRideId by remember { mutableStateOf<String?>(null) }
+
+    // Pickup dialog
+    bookingRideId?.let { rideId ->
+        PickupDialog(
+            placesRepo = viewModel.placesRepo,
+            onConfirm = { useCurrentLocation, lat, lng, _ ->
+                if (useCurrentLocation) {
+                    viewModel.bookRideUsingCurrentLocation(rideId)
+                } else if (lat != null && lng != null) {
+                    viewModel.bookRideAt(rideId, lat, lng)
+                }
+                bookingRideId = null
+            },
+            onDismiss = { bookingRideId = null }
+        )
+    }
 
     Column(
         modifier = modifier
@@ -136,7 +156,8 @@ fun FutureRideScreenUI(
                             ride = state.visibleRides[idx],
                             isHidden = false,
                             onHide = { viewModel.hideRide(state.visibleRides[idx].id) },
-                            onUnhide = {}
+                            onUnhide = {},
+                            onBook = { bookingRideId = state.visibleRides[idx].id }
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
@@ -178,7 +199,8 @@ fun FutureRideCard(
     ride: Ride,
     isHidden: Boolean = false,
     onHide: () -> Unit,
-    onUnhide: () -> Unit = {}
+    onUnhide: () -> Unit = {},
+    onBook: () -> Unit = {}
 ) {
     val driver = ride.users
     val vehicle = ride.vehicles
@@ -254,7 +276,7 @@ fun FutureRideCard(
                             Text("Not Interested")
                         }
                         Button(
-                            onClick = { /* TODO: book the ride */ },
+                            onClick = onBook,
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
                             shape = RoundedCornerShape(12.dp)
                         ) {

@@ -3,7 +3,8 @@ package com.fit3161.fit3162.mogo.ui.maps
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.com.fit3161.fit3162.mogo.data.model.DriverLocation
-import com.fit3161.fit3162.mogo.data.model.PresetDestination // ADDED: new import for preset destinations
+import com.fit3161.fit3162.mogo.data.model.PresetDestination
+import com.fit3161.fit3162.mogo.data.model.PresetDestinations
 import com.fit3161.fit3162.mogo.data.model.RouteResult
 import com.fit3161.fit3162.mogo.data.repo.MapsRepository
 import com.google.android.gms.maps.model.LatLng
@@ -17,29 +18,8 @@ import kotlinx.coroutines.launch
 
 class MapsViewModel(private val mapRepository: MapsRepository) : ViewModel() {
 
-    // ADDED: preset destinations list — modify coordinates to match your app's locations
-    val presetDestinations = listOf(
-        PresetDestination(
-            name = "Monash Clayton",
-            latLng = LatLng(-37.91103371251901, 145.13714676692243),
-            description = "Monash University Clayton Campus"
-        ),
-        PresetDestination(
-            name = "Monash Caulfield",
-            latLng = LatLng(-37.87694590809227, 145.0457298608304),
-            description = "Monash University Caulfield Campus"
-        ),
-        PresetDestination(
-            name = "Monash Peninsula",
-            latLng = LatLng(-38.152447616283546, 145.1365170687726),
-            description = "Monash University Peninsula Campus"
-        ),
-//        PresetDestination(
-//            name = "Monash Parkville",
-//            latLng = LatLng(-37.7838187556312, 144.95936807247296),
-//            description = "Monash University Parkville Campus"
-//        )
-    )
+    // Pulled from the shared PresetDestinations object — same list the upload form uses.
+    val presetDestinations: List<PresetDestination> = PresetDestinations.all
 
     // List of drivers nearby using dummy data.
     private val dummyDrivers = listOf(
@@ -96,29 +76,21 @@ class MapsViewModel(private val mapRepository: MapsRepository) : ViewModel() {
         refreshNearbyDrivers()
     }
 
-    // REMOVED: old getDeviceLocation(fusedLocationClient: FusedLocationProviderClient)
-    // that used callback-based lastLocation
-
-    // ADDED: called when user taps a destination chip
-    // Sets selection state AND triggers route fetch in one action
     fun selectDestination(destination: PresetDestination) {
         _selectedDestination.value = destination
         fetchRoute(destination.latLng)
     }
 
-    // CHANGED: now also clears selectedDestination (was only clearing routeState)
     fun clearRoute() {
         _selectedDestination.value = null
         _routeState.value = RouteState.Idle
     }
 
-    // CHANGED: destination is now first parameter (required), origin is optional
-    // (was: both required). If origin is null, automatically uses device location.
     fun fetchRoute(destination: LatLng, origin: LatLng? = null) {
         viewModelScope.launch {
             _routeState.value = RouteState.Loading
 
-            // ADDED: automatic origin resolution chain
+            // Get origin cases.
             // 1. Use provided origin, OR
             // 2. Use cached user location, OR
             // 3. Fetch fresh location from repository
@@ -142,13 +114,14 @@ class MapsViewModel(private val mapRepository: MapsRepository) : ViewModel() {
     }
 }
 
-// ADDED: LocationState sealed class (user location was not tracked before)
+
 sealed class LocationState {
     object Unknown : LocationState()
     object Loading : LocationState()
     data class Located(val latLng: LatLng) : LocationState()
     data class Error(val message: String) : LocationState()
 }
+
 
 sealed class RouteState {
     object Idle : RouteState()

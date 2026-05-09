@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
+import com.fit3161.fit3162.mogo.data.repo.MapsRepository
+import com.fit3161.fit3162.mogo.data.repo.PlacesRepository
 import com.fit3161.fit3162.mogo.data.repo.Ride
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +32,8 @@ data class FutureRideUiState(
 
 class FutureRideViewModel (
     private val repo: BookRepository,
+    private val mapsRepo: MapsRepository,
+    val placesRepo: PlacesRepository,
     private val userId: String) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FutureRideUiState())
@@ -61,6 +65,49 @@ class FutureRideViewModel (
             } catch (e: Exception) {
                 Log.e("CRASH", "Init failed. Full Error: ${e.stackTraceToString()}") // This gives the full story
                 _uiState.value = _uiState.value.copy(error = "Connection Failed: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Book a ride at an explicit pickup location (rider chose an address from
+     * the autocomplete picker).
+     */
+    fun bookRideAt(rideId: String, pickupLat: Double, pickupLng: Double) {
+        viewModelScope.launch {
+            try {
+                repo.bookRide(
+                    rideId = rideId,
+                    riderId = userId,
+                    pickupLat = pickupLat,
+                    pickupLng = pickupLng
+                ).onSuccess {
+                    // Optimistically remove from the list since they've booked it
+                    _uiState.value = _uiState.value.copy(
+                        rides = _uiState.value.rides.filter { it.id != rideId }
+                    )
+                }.onFailure {
+                    _uiState.value = _uiState.value.copy(error = "Booking failed: ${it.message}")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    /**
+     * Book a ride using the rider's current device location as the pickup.
+     */
+    fun bookRideUsingCurrentLocation(rideId: String) {
+        viewModelScope.launch {
+            try {
+                val pickup = mapsRepo.getDeviceLocation().getOrElse {
+                    _uiState.value = _uiState.value.copy(error = "Couldn't get your location: ${it.message}")
+                    return@launch
+                }
+                bookRideAt(rideId, pickup.latitude, pickup.longitude)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
     }
@@ -153,12 +200,14 @@ class FutureRideViewModel (
 
 class FutureRideViewModelFactory(
     private val client: SupabaseClient,
+    private val mapsRepo: MapsRepository,
+    private val placesRepo: PlacesRepository,
     private val userId: String
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(FutureRideViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return FutureRideViewModel(BookRepository(client), userId) as T  // ← pass it
+            return FutureRideViewModel(BookRepository(client), mapsRepo, placesRepo, userId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

@@ -72,11 +72,17 @@ class BookViewModel(
                 }
 
                 // 4. Radius pre-filter
+                // 4. Radius pre-filter
                 val inRadius = softFiltered.filter { ride ->
                     val oLat = ride.originLat ?: return@filter false
                     val oLng = ride.originLng ?: return@filter false
                     repo.isWithinRadiusKm(pickupLat, pickupLng, oLat, oLng, 5.0)
                 }
+//                val inRadius = softFiltered.filter { ride ->
+//                    val oLat = ride.originLat ?: return@filter false
+//                    val oLng = ride.originLng ?: return@filter false
+//                    repo.isWithinRadiusKm(pickupLat, pickupLng, oLat, oLng, 5.0)
+//                }
 
                 // 5. Detour check — strict first, relax if empty
                 var withDetour = checkDetours(inRadius, pickupLat, pickupLng, maxDetourKm = 5.0)
@@ -102,7 +108,7 @@ class BookViewModel(
     ): List<MapsRepository.RideWithDetour> {
         return rides.mapNotNull { ride ->
             val detour = mapsRepo.computeDetour(ride, pickupLat, pickupLng) ?: return@mapNotNull null
-            if (detour.addedKm <= maxDetourKm && detour.addedMinutes <= 20) {
+            if (detour.addedKm <= maxDetourKm && detour.addedMinutes <= 10) {
                 MapsRepository.RideWithDetour(ride, detour.addedKm, detour.addedMinutes)
             } else null
         }

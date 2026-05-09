@@ -22,7 +22,8 @@ import com.fit3161.fit3162.mogo.data.repo.Booking
 fun BookScreenUI(
     viewModel: BookViewModel,
     modifier: Modifier = Modifier,
-    onNavigateToFutureBookRides: () -> Unit
+    onNavigateToFutureBookRides: () -> Unit,
+    onNavigateToBookingPreview: (String) -> Unit
 ) {
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -88,7 +89,12 @@ fun BookScreenUI(
         } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(state.bookings.size) { idx ->
-                    BookedCardSkeleton(booking = state.bookings[idx])
+                    BookedCardSkeleton(
+                        booking = state.bookings[idx],
+                        onDetailsClick = {
+                            onNavigateToBookingPreview(state.bookings[idx].id)
+                        }
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -148,7 +154,10 @@ fun BookScreenUI(
 
 
 @Composable
-fun BookedCardSkeleton(booking: Booking) {
+fun BookedCardSkeleton(
+    booking: Booking,
+    onDetailsClick: () -> Unit = {}
+) {
     val ride = booking.rides
     val driver = ride?.users
     val vehicle = ride?.vehicles
@@ -214,7 +223,9 @@ fun BookedCardSkeleton(booking: Booking) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
-                        onClick = { /* TODO: cancel booking */ },
+                        onClick = {
+                        /* TODO: cancel booking */
+                        },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFEAD7FF)
                         ),
@@ -224,7 +235,7 @@ fun BookedCardSkeleton(booking: Booking) {
                     }
 
                     Button(
-                        onClick = { /* TODO: show details */ },
+                        onClick = onDetailsClick,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFB57BFF)
                         ),

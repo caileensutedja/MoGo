@@ -19,8 +19,8 @@ data class UploadRideForm(
     val origin: String = "",
     val destination: String = "",
     val availableSeats: String = "3",
-    val departureDate: String = "", // YYYY-MM-DD
-    val departureTime: String = "", // HH:MM
+    val departureDate: String = "",
+    val departureTime: String = "",
     val isRecurring: Boolean = false,
     val vehicleType: String = "",
     val plateNumber: String = ""
@@ -44,21 +44,6 @@ class UploadRideViewModel(
     private val _status = MutableStateFlow<UploadStatus>(UploadStatus.Idle)
     val status: StateFlow<UploadStatus> = _status.asStateFlow()
 
-//    fun loadVehicles() {
-//        viewModelScope.launch {
-//            val vehicles = repo.getUserVehicles(userId)
-//            _form.value = _form.value.copy(availableVehicles = vehicles)
-//            // Auto-select the first one if available
-//            if (vehicles.isNotEmpty()) {
-//                _form.value = _form.value.copy(selectedVehicle = vehicles.first())
-//            }
-//        }
-//    }
-
-    // Form Update Methods
-//    fun onVehicleSelected(vehicle: Vehicle) {
-//        _form.value = _form.value.copy(selectedVehicle = vehicle)
-//    }
     fun onOriginChange(value: String) { _form.value = _form.value.copy(origin = value) }
     fun onDestinationChange(value: String) { _form.value = _form.value.copy(destination = value) }
     fun onSeatsChange(value: String) {
@@ -66,14 +51,13 @@ class UploadRideViewModel(
     }
     fun onDateChange(value: String) { _form.value = _form.value.copy(departureDate = value) }
     fun onTimeChange(value: String) { _form.value = _form.value.copy(departureTime = value) }
-    fun onRecurringChange(value: Boolean) {_form.value = _form.value.copy(isRecurring = value) }
-    fun onVehicleTypeChange(value: String) {_form.value = _form.value.copy(vehicleType = value) }
-    fun onPlateNumberChange(value: String) {_form.value = _form.value.copy(plateNumber = value) }
+    fun onRecurringChange(value: Boolean) { _form.value = _form.value.copy(isRecurring = value) }
+    fun onVehicleTypeChange(value: String) { _form.value = _form.value.copy(vehicleType = value) }
+    fun onPlateNumberChange(value: String) { _form.value = _form.value.copy(plateNumber = value) }
 
     fun submitRide() {
         val data = _form.value
 
-        // Validation logic
         when {
             data.origin.isBlank() -> _status.value = UploadStatus.Error("Origin cannot be empty")
             data.destination.isBlank() -> _status.value = UploadStatus.Error("Destination cannot be empty")
@@ -85,18 +69,28 @@ class UploadRideViewModel(
                 viewModelScope.launch {
                     _status.value = UploadStatus.Loading
 
+                    // For now, carbonEstimate is null. You can implement later with MapsRepository.
+                    val distanceKm = getApproximateDistanceKm(data.origin, data.destination)
+                    val factor = when (data.vehicleType.lowercase()) {
+                        "ev" -> 0.01
+                        "hybrid" -> 0.12
+                        else -> 0.21
+                    }
+                    val carbonEstimate = distanceKm * factor
+
                     val newRide = Ride(
                         id = UUID.randomUUID().toString(),
                         driverId = userId,
-                        vehicleId = null, // or omit if you removed the column
+                        vehicleId = null,
                         origin = data.origin,
                         destination = data.destination,
                         rideStatus = "scheduled",
                         availableSeats = data.availableSeats.toInt(),
                         departureTime = "${data.departureDate}T${data.departureTime}:00+00:00",
                         isRecurring = false,
-                        vehicleType = data.vehicleType,     // NEW
-                        plateNumber = data.plateNumber,     // NEW
+                        vehicleType = data.vehicleType,
+                        plateNumber = data.plateNumber,
+                        carbonEstimate = carbonEstimate
                     )
 
                     repo.uploadRide(newRide)
@@ -106,6 +100,7 @@ class UploadRideViewModel(
             }
         }
     }
+
     private fun isDepartureValid(date: String, time: String): Boolean {
         return try {
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
@@ -116,10 +111,53 @@ class UploadRideViewModel(
             false
         }
     }
+    private fun getApproximateDistanceKm(origin: String, destination: String): Double {
+        // Normalize strings: trim, lower case, remove common suffixes
+        fun normalize(s: String): String {
+            return s.trim().lowercase()
+                .replace("campus", "")
+                .replace("monash", "")
+                .replace("university", "")
+                .replace("melbourne", "melb")
+                .replace("cbd", "city")
+                .trim()
+        }
+
+        val o = normalize(origin)
+        val d = normalize(destination)
+
+        // Hardcoded distances (km) between known locations
+        // Key format: "origin|destination" (order doesn't matter)
+        val distances = mapOf(
+            // Clayton ↔ Caulfield
+            "clayton|caulfield" to 12.0,
+            // Clayton ↔ Parkville
+            "clayton|parkville" to 22.0,
+            // Clayton ↔ City (Melbourne CBD)
+            "clayton|city" to 19.0,
+            // Caulfield ↔ Parkville
+            "caulfield|parkville" to 12.0,
+            // Caulfield ↔ City
+            "caulfield|city" to 9.5,
+            // Parkville ↔ City
+            "parkville|city" to 2.5,
+            // Clayton ↔ Richmond
+            "clayton|richmond" to 17.0,
+            // Caulfield ↔ Richmond
+            "caulfield|richmond" to 6.5,
+            // Clayton ↔ M-City Shopping Centre
+            "clayton|m-city" to 3.0,
+            // Caulfield ↔ Melbourne CBD Central Apartment Hotel
+            "caulfield|melb cbd" to 9.0,
+        )
+
+        // Try both directions
+        val key = listOf(o, d).sorted().joinToString("|")
+        return distances[key] ?: 10.0 // default 10km if route not found
+    }
 
     fun resetStatus() { _status.value = UploadStatus.Idle }
 }
-
 
 class UploadRideViewModelFactory(
     private val client: SupabaseClient,

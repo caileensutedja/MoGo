@@ -23,7 +23,7 @@ data class HomeUiState(
     val driverRides: List<Ride> = emptyList(),
     val totalCarbonSaved: Double = 0.0,
     val rideStreak: Int = 0,
-    val treesEquivalent: Int = 5,      // streaks are arbitrary for now
+    val treesEquivalent: Int = (totalCarbonSaved / 25).toInt(),      // streaks are arbitrary for now
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -69,6 +69,9 @@ class HomeViewModel(
                 // Calculate ride streak
                 val rideStreak = minOf(riderHistory.size + driverHistory.size, 7)
 
+                // Calculate trees equivalent (1 tree ≈ 25 kg CO₂ per year)
+                val treesEquivalent = (totalCarbonSaved / 25).toInt()
+
                 _uiState.value = _uiState.value.copy(
                     profile = profile,
                     bookings = ongoingBookings,
@@ -77,7 +80,7 @@ class HomeViewModel(
                     driverRides = upcomingDriverRides,
                     totalCarbonSaved = totalCarbonSaved,
                     rideStreak = rideStreak,
-                    treesEquivalent = 5,
+                    treesEquivalent = treesEquivalent, // ← now dynamic
                     isLoading = false
                 )
 

@@ -15,7 +15,11 @@ data class MyRidesUiState(
     val rides: List<Ride> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
-)
+) {
+    // Group: null groupId = standalone, non-null = recurring series
+    val groupedRides: Map<String?, List<Ride>>
+        get() = rides.groupBy { it.recurringGroupId }
+}
 
 class MyRidesViewModel(
     private val repo: BookRepository,

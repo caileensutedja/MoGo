@@ -9,6 +9,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fit3161.fit3162.mogo.data.repo.Booking
+import com.fit3161.fit3162.mogo.data.repo.Ride
 
 @Composable
 fun BookScreenUI(
@@ -79,6 +83,14 @@ fun BookScreenUI(
             Text("Error: $it", color = Color.Red)
         }
 
+        state.rebookMessage?.let {
+            Text(
+                text = it,
+                color = if (it.startsWith("✅")) Color(0xFF4CAF50) else Color.Red,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+        }
         Spacer(modifier = Modifier.height(12.dp))
 
         if (!state.isLoading && state.bookings.isEmpty() && state.error == null) {
@@ -86,9 +98,19 @@ fun BookScreenUI(
                 Text("No booked rides")
             }
         } else {
+//            LazyColumn(modifier = Modifier.weight(1f)) {
+//                items(state.bookings.size) { idx ->
+//                    BookedCardSkeleton(booking = state.bookings[idx])
+//                    Spacer(modifier = Modifier.height(16.dp))
+//                }
+//            }
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(state.bookings.size) { idx ->
-                    BookedCardSkeleton(booking = state.bookings[idx])
+                    BookedCardSkeleton(
+                        booking = state.bookings[idx],
+                        onRebookNextWeek = { ride, booking -> viewModel.onRebookNextWeek(ride, booking)},
+                        onCancelBooking = { bookingId, rideId -> viewModel.cancelBooking(bookingId, rideId) }
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -148,14 +170,14 @@ fun BookScreenUI(
 
 
 @Composable
-fun BookedCardSkeleton(booking: Booking) {
+fun BookedCardSkeleton(
+    booking: Booking,
+    onRebookNextWeek: (Ride, Booking) -> Unit = { _, _ -> },
+    onCancelBooking: (String, String) -> Unit = { _, _ -> }) {
     val ride = booking.rides
     val driver = ride?.users
-    val vehicle = ride?.vehicles
+    var showConfirmDialog by remember { mutableStateOf(false) }
 
-    Log.d("BOOKING_DEBUG", "booking: $booking")
-    Log.d("BOOKING_DEBUG", "ride: $ride")
-    Log.d("BOOKING_DEBUG", "driver: $driver")
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -180,18 +202,18 @@ fun BookedCardSkeleton(booking: Booking) {
             ) {
 
                 Text(
-                    text = driver?.userName ?: "Unknown Driver",
+                    text = "Driver: ${driver?.userName}",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text= "${ride?.vehicleType}",
+                    text= "Car type: ${ride?.vehicleType}",
 //                        text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
                     fontSize = 14.sp,
                     color = Color.DarkGray
                 )
                 Text(
-                    text = "📍 ${ride?.destination ?: booking.dropoffLocation}",
+                    text = "📍 ${booking.pickupLocation} -> ${ride?.destination ?: booking.dropoffLocation}",
                     fontSize = 14.sp
                 )
                 Text(
@@ -214,7 +236,7 @@ fun BookedCardSkeleton(booking: Booking) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
-                        onClick = { /* TODO: cancel booking */ },
+                        onClick = { showConfirmDialog = true },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFEAD7FF)
                         ),
@@ -222,7 +244,7 @@ fun BookedCardSkeleton(booking: Booking) {
                     ) {
                         Text("Cancel")
                     }
-
+//
                     Button(
                         onClick = { /* TODO: show details */ },
                         colors = ButtonDefaults.buttonColors(
@@ -233,7 +255,37 @@ fun BookedCardSkeleton(booking: Booking) {
                         Text("Details")
                     }
                 }
+//                 Rebook button — only show for recurring rides
+                if (ride?.isRecurring == true && ride.recurringGroupId != null) {
+                    Button(
+                        onClick = { onRebookNextWeek(ride, booking) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+
+                    ) {
+                        Text("Rebook Next Week")
+                    }
+                }
+
             }
+        }
+        if (showConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showConfirmDialog = false },
+                title = { Text("Cancel Booking") },
+                text = { Text("Are you sure you want to cancel this booking?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showConfirmDialog = false
+                        if (ride != null) onCancelBooking(booking.id, ride.id)
+                    }) { Text("Yes, Cancel", color = Color.Red) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showConfirmDialog = false }) { Text("Cancel") }
+                }
+            )
         }
     }
 }

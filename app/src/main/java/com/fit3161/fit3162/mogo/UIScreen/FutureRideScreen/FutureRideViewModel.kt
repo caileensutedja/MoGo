@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
+import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.data.repo.Ride
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,15 +17,21 @@ data class FutureRideUiState(
     val selectedDate: String = "",
     val rides: List<Ride> = emptyList(),
     val hiddenRideIds: Set<String> = emptySet(),
+    val selectedCampus: String? = null,
     val genderPreference: String? = null, // Filters gender preference
     val isLoading: Boolean = false,
+    val bookingMessage: String? = null,
     val error: String? = null
 ) {
     val visibleRides: List<Ride>
-        get() = rides.filter { it.id !in hiddenRideIds }
+        get() = rides
+            .filter { it.id !in hiddenRideIds }
+            .filter { selectedCampus == null || it.destination == selectedCampus }  // ADD THIS
 
     val hiddenRides: List<Ride>
-        get() = rides.filter { it.id in hiddenRideIds }
+        get() = rides
+            .filter { it.id in hiddenRideIds }
+            .filter { selectedCampus == null || it.destination == selectedCampus }  // ADD THIS
 }
 
 
@@ -36,19 +43,6 @@ class FutureRideViewModel (
     val uiState: StateFlow<FutureRideUiState> = _uiState.asStateFlow()
 
     init {
-//        viewModelScope.launch {
-//            Log.d("PASS", "init: $userId")
-//            // Load preference and hidden ride IDs first, then fetch rides
-//            val pref = repo.getGenderPreference(userId)
-//            Log.d("PASS", "Preference is: ${pref}")
-//            val hiddenIds = repo.getHiddenRideIds(userId)
-//            Log.d("PASS", "Hidden ID is: ${hiddenIds}")
-//            _uiState.value = _uiState.value.copy(
-//                genderPreference = pref,
-//                hiddenRideIds = hiddenIds
-//            )
-//            loadAllFutureRides()
-//        }
         viewModelScope.launch {
             try {
                 val pref = repo.getGenderPreference(userId)
@@ -81,6 +75,10 @@ class FutureRideViewModel (
             error = null
         )
         loadAllFutureRides()
+    }
+
+    fun onCampusSelected(campus: String?) {
+        _uiState.value = _uiState.value.copy(selectedCampus = campus)
     }
 
     private fun loadAllFutureRides() {
@@ -147,6 +145,41 @@ class FutureRideViewModel (
                 Log.d("HIDE", "Failed to unhide ride: ${e.message}")
             }
         }
+    }
+
+    fun bookRide(ride: Ride, pickupName: String, pickupLat: Double, pickupLng: Double) {
+        val campusLocation = CAMPUS_OPTIONS[ride.destination]
+        val dropoffLat = campusLocation?.latLng?.latitude ?: ride.destinationLat ?: 0.0
+        val dropoffLng = campusLocation?.latLng?.longitude ?: ride.destinationLng ?: 0.0
+
+        viewModelScope.launch {
+            val result = repo.bookRide(
+                riderId = userId,
+                rideId = ride.id,
+                pickupLocation = pickupName,
+                pickupLat = pickupLat,
+                pickupLng = pickupLng,
+                dropoffLocation = ride.destination,
+                dropoffLat = dropoffLat,
+                dropoffLng = dropoffLng,
+            )
+            if (result.isSuccess) {
+                _uiState.value = _uiState.value.copy(bookingMessage = "Ride booked successfully!")
+                // Reload to reflect updated seat count and remove this ride from list
+                if (_uiState.value.selectedDate.isNotEmpty())
+                    loadRidesByDate(_uiState.value.selectedDate)
+                else
+                    loadAllFutureRides()
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    bookingMessage = result.exceptionOrNull()?.message ?: "Booking failed"
+                )
+            }
+        }
+    }
+
+    fun clearBookingMessage() {
+        _uiState.value = _uiState.value.copy(bookingMessage = null)
     }
 
 }

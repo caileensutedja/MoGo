@@ -9,6 +9,7 @@ import com.fit3161.fit3162.mogo.data.repo.AuthRepository
 import com.fit3161.fit3162.mogo.data.repo.ImageUploadRepository
 import com.fit3161.fit3162.mogo.data.repo.ProfileRepository
 import com.fit3161.fit3162.mogo.data.repo.UserProfile
+import com.fit3161.fit3162.mogo.data.repo.locationFromCampusName
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +27,7 @@ data class ProfileUiState(
 class ProfileViewModel(
     private val authRepo: AuthRepository,
     private val profileRepo: ProfileRepository,
-    private val context: Context
+    private val context: Context // add outside the constructor, within function
 ) : ViewModel() {
 
     private val imageUploadRepo = ImageUploadRepository(authRepo.getSupabaseClient(), context)   // pass context
@@ -59,7 +60,7 @@ class ProfileViewModel(
                 "user_role" -> profileRepo.updateProfile(userId, user_role = value)
                 "home_campus" -> {
                     val result = profileRepo.updateProfile(userId, home_campus = value)
-                    println("home_campus update result: $result")  // check Logcat
+//                    println("home_campus update result: $result")  // check Logcat
                     _uiState.update { it.copy(homeCampus = locationFromCampusName(value)) }
                 }
             }
@@ -103,12 +104,3 @@ class ProfileViewModel(
         }
     }
 }
-
-val CAMPUS_OPTIONS: Map<String, Location> = mapOf(
-    "Clayton"    to Location("Clayton",    LatLng(-37.9105, 145.1363)),
-    "Caulfield"  to Location("Caulfield",  LatLng(-37.8768, 145.0452)),
-    "Peninsula"  to Location("Peninsula",  LatLng(-38.1484, 145.1302)),
-    "Parkville"  to Location("Parkville",  LatLng(-37.7963, 144.9614)),
-   )
-
-fun locationFromCampusName(name: String): Location? = CAMPUS_OPTIONS[name]

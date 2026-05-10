@@ -23,7 +23,7 @@ data class HomeUiState(
     val driverRides: List<Ride> = emptyList(),
     val totalCarbonSaved: Double = 0.0,
     val rideStreak: Int = 0,
-    val treesEquivalent: Int = (totalCarbonSaved / 25).toInt(),      // streaks are arbitrary for now
+    val treesEquivalent: Double = 0.0,   // streaks are arbitrary for now
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -70,7 +70,7 @@ class HomeViewModel(
                 val rideStreak = minOf(riderHistory.size + driverHistory.size, 7)
 
                 // Calculate trees equivalent (1 tree ≈ 25 kg CO₂ per year)
-                val treesEquivalent = (totalCarbonSaved / 25).toInt()
+                val treesEquivalent = totalCarbonSaved / 25.0
 
                 _uiState.value = _uiState.value.copy(
                     profile = profile,

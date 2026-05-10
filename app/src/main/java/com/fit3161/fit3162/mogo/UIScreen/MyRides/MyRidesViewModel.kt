@@ -34,7 +34,15 @@ class MyRidesViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val rides = repo.getMyRides(userId)
-                _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
+                // Sort: scheduled (active) first, then completed, then others
+                val sortedRides = rides.sortedBy { ride ->
+                    when (ride.rideStatus) {
+                        "scheduled" -> 0
+                        "completed" -> 1
+                        else -> 2
+                    }
+                }
+                _uiState.value = _uiState.value.copy(rides = sortedRides, isLoading = false)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
@@ -42,20 +50,17 @@ class MyRidesViewModel(
     }
 
     fun cancelRide(rideId: String) {
-        // Optimistically remove from UI immediately
         _uiState.value = _uiState.value.copy(
             rides = _uiState.value.rides.filter { it.id != rideId }
         )
         viewModelScope.launch {
             val result = repo.cancelRide(rideId)
             if (result.isFailure) {
-                // Revert on failure by reloading
                 loadMyRides()
                 _uiState.value = _uiState.value.copy(error = "Failed to cancel ride")
             }
         }
     }
-
 }
 
 class MyRidesViewModelFactory(

@@ -345,7 +345,7 @@ fun HomeScreenUI(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("↟ ${uiState.treesEquivalent}", fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFF4CAF50))
+                    Text("%.1f".format(uiState.treesEquivalent), fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFF4CAF50))
                     Text("trees equivalent", fontSize = 11.sp, color = Color.Gray)
                 }
             }

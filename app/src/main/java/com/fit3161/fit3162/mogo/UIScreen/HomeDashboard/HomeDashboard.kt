@@ -18,8 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 
@@ -126,7 +123,7 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Greeting (name only)
+        // Greeting
         Text(
             text = "Hello, ${uiState.profile?.user_name ?: ""}",
             fontSize = 34.sp,
@@ -188,103 +185,7 @@ fun HomeScreenUI(
         )
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ========== HISTORY SECTION ==========
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Rider History Box
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(110.dp)
-                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Rider History", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (uiState.riderHistory.isNotEmpty()) {
-                        Text("${uiState.riderHistory.size}", fontWeight = FontWeight.Bold, fontSize = 40.sp, color = Color(0xFF4A2B7A))
-                        Text("completed rides", fontSize = 11.sp, color = Color.Gray)
-                    } else {
-                        Text("No past rides", fontSize = 12.sp, color = Color.Gray)
-                    }
-                }
-            }
-
-            // Driver History Box
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(110.dp)
-                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Driver History", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (uiState.driverHistory.isNotEmpty()) {
-                        Text("${uiState.driverHistory.size}", fontWeight = FontWeight.Bold, fontSize = 40.sp, color = Color(0xFF4A2B7A))
-                        Text("completed drives", fontSize = 11.sp, color = Color.Gray)
-                    } else {
-                        Text("No past drives", fontSize = 12.sp, color = Color.Gray)
-                    }
-                }
-            }
-        }
-
-        // Bookings Section
-        Text("Bookings", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // ========== BOOKINGS SECTION ==========
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val confirmedBookings = uiState.bookings.filter { it.bookingStatus == "confirmed" }
-
-            // Rider Bookings Box (clickable)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(110.dp)
-                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
-                    .clickable { onBookedClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Rider Bookings", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("${confirmedBookings.size}", fontWeight = FontWeight.Bold, fontSize = 40.sp, color = Color(0xFF4A2B7A))
-                    Text("booked", fontSize = 11.sp, color = Color.Gray)
-                }
-            }
-
-            // Driver Bookings Box (clickable)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(110.dp)
-                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
-                    .clickable { onMyRidesClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Driver Bookings", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("${uiState.driverRides.size}", fontWeight = FontWeight.Bold, fontSize = 40.sp, color = Color(0xFF4A2B7A))
-                    Text("offered", fontSize = 11.sp, color = Color.Gray)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        // Ongoing Ride
+        // ========== ONGOING RIDE ==========
         Text("Ongoing Ride", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -307,9 +208,101 @@ fun HomeScreenUI(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(30.dp))
 
-        // carbon metrics
+        // ========== HISTORY SECTION (Role‑specific) ==========
+        if (isDriver) {
+            // Driver History
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Driver History", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (uiState.driverHistory.isNotEmpty()) {
+                        Text("${uiState.driverHistory.size}", fontWeight = FontWeight.Bold, fontSize = 40.sp, color = Color(0xFF4A2B7A))
+                        Text("completed drives", fontSize = 11.sp, color = Color.Gray)
+                    } else {
+                        Text("No past drives", fontSize = 12.sp, color = Color.Gray)
+                    }
+                }
+            }
+        } else {
+            // Rider History
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Rider History", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (uiState.riderHistory.isNotEmpty()) {
+                        Text("${uiState.riderHistory.size}", fontWeight = FontWeight.Bold, fontSize = 40.sp, color = Color(0xFF4A2B7A))
+                        Text("completed rides", fontSize = 11.sp, color = Color.Gray)
+                    } else {
+                        Text("No past rides", fontSize = 12.sp, color = Color.Gray)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ========== BOOKINGS SECTION ==========
+        Text("Bookings", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            val confirmedBookings = uiState.bookings.filter { it.bookingStatus == "confirmed" }
+
+            // Rider Bookings Box
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(110.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
+                    .clickable { onBookedClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Rider Bookings", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("${confirmedBookings.size}", fontWeight = FontWeight.Bold, fontSize = 40.sp, color = Color(0xFF4A2B7A))
+                    Text("booked", fontSize = 11.sp, color = Color.Gray)
+                }
+            }
+
+            // Driver Bookings Box
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(110.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
+                    .clickable { onMyRidesClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Driver Bookings", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("${uiState.driverRides.size}", fontWeight = FontWeight.Bold, fontSize = 40.sp, color = Color(0xFF4A2B7A))
+                    Text("offered", fontSize = 11.sp, color = Color.Gray)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(30.dp))
+
+        // ========== CARBON METRICS ==========
         Text("Carbon Metrics", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -345,7 +338,7 @@ fun HomeScreenUI(
                 }
             }
 
-            // Box 3: Empty placeholder
+            // Box 3: Placeholder
             Box(
                 modifier = Modifier
                     .weight(1f)

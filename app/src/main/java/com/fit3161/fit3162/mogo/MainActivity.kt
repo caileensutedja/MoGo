@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                     factory = UserRoleViewModelFactory(ProfileRepository(supabase), supabase)
                 )
                 val userRole by roleViewModel.userRole.collectAsStateWithLifecycle()
-
+                var roleTrigger by remember { mutableStateOf(0) }
                 LaunchedEffect(Unit) {
                     roleViewModel.fetchRole()
                 }
@@ -78,7 +78,9 @@ class MainActivity : ComponentActivity() {
                         AppNavigation(
                             application = application as MogoApplication,
                             navController = navController, // Navigation Controller
-                            onRoleChanged = { roleViewModel.fetchRole() }
+                            onRoleChanged = {
+                                roleViewModel.fetchRole()
+                                roleTrigger++}
                         )
                     }
 

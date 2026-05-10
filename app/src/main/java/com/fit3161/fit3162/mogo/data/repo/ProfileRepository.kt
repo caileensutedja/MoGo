@@ -1,5 +1,6 @@
 package com.fit3161.fit3162.mogo.data.repo
 
+import com.fit3161.fit3162.mogo.data.model.Location
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.Serializable
@@ -14,7 +15,8 @@ data class UserProfile(
     val user_phone: String,
     val user_gender: String,
     val user_role: String,
-    val avatar_url: String? = null   // new
+    val avatar_url: String? = null,
+    val home_campus: String?
 )
 
 class ProfileRepository(private val supabase: SupabaseClient) {
@@ -48,7 +50,8 @@ class ProfileRepository(private val supabase: SupabaseClient) {
         name: String? = null,
         phone: String? = null,
         gender: String? = null,
-        user_role: String? = null
+        user_role: String? = null,
+        home_campus: String? = null
     ): Result<Unit> {
         return try {
             val updates = buildJsonObject {
@@ -56,6 +59,7 @@ class ProfileRepository(private val supabase: SupabaseClient) {
                 phone?.let { put("user_phone", it) }
                 gender?.let { put("user_gender", it) }
                 user_role?.let {put("user_role", it)}
+                home_campus?.let {put("home_campus", it)}
             }
             supabase.from("users")
                 .update(updates) {

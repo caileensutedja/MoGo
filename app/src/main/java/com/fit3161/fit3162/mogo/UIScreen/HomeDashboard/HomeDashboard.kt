@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -26,8 +27,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 
 @Composable
@@ -37,9 +41,11 @@ fun HomeScreenUI(
     onBookedClick: () -> Unit = {},
     onMyRidesClick: () -> Unit = {},
     onNavigateToActiveRide: () -> Unit = {},
+    onRoleToggle: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isDriver = uiState.profile?.user_role?.lowercase() == "driver"
 
     if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -121,12 +127,66 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Greeting (name only)
         Text(
             text = "Hello, ${uiState.profile?.user_name ?: ""}",
             fontSize = 34.sp,
             fontWeight = FontWeight.Bold
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Role toggle
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFF3E8FF), RoundedCornerShape(50.dp))
+                .padding(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(50.dp))
+                    .background(if (!isDriver) Color(0xFFDCCBFF) else Color.Transparent)
+                    .clickable { if (isDriver) onRoleToggle("rider") },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "Rider",
+                    fontWeight = if (!isDriver) FontWeight.SemiBold else FontWeight.Normal,
+                    fontSize = 14.sp,
+                    color = if (!isDriver) Color(0xFF4A2C8A) else Color.Gray
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(50.dp))
+                    .background(if (isDriver) Color(0xFFDCCBFF) else Color.Transparent)
+                    .clickable { if (!isDriver) onRoleToggle("driver") },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "Driver",
+                    fontWeight = if (isDriver) FontWeight.SemiBold else FontWeight.Normal,
+                    fontSize = 14.sp,
+                    color = if (isDriver) Color(0xFF4A2C8A) else Color.Gray
+                )
+            }
+        }
+
+        Text(
+            text = "Your Current Role: ${uiState.profile?.user_role ?: ""}",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.Gray,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
         Spacer(modifier = Modifier.height(24.dp))
 
         // ========== HISTORY SECTION ==========
@@ -174,6 +234,10 @@ fun HomeScreenUI(
                 }
             }
         }
+
+        // Bookings Section
+        Text("Bookings", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(12.dp))
 
         Spacer(modifier = Modifier.height(16.dp))
 

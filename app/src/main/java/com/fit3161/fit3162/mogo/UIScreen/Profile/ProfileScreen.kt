@@ -1,6 +1,7 @@
 package com.fit3161.fit3162.mogo.UIScreen.ProfileScreen
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -10,6 +11,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.CheckboxDefaults.colors
 import androidx.compose.runtime.*
@@ -34,7 +37,8 @@ fun ProfileScreenUI(
     viewModel: ProfileViewModel,
     modifier: Modifier = Modifier,
     onLogout: () -> Unit,
-    onRoleChanged: () -> Unit = {}
+    onRoleChanged: () -> Unit = {},
+    onNavigateToSettings: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -99,13 +103,17 @@ fun ProfileScreenUI(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Settings icon
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .align(Alignment.End)
-                .background(Color(0xFFDCCBFF), RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center
-        ) { Text("⚙") }
+        IconButton(
+            onClick = {
+                onNavigateToSettings()
+            },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Settings,
+                contentDescription = "Settings"
+            )
+        }
 
         Spacer(modifier = Modifier.height(10.dp))
 

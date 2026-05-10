@@ -11,12 +11,14 @@ import com.fit3161.fit3162.mogo.data.repo.ProfileRepository
 fun ProfileRoute(
     application: MogoApplication,
     onLogout: () -> Unit,
-    onRoleChanged: () -> Unit = {}) {
+    onRoleChanged: () -> Unit = {},
+    onNavigateToSettings: () -> Unit
+    ) {
     val supabase = application.supabase
     val authRepo = remember { AuthRepository(supabase) }
     val profileRepo = remember { ProfileRepository(supabase) }
     val viewModel = remember {
         ProfileViewModel(authRepo, profileRepo, application.applicationContext)
     }
-    ProfileScreenUI(viewModel = viewModel, onLogout = onLogout, onRoleChanged = onRoleChanged)
+    ProfileScreenUI(viewModel = viewModel, onLogout = onLogout, onRoleChanged = onRoleChanged, onNavigateToSettings = onNavigateToSettings)
 }

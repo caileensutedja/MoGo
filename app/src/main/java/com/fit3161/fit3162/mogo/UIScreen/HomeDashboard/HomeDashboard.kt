@@ -40,6 +40,7 @@ fun HomeScreenUI(
     onProfileClick: () -> Unit = {},
     onBookedClick: () -> Unit = {},
     onMyRidesClick: () -> Unit = {},
+    onNavigateToActiveRide: () -> Unit = {},
     onRoleToggle: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -293,8 +294,9 @@ fun HomeScreenUI(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp)
-                .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                .height(90.dp)
+                .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
+                .clickable { if (ongoingRide != null) onNavigateToActiveRide() },
             contentAlignment = Alignment.Center
         ) {
             if (ongoingRide != null) {

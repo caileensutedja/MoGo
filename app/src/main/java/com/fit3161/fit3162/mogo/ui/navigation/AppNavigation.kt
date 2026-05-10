@@ -1,6 +1,8 @@
 package com.fit3161.fit3162.mogo.ui.navigation
 
 import android.util.Log
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileRoute
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -53,8 +55,16 @@ import com.fit3161.fit3162.mogo.ui.maps.MapsViewModelFactory
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import com.fit3161.fit3162.mogo.UIScreen.ActiveRide.ActiveRideScreen
+import com.fit3161.fit3162.mogo.UIScreen.ActiveRide.ActiveRideViewModel
+import com.fit3161.fit3162.mogo.UIScreen.ActiveRide.ActiveRideViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModel
 import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModelFactory
+import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsViewModel
+import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsViewModelFactory
 import com.fit3161.fit3162.mogo.data.SessionManager
 import kotlinx.coroutines.launch
 
@@ -75,6 +85,8 @@ sealed class Screen(val route: String) {
     object Profile: Screen("profile")
     object Offer: Screen("offer")
     object Map : Screen("map")
+    object ActiveRide : Screen("activeRide")
+    object Settings : Screen("settings")
 }
 
 /**
@@ -161,6 +173,27 @@ fun AppNavigation(
             )
         }
 
+        composable(Screen.ActiveRide.route) {
+            val viewModel: ActiveRideViewModel = viewModel(
+                factory = ActiveRideViewModelFactory(supabase)
+            )
+            val uiState by viewModel.uiState.collectAsState()
+
+            uiState.booking?.let { booking ->
+                ActiveRideScreen(
+                    booking = booking,
+                    riderName = uiState.riderName,
+                    emergencyContacts = uiState.emergencyContacts,
+                    onBack = { navController.popBackStack() }
+                )
+            } ?: Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No active ride found.")
+            }
+        }
+
         // TODO: Remove during code cleanup. Dashboard only contains a single button: SignOut to go back to the previous. screen.
 
         composable(Screen.Dashboard.route) {
@@ -175,6 +208,7 @@ fun AppNavigation(
                 onProfileClick = { navController.navigate(Screen.Profile.route)},
                 onBookedClick = { navController.navigate(Screen.Booked.route) },
                 onMyRidesClick = { navController.navigate(Screen.MyRides.route) },
+                onNavigateToActiveRide = { navController.navigate(Screen.ActiveRide.route) },
                 onRoleToggle = { newRole ->
                     viewModel.switchRole(newRole, onRoleChanged)
                 }
@@ -267,7 +301,10 @@ fun AppNavigation(
                         }
                     }
                 },
-                onRoleChanged = onRoleChanged
+                onRoleChanged = onRoleChanged,
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
+                }
             )
         }
 
@@ -277,6 +314,14 @@ fun AppNavigation(
             val factory = MapsViewModelFactory(application.mapsRepository)
             val viewModel: MapsViewModel = viewModel(factory = factory)
             MapScreenUI(viewModel = viewModel)
+        }
+
+        composable(Screen.Settings.route) {
+            val viewModel: SettingsViewModel = viewModel(
+                factory = SettingsViewModelFactory(supabase)
+            )
+
+            SettingsScreenUI(viewModel = viewModel)
         }
     }
 }

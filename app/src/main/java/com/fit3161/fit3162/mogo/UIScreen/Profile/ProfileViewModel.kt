@@ -4,10 +4,12 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fit3161.fit3162.mogo.data.model.Location
 import com.fit3161.fit3162.mogo.data.repo.AuthRepository
 import com.fit3161.fit3162.mogo.data.repo.ImageUploadRepository
 import com.fit3161.fit3162.mogo.data.repo.ProfileRepository
 import com.fit3161.fit3162.mogo.data.repo.UserProfile
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +18,7 @@ import kotlinx.coroutines.launch
 
 data class ProfileUiState(
     val profile: UserProfile? = null,
+    val homeCampus: Location? = null,
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -54,6 +57,11 @@ class ProfileViewModel(
                 "mobile" -> profileRepo.updateProfile(userId, phone = value)
                 "gender" -> profileRepo.updateProfile(userId, gender = value)
                 "user_role" -> profileRepo.updateProfile(userId, user_role = value)
+                "home_campus" -> {
+                    val result = profileRepo.updateProfile(userId, home_campus = value)
+                    println("home_campus update result: $result")  // check Logcat
+                    _uiState.update { it.copy(homeCampus = locationFromCampusName(value)) }
+                }
             }
             loadProfile()
             if (field == "user_role") {
@@ -65,16 +73,27 @@ class ProfileViewModel(
 
     fun loadProfile() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update {
+                it.copy(isLoading = true)
+            }
             val userId = authRepo.getCurrentUserId()
             if (userId == null) {
-                _uiState.update { it.copy(isLoading = false, error = "Not logged in") }
+                _uiState.update {
+                    it.copy(isLoading = false, error = "Not logged in")
+                }
                 return@launch
             }
             try {
                 val profile = profileRepo.getProfile(userId)
                 if (profile != null) {
-                    _uiState.update { it.copy(profile = profile, isLoading = false) }
+                    _uiState.update {
+//                        it.copy(profile = profile, isLoading = false)
+                        it.copy(
+                            profile = profile,
+                            homeCampus = locationFromCampusName(profile.home_campus ?: ""),  // ← fix
+                            isLoading = false
+                        )
+                    }
                 } else {
                     _uiState.update { it.copy(isLoading = false, error = "Profile not found") }
                 }
@@ -84,3 +103,12 @@ class ProfileViewModel(
         }
     }
 }
+
+val CAMPUS_OPTIONS: Map<String, Location> = mapOf(
+    "Clayton"    to Location("Clayton",    LatLng(-37.9105, 145.1363)),
+    "Caulfield"  to Location("Caulfield",  LatLng(-37.8768, 145.0452)),
+    "Peninsula"  to Location("Peninsula",  LatLng(-38.1484, 145.1302)),
+    "Parkville"  to Location("Parkville",  LatLng(-37.7963, 144.9614)),
+   )
+
+fun locationFromCampusName(name: String): Location? = CAMPUS_OPTIONS[name]

@@ -27,10 +27,12 @@ import com.fit3161.fit3162.mogo.utils.readContactFromUri
 @Composable
 fun SettingsScreenUI(
     viewModel: SettingsViewModel,
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var driverPref by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("") }
@@ -53,117 +55,134 @@ fun SettingsScreenUI(
         if (granted) contactPickerLauncher.launch(null)
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Settings",
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        SettingsDropdown(
-            label = "Driver Preference",
-            value = driverPref,
-            options = listOf("Male", "Female", "N/A"),
-            onValueChange = { driverPref = it }
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        SettingsDropdown(
-            label = "Car Preference",
-            value = carPref,
-            options = listOf("Electric", "Hybrid", "Any"),
-            onValueChange = { carPref = it }
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        SettingsDropdown(
-            label = "Role (Driver/Rider)",
-            value = role,
-            options = listOf("Rider", "Driver"),
-            onValueChange = { role = it }
-        )
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        // Safety Contacts Section
-        Text(
-            text = "Safety Contacts",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "These contacts will receive an SOS alert if you feel unsafe during a ride.",
-            fontSize = 13.sp,
-            color = Color.Gray
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        uiState.successMessage?.let {
-            Text(text = it, color = Color(0xFF4CAF50), fontSize = 13.sp)
-            LaunchedEffect(it) { viewModel.clearMessages() }
+    // LaunchedEffect inside the composable
+    LaunchedEffect(uiState.successMessage) {
+        if (uiState.successMessage != null) {
+            snackbarHostState.showSnackbar(uiState.successMessage!!)
+            viewModel.clearMessages()
         }
-        uiState.error?.let {
-            Text(text = it, color = Color.Red, fontSize = 13.sp)
-            LaunchedEffect(it) { viewModel.clearMessages() }
-        }
+    }
 
-        OutlinedButton(
-            onClick = {
-                permissionLauncher.launch(android.Manifest.permission.READ_CONTACTS)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(innerPadding)
+                .padding(16.dp)
         ) {
-            Icon(Icons.Filled.Person, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Add Safety Contact from Phone")
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (uiState.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-        } else if (uiState.contacts.isEmpty()) {
             Text(
-                text = "No safety contacts added yet.",
-                color = Color.Gray,
-                fontSize = 14.sp
+                text = "< Back",
+                fontSize = 16.sp,
+                color = Color(0xFF6200EE),
+                modifier = Modifier.clickable { onBack() }
             )
-        } else {
-            uiState.contacts.forEach { contact ->
-                SafetyContactRow(
-                    contact = contact,
-                    onDelete = { contact.contactId?.let { viewModel.deleteContact(it) } }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Settings",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            SettingsDropdown(
+                label = "Driver Preference",
+                value = driverPref,
+                options = listOf("Male", "Female", "N/A"),
+                onValueChange = { driverPref = it }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            SettingsDropdown(
+                label = "Car Preference",
+                value = carPref,
+                options = listOf("Electric", "Hybrid", "Any"),
+                onValueChange = { carPref = it }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            SettingsDropdown(
+                label = "Role (Driver/Rider)",
+                value = role,
+                options = listOf("Rider", "Driver"),
+                onValueChange = { role = it }
+            )
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            Text(
+                text = "Safety Contacts",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "These contacts will receive an SOS alert if you feel unsafe during a ride.",
+                fontSize = 13.sp,
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            uiState.error?.let {
+                Text(text = it, color = Color.Red, fontSize = 13.sp)
+                LaunchedEffect(it) { viewModel.clearMessages() }
             }
-        }
 
-        Spacer(modifier = Modifier.height(30.dp))
+            OutlinedButton(
+                onClick = {
+                    permissionLauncher.launch(android.Manifest.permission.READ_CONTACTS)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Filled.Person, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Add Safety Contact from Phone")
+            }
 
-        Button(
-            onClick = { /* TODO: save other settings */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCEA2FD)),
-            shape = RoundedCornerShape(15.dp)
-        ) {
-            Text("Save Changes", fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else if (uiState.contacts.isEmpty()) {
+                Text(
+                    text = "No safety contacts added yet.",
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
+            } else {
+                uiState.contacts.forEach { contact ->
+                    SafetyContactRow(
+                        contact = contact,
+                        onDelete = { contact.contactId?.let { viewModel.deleteContact(it) } }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            Button(
+                onClick = { viewModel.showSaved() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCEA2FD)),
+                shape = RoundedCornerShape(15.dp)
+            ) {
+                Text("Save Changes", fontSize = 18.sp)
+            }
         }
     }
 }
@@ -178,14 +197,8 @@ fun SettingsDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Column {
-        Text(
-            text = label,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium
-        )
-
+        Text(text = label, fontSize = 18.sp, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(8.dp))
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -195,12 +208,8 @@ fun SettingsDropdown(
                 .padding(horizontal = 16.dp),
             contentAlignment = Alignment.CenterStart
         ) {
-            Text(
-                text = if (value.isEmpty()) "Select..." else value,
-                fontSize = 16.sp
-            )
+            Text(text = if (value.isEmpty()) "Select..." else value, fontSize = 16.sp)
         }
-
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
@@ -240,4 +249,3 @@ fun SafetyContactRow(
         }
     }
 }
-

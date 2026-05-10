@@ -321,7 +321,10 @@ fun AppNavigation(
                 factory = SettingsViewModelFactory(supabase)
             )
 
-            SettingsScreenUI(viewModel = viewModel)
+            SettingsScreenUI(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack()}
+                )
         }
     }
 }

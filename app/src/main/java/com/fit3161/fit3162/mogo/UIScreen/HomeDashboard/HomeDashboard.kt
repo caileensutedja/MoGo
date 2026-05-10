@@ -194,14 +194,22 @@ fun HomeScreenUI(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp)
+                .height(70.dp)
                 .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (ongoingRide != null) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("To: ${ongoingRide.rides?.destination ?: ongoingRide.dropoffLocation}", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    Text("Departs: ${ongoingRide.rides?.departureTime ?: ""}", fontSize = 13.sp, color = Color.Gray)
+                    Text(
+                        "To: ${ongoingRide.rides?.destination ?: ongoingRide.dropoffLocation}",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        "Departs: ${ongoingRide.rides?.departureTime ?: ""}",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
                 }
             } else {
                 Text("No ongoing ride", fontSize = 14.sp, color = Color.Gray)
@@ -209,6 +217,10 @@ fun HomeScreenUI(
         }
 
         Spacer(modifier = Modifier.height(30.dp))
+
+        // ========== HISTORY HEADING ==========
+        Text("History", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
 
         // ========== HISTORY SECTION (Role‑specific) ==========
         if (isDriver) {

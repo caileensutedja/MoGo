@@ -15,6 +15,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class OngoingRideDetails(
+    val driverName: String? = null,
+    val origin: String,
+    val destination: String,
+    val departureTime: String,
+    val estimatedDistanceKm: Double? = null,
+    val estimatedDurationMinutes: Int? = null
+)
+
 data class HomeUiState(
     val profile: UserProfile? = null,
     val bookings: List<Booking> = emptyList(),
@@ -23,7 +32,9 @@ data class HomeUiState(
     val driverRides: List<Ride> = emptyList(),
     val totalCarbonSaved: Double = 0.0,
     val rideStreak: Int = 0,
-    val treesEquivalent: Double = 0.0,   // streaks are arbitrary for now
+    val totalDistanceShared: Double = 0.0,
+    val treesEquivalent: Double = 0.0,
+    val ongoingRide: OngoingRideDetails? = null,  // <-- critical
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -51,6 +62,7 @@ class HomeViewModel(
             }
             try {
                 val profile = profileRepo.getProfile(userId)
+                val isDriver = profile?.user_role?.lowercase() == "driver"
 
                 // Rider data
                 val ongoingBookings = bookRepo.getBookedRides(userId)
@@ -61,26 +73,61 @@ class HomeViewModel(
                 val upcomingDriverRides = allDriverRides.filter { it.rideStatus == "scheduled" }
                 val driverHistory = allDriverRides.filter { it.rideStatus == "completed" }
 
-                // Calculate carbon from BOTH rider history AND driver history
+                // Calculate carbon
                 val riderCarbon = riderHistory.mapNotNull { it.rides?.carbonEstimate }.sum()
                 val driverCarbon = driverHistory.mapNotNull { it.carbonEstimate }.sum()
                 val totalCarbonSaved = riderCarbon + driverCarbon
+                val totalDistanceShared = totalCarbonSaved / 0.21
 
-                // Calculate ride streak
+
                 val rideStreak = minOf(riderHistory.size + driverHistory.size, 7)
-
-                // Calculate trees equivalent (1 tree ≈ 25 kg CO₂ per year)
                 val treesEquivalent = totalCarbonSaved / 25.0
+
+                // Determine ongoing ride details
+                val ongoingRideDetails = if (isDriver) {
+                    upcomingDriverRides.firstOrNull()?.let { ride ->
+                        OngoingRideDetails(
+                            driverName = profile?.user_name,
+                            origin = ride.origin,
+                            destination = ride.destination,
+                            departureTime = ride.departureTime,
+                            estimatedDistanceKm = ride.carbonEstimate?.let { carbon ->
+                                carbon / 0.21  // petrol factor
+                            },
+                            estimatedDurationMinutes = ride.carbonEstimate?.let { carbon ->
+                                ((carbon / 0.21) / 40 * 60).toInt()
+                            }
+                        )
+                    }
+                } else {
+                    ongoingBookings.firstOrNull()?.let { booking ->
+                        val ride = booking.rides
+                        OngoingRideDetails(
+                            driverName = ride?.users?.userName,
+                            origin = ride?.origin ?: "",
+                            destination = ride?.destination ?: "",
+                            departureTime = ride?.departureTime ?: "",
+                            estimatedDistanceKm = ride?.carbonEstimate?.let { carbon ->
+                                carbon / 0.21
+                            },
+                            estimatedDurationMinutes = ride?.carbonEstimate?.let { carbon ->
+                                ((carbon / 0.21) / 40 * 60).toInt()
+                            }
+                        )
+                    }
+                }
 
                 _uiState.value = _uiState.value.copy(
                     profile = profile,
                     bookings = ongoingBookings,
+                    totalDistanceShared = totalDistanceShared,
                     riderHistory = riderHistory,
                     driverHistory = driverHistory,
                     driverRides = upcomingDriverRides,
                     totalCarbonSaved = totalCarbonSaved,
                     rideStreak = rideStreak,
-                    treesEquivalent = treesEquivalent, // ← now dynamic
+                    treesEquivalent = treesEquivalent,
+                    ongoingRide = ongoingRideDetails,   // <-- set here
                     isLoading = false
                 )
 

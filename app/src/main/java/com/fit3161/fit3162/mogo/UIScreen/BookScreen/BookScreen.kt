@@ -1,6 +1,5 @@
 package com.fit3161.fit3162.mogo.UIScreen.BookScreen
 
-
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,6 +16,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fit3161.fit3162.mogo.data.repo.Booking
+import java.time.Duration
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+
+// Helper: format time left until departure
+private fun formatTimeLeft(departureTime: String): String {
+    val now = OffsetDateTime.now(ZoneOffset.UTC)
+    val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "??" }
+    if (departure.isBefore(now)) return "Departed"
+    val minutesLeft = Duration.between(now, departure).toMinutes()
+    return when {
+        minutesLeft < 60 -> "${minutesLeft} min"
+        minutesLeft < 1440 -> "${minutesLeft / 60}h ${minutesLeft % 60}m"
+        else -> "${minutesLeft / 1440}d"
+    }
+}
 
 @Composable
 fun BookScreenUI(
@@ -43,31 +58,88 @@ fun BookScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Ongoing Ride Section
-        Text(
-            text = "Ongoing Ride",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        // ========== ONGOING RIDE (Improved) ==========
+        Text("Ongoing Ride", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
 
-        /**
-         * To Implement: A link to refer to ongoing ride progress
-         */
-        Text(
-            text = "None",
-            fontSize = 16.sp,
-            color = Color.Gray
-        )
+        val ongoing = state.ongoingRide
+        if (ongoing != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E8FF))
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Top row: Driver name (left) + Departure time (right)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            text = "🚗 ${ongoing.driverName ?: "Driver"}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF4A2C8A)
+                        )
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = formatDepartureTime(ongoing.departureTime),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.DarkGray
+                            )
+                            Text(
+                                text = "⏳ ${formatTimeLeft(ongoing.departureTime)}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFFE65100)
+                            )
+                        }
+                    }
+
+                    // Route
+                    Text(
+                        text = "📍 ${ongoing.origin} → ${ongoing.destination}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    // Distance & duration (if available)
+                    if (ongoing.estimatedDistanceKm != null || ongoing.estimatedDurationMinutes != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            ongoing.estimatedDistanceKm?.let { distance ->
+                                Text("📏 ${"%.1f".format(distance)} km", fontSize = 12.sp, color = Color.Gray)
+                            }
+                            ongoing.estimatedDurationMinutes?.let { duration ->
+                                Text("⏱️ $duration min trip", fontSize = 12.sp, color = Color.Gray)
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No ongoing ride", fontSize = 14.sp, color = Color.Gray)
+            }
+        }
 
         Spacer(modifier = Modifier.height(30.dp))
 
         // Booked Rides Section
-        Text(
-            text = "Booked Rides",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        Text("Booked Rides", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
 
         // Loading State
         if (state.isLoading) {
@@ -96,56 +168,21 @@ fun BookScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        //  Future Ride Button
+        // Future Ride Button
         Button(
             onClick = { onNavigateToFutureBookRides() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),
             shape = RoundedCornerShape(15.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFCEA2FD)
-            )
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCEA2FD))
         ) {
             Text("Book Future Ride", fontSize = 18.sp)
         }
 
-        Spacer(modifier = Modifier.height(15.dp))
-
-//        //  Upload Ride Button
-//        Button(
-//            onClick = { onNavigateToUploadRides() },
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(55.dp),
-//            shape = RoundedCornerShape(15.dp),
-//            colors = ButtonDefaults.buttonColors(
-//                containerColor = Color(0xFFCEA2FD)
-//            )
-//        ) {
-//            Text("Upload Future Ride", fontSize = 18.sp)
-//        }
-
-        Spacer(modifier = Modifier.height(15.dp))
-
-        //  My Ride Button
-//        Button(
-//            onClick = { onNavigateToMyRides() },
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(55.dp),
-//            shape = RoundedCornerShape(15.dp),
-//            colors = ButtonDefaults.buttonColors(
-//                containerColor = Color(0xFFCEA2FD)
-//            )
-//        ) {
-//            Text("My Future Ride (Driver)", fontSize = 18.sp)
-//        }
-
-//        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
     }
 }
-
 
 @Composable
 fun BookedCardSkeleton(booking: Booking) {
@@ -185,8 +222,7 @@ fun BookedCardSkeleton(booking: Booking) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text= "${ride?.vehicleType}",
-//                        text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
+                    text = "${ride?.vehicleType}",
                     fontSize = 14.sp,
                     color = Color.DarkGray
                 )
@@ -237,7 +273,6 @@ fun BookedCardSkeleton(booking: Booking) {
         }
     }
 }
-
 
 fun formatDepartureTime(timestamp: String?): String {
     if (timestamp == null) return "TBA"

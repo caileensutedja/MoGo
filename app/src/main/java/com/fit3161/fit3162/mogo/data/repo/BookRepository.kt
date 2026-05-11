@@ -7,6 +7,8 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -117,6 +119,53 @@ class BookRepository(private val client: SupabaseClient) {
                         .toSet()
         }
 
+        suspend fun cancelBooking(bookingId: String, userId: String, role: String): Result<Unit> {
+                return try {
+                        // 1. Get the ride_id from the booking
+                        val booking = client.from("bookings")
+                                .select(Columns.raw("ride_id")) {
+                                        filter { eq("booking_id", bookingId) }
+                                }
+                                .decodeSingleOrNull<Booking>()
+                                ?: return Result.failure(Exception("Booking not found"))
+
+                        val rideId = booking.rideId
+
+                        // 2. Update booking status
+                        client.from("bookings")
+                                .update(
+                                        buildJsonObject {
+                                                put("booking_status", "cancelled")
+                                                put("cancelled_by", role)
+                                                put("cancellation_time", "now()")
+                                        }
+                                ) {
+                                        filter { eq("booking_id", bookingId) }
+                                }
+
+                        // 3. Increment available seats safely (fetch then update)
+                        val currentRide = client.from("rides")
+                                .select(Columns.raw("available_seats")) {
+                                        filter { eq("ride_id", rideId) }
+                                }
+                                .decodeSingleOrNull<Ride>()
+                                ?: return Result.failure(Exception("Ride not found"))
+
+                        client.from("rides")
+                                .update(
+                                        buildJsonObject {
+                                                put("available_seats", currentRide.availableSeats + 1)
+                                        }
+                                ) {
+                                        filter { eq("ride_id", rideId) }
+                                }
+
+                        Result.success(Unit)
+                } catch (e: Exception) {
+                        Result.failure(e)
+                }
+        }
+
         suspend fun getBookedRides(userId: String): List<Booking> {
                 return client
                         .from("bookings")
@@ -169,8 +218,7 @@ class BookRepository(private val client: SupabaseClient) {
                 date: String,
                 genderPreference: String? = null
         ): List<Ride> {
-                // Convert local date (yyyy-MM-dd) to UTC date range
-                val zoneOffset = java.time.ZoneOffset.ofHours(10) // AEST (adjust for daylight saving if needed)
+                val zoneOffset = java.time.ZoneOffset.ofHours(10) // AEST
                 val localDate = java.time.LocalDate.parse(date)
 
                 val startOfDayUtc = localDate.atStartOfDay()
@@ -359,7 +407,6 @@ class BookRepository(private val client: SupabaseClient) {
                 }
         }
 
-        // Helper functions used by ViewModels
         fun passesHardMemoryFilters(
                 ride: Ride,
                 riderId: String,

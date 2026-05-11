@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +33,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import java.time.Duration
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
+
+// Helper: format time left until departure
+private fun formatTimeLeft(departureTime: String): String {
+    val now = OffsetDateTime.now(ZoneOffset.UTC)
+    val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "??" }
+    if (departure.isBefore(now)) return "Departed"
+    val minutesLeft = Duration.between(now, departure).toMinutes()
+    return when {
+        minutesLeft < 60 -> "${minutesLeft} min"
+        minutesLeft < 1440 -> "${minutesLeft / 60}h ${minutesLeft % 60}m"
+        else -> "${minutesLeft / 1440}d"
+    }
+}
 
 @Composable
 fun HomeScreenUI(
@@ -185,33 +205,77 @@ fun HomeScreenUI(
         )
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ========== ONGOING RIDE ==========
+        // ========== ONGOING RIDE (Improved) ==========
         Text("Ongoing Ride", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
 
-        val ongoingRide = uiState.bookings.firstOrNull { it.bookingStatus == "confirmed" }
+        val ongoing = uiState.ongoingRide
+        if (ongoing != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E8FF))
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Driver name + role
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "🚗 ${ongoing.driverName ?: "Driver"}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF4A2C8A)
+                        )
+                        // Could add vehicle type here if available
+                    }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(70.dp)
-                .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            if (ongoingRide != null) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Route
                     Text(
-                        "To: ${ongoingRide.rides?.destination ?: ongoingRide.dropoffLocation}",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
+                        text = "📍 ${ongoing.origin} → ${ongoing.destination}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
                     )
-                    Text(
-                        "Departs: ${ongoingRide.rides?.departureTime ?: ""}",
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
+
+                    // Departure time and countdown
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("🕐 Departs: ${formatDepartureTime(ongoing.departureTime)}", fontSize = 13.sp)
+                        Text(
+                            text = "⏳ ${formatTimeLeft(ongoing.departureTime)}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFE65100)
+                        )
+                    }
+
+                    // Distance & duration (if available)
+                    if (ongoing.estimatedDistanceKm != null || ongoing.estimatedDurationMinutes != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            ongoing.estimatedDistanceKm?.let { distance ->
+                                Text("📏 ${"%.1f".format(distance)} km", fontSize = 12.sp, color = Color.Gray)
+                            }
+                            ongoing.estimatedDurationMinutes?.let { duration ->
+                                Text("⏱️ $duration min trip", fontSize = 12.sp, color = Color.Gray)
+                            }
+                        }
+                    }
                 }
-            } else {
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
                 Text("No ongoing ride", fontSize = 14.sp, color = Color.Gray)
             }
         }
@@ -350,7 +414,7 @@ fun HomeScreenUI(
                 }
             }
 
-            // Box 3: Placeholder
+            // Box 3: Total distance shared
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -359,8 +423,17 @@ fun HomeScreenUI(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("?", fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFFCEA2FD))
-                    Text("coming soon", fontSize = 11.sp, color = Color.Gray)
+                    Text(
+                        text = "%.0f".format(uiState.totalDistanceShared),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                        color = Color(0xFF4CAF50)
+                    )
+                    Text(
+                        text = "km shared",
+                        fontSize = 11.sp,
+                        color = Color.Gray
+                    )
                 }
             }
         }

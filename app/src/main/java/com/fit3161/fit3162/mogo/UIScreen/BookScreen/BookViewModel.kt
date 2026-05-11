@@ -13,10 +13,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+
+data class OngoingRideDetails(
+    val driverName: String? = null,
+    val origin: String,
+    val destination: String,
+    val departureTime: String,
+    val estimatedDistanceKm: Double? = null,
+    val estimatedDurationMinutes: Int? = null
+)
 
 data class BookUIState(
     val bookings: List<Booking> = emptyList(),
     val rides: List<MapsRepository.RideWithDetour> = emptyList(),
+    val ongoingRide: OngoingRideDetails? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -39,7 +51,28 @@ class BookViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val bookings = repo.getBookedRides(userId)
-                _uiState.value = _uiState.value.copy(bookings = bookings, isLoading = false)
+                // Compute ongoing ride (first confirmed booking with future departure)
+                val ongoingRide = bookings.firstOrNull { booking ->
+                    val departure = try {
+                        OffsetDateTime.parse(booking.rides?.departureTime)
+                    } catch (e: Exception) { null }
+                    departure != null && departure.isAfter(OffsetDateTime.now(ZoneOffset.UTC))
+                }?.let { booking ->
+                    val ride = booking.rides
+                    OngoingRideDetails(
+                        driverName = ride?.users?.userName,
+                        origin = ride?.origin ?: "",
+                        destination = ride?.destination ?: "",
+                        departureTime = ride?.departureTime ?: "",
+                        estimatedDistanceKm = ride?.carbonEstimate?.let { carbon -> carbon / 0.21 },
+                        estimatedDurationMinutes = ride?.carbonEstimate?.let { carbon -> ((carbon / 0.21) / 40 * 60).toInt() }
+                    )
+                }
+                _uiState.value = _uiState.value.copy(
+                    bookings = bookings,
+                    ongoingRide = ongoingRide,
+                    isLoading = false
+                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
@@ -57,7 +90,7 @@ class BookViewModel(
 
                 // 1. DB query
                 val candidates = if (date != null)
-                    repo.getFutureRidesByDate(userId, date, genderPref ?: "")   // ✅ Added userId
+                    repo.getFutureRidesByDate(userId, date, genderPref ?: "")
                 else
                     repo.getAllFutureRides(userId, genderPref ?: "")
 

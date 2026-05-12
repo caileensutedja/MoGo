@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 data class OngoingRideDetails(
     val driverName: String? = null,
@@ -34,7 +36,7 @@ data class HomeUiState(
     val rideStreak: Int = 0,
     val totalDistanceShared: Double = 0.0,
     val treesEquivalent: Double = 0.0,
-    val ongoingRide: OngoingRideDetails? = null,  // <-- critical
+    val ongoingRide: OngoingRideDetails? = null,
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -79,42 +81,55 @@ class HomeViewModel(
                 val totalCarbonSaved = riderCarbon + driverCarbon
                 val totalDistanceShared = totalCarbonSaved / 0.21
 
-
                 val rideStreak = minOf(riderHistory.size + driverHistory.size, 7)
                 val treesEquivalent = totalCarbonSaved / 25.0
 
-                // Determine ongoing ride details
+                // Determine ongoing ride details (strictly future)
+                val now = OffsetDateTime.now(ZoneOffset.UTC)
+
                 val ongoingRideDetails = if (isDriver) {
-                    upcomingDriverRides.firstOrNull()?.let { ride ->
-                        OngoingRideDetails(
-                            driverName = profile?.user_name,
-                            origin = ride.origin,
-                            destination = ride.destination,
-                            departureTime = ride.departureTime,
-                            estimatedDistanceKm = ride.carbonEstimate?.let { carbon ->
-                                carbon / 0.21  // petrol factor
-                            },
-                            estimatedDurationMinutes = ride.carbonEstimate?.let { carbon ->
-                                ((carbon / 0.21) / 40 * 60).toInt()
-                            }
-                        )
-                    }
+                    upcomingDriverRides
+                        .filter { ride ->
+                            val departure = try {
+                                OffsetDateTime.parse(ride.departureTime)
+                            } catch (e: Exception) { null }
+                            departure != null && departure.isAfter(now)
+                        }
+                        .firstOrNull()
+                        ?.let { ride ->
+                            OngoingRideDetails(
+                                driverName = profile?.user_name,
+                                origin = ride.origin,
+                                destination = ride.destination,
+                                departureTime = ride.departureTime,
+                                estimatedDistanceKm = ride.carbonEstimate?.let { carbon ->
+                                    carbon / 0.21
+                                },
+                                estimatedDurationMinutes = ride.carbonEstimate?.let { carbon ->
+                                    ((carbon / 0.21) / 40 * 60).toInt()
+                                }
+                            )
+                        }
                 } else {
-                    ongoingBookings.firstOrNull()?.let { booking ->
-                        val ride = booking.rides
-                        OngoingRideDetails(
-                            driverName = ride?.users?.userName,
-                            origin = ride?.origin ?: "",
-                            destination = ride?.destination ?: "",
-                            departureTime = ride?.departureTime ?: "",
-                            estimatedDistanceKm = ride?.carbonEstimate?.let { carbon ->
-                                carbon / 0.21
-                            },
-                            estimatedDurationMinutes = ride?.carbonEstimate?.let { carbon ->
-                                ((carbon / 0.21) / 40 * 60).toInt()
-                            }
-                        )
-                    }
+                    ongoingBookings
+                        .filter { booking ->
+                            val departure = try {
+                                OffsetDateTime.parse(booking.rides?.departureTime)
+                            } catch (e: Exception) { null }
+                            departure != null && departure.isAfter(now)
+                        }
+                        .firstOrNull()
+                        ?.let { booking ->
+                            val ride = booking.rides
+                            OngoingRideDetails(
+                                driverName = ride?.users?.userName,
+                                origin = ride?.origin ?: "",
+                                destination = ride?.destination ?: "",
+                                departureTime = ride?.departureTime ?: "",
+                                estimatedDistanceKm = ride?.carbonEstimate?.let { carbon -> carbon / 0.21 },
+                                estimatedDurationMinutes = ride?.carbonEstimate?.let { carbon -> ((carbon / 0.21) / 40 * 60).toInt() }
+                            )
+                        }
                 }
 
                 _uiState.value = _uiState.value.copy(
@@ -127,7 +142,7 @@ class HomeViewModel(
                     totalCarbonSaved = totalCarbonSaved,
                     rideStreak = rideStreak,
                     treesEquivalent = treesEquivalent,
-                    ongoingRide = ongoingRideDetails,   // <-- set here
+                    ongoingRide = ongoingRideDetails,
                     isLoading = false
                 )
 

@@ -10,11 +10,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.fit3161.fit3162.mogo.data.repo.Booking
 import java.time.Duration
 import java.time.OffsetDateTime
@@ -33,13 +36,24 @@ private fun formatTimeLeft(departureTime: String): String {
     }
 }
 
+// Helper: determine ride title based on current time and estimated duration
+private fun getRideTitle(departureTime: String, durationMinutes: Int?): String {
+    val now = OffsetDateTime.now(ZoneOffset.UTC)
+    val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "Unknown" }
+    if (departure.isAfter(now)) return "Upcoming Ride"
+    if (durationMinutes != null) {
+        val endTime = departure.plusMinutes(durationMinutes.toLong())
+        if (now.isBefore(endTime)) return "Ongoing Ride"
+    }
+    return "Past Ride"
+}
+
 @Composable
 fun BookScreenUI(
     viewModel: BookViewModel,
     modifier: Modifier = Modifier,
     onNavigateToFutureBookRides: () -> Unit
 ) {
-
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
@@ -47,8 +61,6 @@ fun BookScreenUI(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-
-        // Title
         Text(
             text = "Book",
             fontSize = 34.sp,
@@ -58,19 +70,24 @@ fun BookScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // ========== ONGOING RIDE (Improved) ==========
-        Text("Ongoing Ride", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-
+        // ========== RIDE SECTION (Upcoming / Ongoing) ==========
         val ongoing = state.ongoingRide
         if (ongoing != null) {
+            val title = getRideTitle(ongoing.departureTime, ongoing.estimatedDurationMinutes)
+            Text(
+                text = title,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4A2C8A)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E8FF))
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Top row: Driver name (left) + Departure time (right)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -82,33 +99,34 @@ fun BookScreenUI(
                             fontSize = 16.sp,
                             color = Color(0xFF4A2C8A)
                         )
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
+                        Column(horizontalAlignment = Alignment.End) {
                             Text(
                                 text = formatDepartureTime(ongoing.departureTime),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.DarkGray
                             )
-                            Text(
-                                text = "⏳ ${formatTimeLeft(ongoing.departureTime)}",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFFE65100)
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = Color(0xFFFFE0B2)
+                            ) {
+                                Text(
+                                    text = "⏳ ${formatTimeLeft(ongoing.departureTime)}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFFE65100),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
 
-                    // Route
                     Text(
                         text = "📍 ${ongoing.origin} → ${ongoing.destination}",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
 
-                    // Distance & duration (if available)
                     if (ongoing.estimatedDistanceKm != null || ongoing.estimatedDurationMinutes != null) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -125,6 +143,13 @@ fun BookScreenUI(
                 }
             }
         } else {
+            Text(
+                text = "No upcoming rides",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4A2C8A)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,21 +157,19 @@ fun BookScreenUI(
                     .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No ongoing ride", fontSize = 14.sp, color = Color.Gray)
+                Text("No rides scheduled", fontSize = 14.sp, color = Color.Gray)
             }
         }
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        // Booked Rides Section
+        // ========== BOOKED RIDES SECTION ==========
         Text("Booked Rides", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
 
-        // Loading State
         if (state.isLoading) {
             CircularProgressIndicator()
         }
 
-        // Error State
         state.error?.let {
             Text("Error: $it", color = Color.Red)
         }
@@ -160,7 +183,7 @@ fun BookScreenUI(
         } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(state.bookings.size) { idx ->
-                    BookedCardSkeleton(booking = state.bookings[idx])
+                    BookedCard(booking = state.bookings[idx])
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -168,7 +191,6 @@ fun BookScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Future Ride Button
         Button(
             onClick = { onNavigateToFutureBookRides() },
             modifier = Modifier
@@ -185,44 +207,54 @@ fun BookScreenUI(
 }
 
 @Composable
-fun BookedCardSkeleton(booking: Booking) {
+fun BookedCard(booking: Booking) {
     val ride = booking.rides
     val driver = ride?.users
-    val vehicle = ride?.vehicles
 
-    Log.d("BOOKING_DEBUG", "booking: $booking")
-    Log.d("BOOKING_DEBUG", "ride: $ride")
-    Log.d("BOOKING_DEBUG", "driver: $driver")
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
-            .padding(16.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E8FF))
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Driver profile picture (from avatar_url)
+            if (driver?.avatarUrl != null) {
+                AsyncImage(
+                    model = driver.avatarUrl,
+                    contentDescription = "Driver profile",
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(Color(0xFFDCCBFF), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = driver?.userName?.take(1) ?: "?",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF4A2C8A)
+                    )
+                }
+            }
 
-            // Placeholder box for car image
-            Box(
-                modifier = Modifier
-                    .size(70.dp)
-                    .background(Color(0xFFDCCBFF), RoundedCornerShape(10.dp))
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = driver?.userName ?: "Unknown Driver",
-                    fontSize = 20.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${ride?.vehicleType}",
+                    text = ride?.vehicleType ?: "Unknown",
                     fontSize = 14.sp,
                     color = Color.DarkGray
                 )
@@ -243,27 +275,19 @@ fun BookedCardSkeleton(booking: Booking) {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
                         onClick = { /* TODO: cancel booking */ },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFEAD7FF)
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEAD7FF)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text("Cancel")
                     }
-
                     Button(
                         onClick = { /* TODO: show details */ },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFB57BFF)
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text("Details")

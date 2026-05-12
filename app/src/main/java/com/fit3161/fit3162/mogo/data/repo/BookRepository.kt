@@ -25,6 +25,7 @@ data class RideUser(
         @SerialName("user_role") val userRole: String? = null,
         @SerialName("driver_rating") val driverRating: Double? = null,
         @SerialName("home_campus") val homeCampus: String? = null,
+        @SerialName("avatar_url") val avatarUrl: String? = null,   // ← add this
         @SerialName("time_created") val timeCreated: String? = null,
         @SerialName("updated_at") val updatedAt: String? = null,
         @SerialName("gender_preference") val genderPreference: String? = null

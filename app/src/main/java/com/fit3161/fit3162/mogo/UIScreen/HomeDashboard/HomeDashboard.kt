@@ -18,6 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +39,8 @@ import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 
 // Helper: format time left until departure
 private fun formatTimeLeft(departureTime: String): String {
@@ -51,6 +55,18 @@ private fun formatTimeLeft(departureTime: String): String {
     }
 }
 
+// Helper: determine ride status title based on current time and duration
+private fun getRideTitle(departureTime: String, durationMinutes: Int?): String {
+    val now = OffsetDateTime.now(ZoneOffset.UTC)
+    val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "Unknown" }
+    if (departure.isAfter(now)) return "Upcoming Ride"
+    if (durationMinutes != null) {
+        val endTime = departure.plusMinutes(durationMinutes.toLong())
+        if (now.isBefore(endTime)) return "Ongoing Ride"
+    }
+    return "Past Ride"
+}
+
 @Composable
 fun HomeScreenUI(
     viewModel: HomeViewModel,
@@ -58,6 +74,7 @@ fun HomeScreenUI(
     onBookedClick: () -> Unit = {},
     onMyRidesClick: () -> Unit = {},
     onRoleToggle: (String) -> Unit = {},
+    onNotificationClick: () -> Unit = {}, // new callback
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -84,12 +101,13 @@ fun HomeScreenUI(
             .padding(16.dp)
     ) {
 
-        // Top Row: Back + Profile + Fire Streak
+        // Top Row: Back + (fire streak + notification + profile)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Left: Back button
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -99,6 +117,7 @@ fun HomeScreenUI(
                 Text("<")
             }
 
+            // Right: Fire streak, notification icon, profile icon
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -118,6 +137,19 @@ fun HomeScreenUI(
                     }
                 }
 
+                // Notification icon button
+                IconButton(
+                    onClick = onNotificationClick,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notifications",
+                        tint = Color(0xFF4A2C8A)
+                    )
+                }
+
+                // Profile image / placeholder
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -152,7 +184,7 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Role toggle
+        // Role toggle (improved active contrast)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -165,15 +197,18 @@ fun HomeScreenUI(
                     .weight(1f)
                     .height(36.dp)
                     .clip(RoundedCornerShape(50.dp))
-                    .background(if (!isDriver) Color(0xFFDCCBFF) else Color.Transparent)
+                    .background(
+                        if (!isDriver) Color(0xFFB57BFF) else Color.Transparent,
+                        RoundedCornerShape(50.dp)
+                    )
                     .clickable { if (isDriver) onRoleToggle("rider") },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "Rider",
-                    fontWeight = if (!isDriver) FontWeight.SemiBold else FontWeight.Normal,
+                    fontWeight = if (!isDriver) FontWeight.Bold else FontWeight.Normal,
                     fontSize = 14.sp,
-                    color = if (!isDriver) Color(0xFF4A2C8A) else Color.Gray
+                    color = if (!isDriver) Color.White else Color.Gray
                 )
             }
 
@@ -182,15 +217,18 @@ fun HomeScreenUI(
                     .weight(1f)
                     .height(36.dp)
                     .clip(RoundedCornerShape(50.dp))
-                    .background(if (isDriver) Color(0xFFDCCBFF) else Color.Transparent)
+                    .background(
+                        if (isDriver) Color(0xFFB57BFF) else Color.Transparent,
+                        RoundedCornerShape(50.dp)
+                    )
                     .clickable { if (!isDriver) onRoleToggle("driver") },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "Driver",
-                    fontWeight = if (isDriver) FontWeight.SemiBold else FontWeight.Normal,
+                    fontWeight = if (isDriver) FontWeight.Bold else FontWeight.Normal,
                     fontSize = 14.sp,
-                    color = if (isDriver) Color(0xFF4A2C8A) else Color.Gray
+                    color = if (isDriver) Color.White else Color.Gray
                 )
             }
         }
@@ -205,19 +243,24 @@ fun HomeScreenUI(
         )
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ========== ONGOING RIDE (Improved) ==========
-        Text("Ongoing Ride", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-
+        // ========== RIDE SECTION (Upcoming / Ongoing) ==========
         val ongoing = uiState.ongoingRide
         if (ongoing != null) {
+            val title = getRideTitle(ongoing.departureTime, ongoing.estimatedDurationMinutes)
+            Text(
+                text = title,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4A2C8A)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E8FF))
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Driver name + role
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -228,31 +271,39 @@ fun HomeScreenUI(
                             fontSize = 16.sp,
                             color = Color(0xFF4A2C8A)
                         )
-                        // Could add vehicle type here if available
                     }
 
-                    // Route
                     Text(
                         text = "📍 ${ongoing.origin} → ${ongoing.destination}",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
 
-                    // Departure time and countdown
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("🕐 Departs: ${formatDepartureTime(ongoing.departureTime)}", fontSize = 13.sp)
                         Text(
-                            text = "⏳ ${formatTimeLeft(ongoing.departureTime)}",
+                            "🕐 Departs: ${formatDepartureTime(ongoing.departureTime)}",
                             fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFE65100)
+                            color = Color.DarkGray
                         )
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0xFFFFE0B2),
+                            modifier = Modifier.clickable(enabled = false) { }
+                        ) {
+                            Text(
+                                text = "⏳ ${formatTimeLeft(ongoing.departureTime)}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFFE65100),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
-                    // Distance & duration (if available)
                     if (ongoing.estimatedDistanceKm != null || ongoing.estimatedDurationMinutes != null) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -269,6 +320,13 @@ fun HomeScreenUI(
                 }
             }
         } else {
+            Text(
+                text = "No upcoming rides",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4A2C8A)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -276,7 +334,7 @@ fun HomeScreenUI(
                     .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No ongoing ride", fontSize = 14.sp, color = Color.Gray)
+                Text("No rides scheduled", fontSize = 14.sp, color = Color.Gray)
             }
         }
 
@@ -288,7 +346,6 @@ fun HomeScreenUI(
 
         // ========== HISTORY SECTION (Role‑specific) ==========
         if (isDriver) {
-            // Driver History
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -308,7 +365,6 @@ fun HomeScreenUI(
                 }
             }
         } else {
-            // Rider History
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -341,7 +397,6 @@ fun HomeScreenUI(
         ) {
             val confirmedBookings = uiState.bookings.filter { it.bookingStatus == "confirmed" }
 
-            // Rider Bookings Box
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -358,7 +413,6 @@ fun HomeScreenUI(
                 }
             }
 
-            // Driver Bookings Box
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -386,7 +440,6 @@ fun HomeScreenUI(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Box 1: CO₂ saved
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -400,7 +453,6 @@ fun HomeScreenUI(
                 }
             }
 
-            // Box 2: Trees equivalent
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -414,7 +466,6 @@ fun HomeScreenUI(
                 }
             }
 
-            // Box 3: Total distance shared
             Box(
                 modifier = Modifier
                     .weight(1f)

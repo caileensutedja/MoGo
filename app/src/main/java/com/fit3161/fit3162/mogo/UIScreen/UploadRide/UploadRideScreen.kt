@@ -43,6 +43,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -123,6 +124,9 @@ fun UploadRideScreen(
             },
             setValue = { viewModel.onOriginChange(it) }
         )
+
+        // Campus Dropdown
+        var campusExpanded by remember { mutableStateOf(false) }
 
         // Destination dropdown — preset campuses
         var destinationMenuExpanded by remember { mutableStateOf(false) }
@@ -216,14 +220,22 @@ fun UploadRideScreen(
                         }
                         showDatePicker = false
                     }) { Text("Confirm") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
                 }
-            ) { DatePicker(state = datePickerState) }
+            ) {
+                DatePicker(state = datePickerState)
+            }
         }
 
         // TIME PICKER DIALOG
+        // TIME PICKER DIALOG
         if (showTimePicker) {
             DatePickerDialog(
+            TimePickerDialog(
                 onDismissRequest = { showTimePicker = false },
+                title = { Text("Select Departure Time") },   // ← add this line
                 confirmButton = {
                     TextButton(onClick = {
                         val formattedTime = String.format(
@@ -234,11 +246,12 @@ fun UploadRideScreen(
                         viewModel.onTimeChange(formattedTime)
                         showTimePicker = false
                     }) { Text("Confirm") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
                 }
             ) {
-                Box(Modifier.padding(24.dp)) {
-                    TimePicker(state = timePickerState)
-                }
+                TimePicker(state = timePickerState)
             }
         }
 
@@ -321,6 +334,7 @@ fun UploadRideScreen(
         if (status is UploadStatus.Success) {
             AlertDialog(
                 onDismissRequest = {},
+                onDismissRequest = { }, // Disable outside click dismiss
                 title = { Text("Ride Uploaded Successfully!") },
                 confirmButton = {
                     Button(

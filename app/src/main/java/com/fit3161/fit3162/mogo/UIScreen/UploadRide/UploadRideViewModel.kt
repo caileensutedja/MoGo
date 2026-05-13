@@ -31,10 +31,10 @@ data class UploadRideForm(
     val originLng: Double? = null,
     val destination: PresetDestination? = null,
     val availableSeats: String = "3",
-    val departureDate: String = "", // YYYY-MM-DD
-    val departureTime: String = "", // HH:MM
+    val departureDate: String = "",   // YYYY-MM-DD
+    val departureTime: String = "",   // HH:MM
     val isRecurring: Boolean = false,
-    val recurringWeeks: Int = 1,
+    val recurringWeeks: Int = 1,      // how many weeks to repeat
     val vehicleType: String = "",
     val plateNumber: String = ""
 )
@@ -97,6 +97,9 @@ class UploadRideViewModel(
         _form.value = _form.value.copy(destination = value)
     }
 
+    // Form update methods
+    fun onOriginChange(value: String) { _form.value = _form.value.copy(origin = value) }
+    fun onDestinationChange(value: String) { _form.value = _form.value.copy(destination = value) }
     fun onSeatsChange(value: String) {
         if (value.all { it.isDigit() }) _form.value = _form.value.copy(availableSeats = value)
     }
@@ -106,11 +109,123 @@ class UploadRideViewModel(
     fun onRecurringChange(value: Boolean) { _form.value = _form.value.copy(isRecurring = value) }
     fun onVehicleTypeChange(value: String) { _form.value = _form.value.copy(vehicleType = value) }
     fun onPlateNumberChange(value: String) { _form.value = _form.value.copy(plateNumber = value) }
+    fun onRecurringWeeksChange(value: Int) {
+        _form.value = _form.value.copy(recurringWeeks = value.coerceIn(1, 12))
+    }
+
+    /**
+     * Approximate distance (km) between two campus locations.
+     * Uses hard‑coded values for known Monash routes, otherwise 10 km fallback.
+     */
+    private fun getApproximateDistanceKm(origin: String, destination: String): Double {
+        fun normalize(s: String): String {
+            return s.trim().lowercase()
+                .replace("campus", "")
+                .replace("monash", "")
+                .replace("university", "")
+                .replace("melbourne", "melb")
+                .replace("cbd", "city")
+                .trim()
+        }
+
+        val o = normalize(origin)
+        val d = normalize(destination)
+
+        val distances = mapOf(
+            "clayton|caulfield" to 12.0,
+            "clayton|parkville" to 22.0,
+            "clayton|city" to 19.0,
+            "caulfield|parkville" to 12.0,
+            "caulfield|city" to 9.5,
+            "parkville|city" to 2.5,
+            "clayton|richmond" to 17.0,
+            "caulfield|richmond" to 6.5,
+            "clayton|m-city" to 3.0,
+            "caulfield|melb cbd" to 9.0,
+        )
+
+        val key = listOf(o, d).sorted().joinToString("|")
+        return distances[key] ?: 10.0
+    }
+
+    /**
+     * Build a single ride instance (used for each recurring week).
+     */
+    private fun buildRideInstance(
+        origin: String,
+        destination: String,
+        departureDate: String,
+        departureTime: String,
+        weekOffset: Int,
+        availableSeats: Int,
+        vehicleType: String,
+        plateNumber: String,
+        isRecurring: Boolean,
+        recurringGroupId: String?,
+        recurringWeekIndex: Int
+    ): Ride {
+        val campus = CAMPUS_OPTIONS[destination]
+        val distanceKm = getApproximateDistanceKm(origin, destination)
+        val factor = when (vehicleType.lowercase()) {
+            "ev" -> 0.01
+            "hybrid" -> 0.12
+            else -> 0.21
+        }
+        val carbonEstimate = distanceKm * factor
+
+        return Ride(
+            id = UUID.randomUUID().toString(),
+            driverId = userId,
+            vehicleId = null,
+            origin = origin,
+            destination = destination,
+            destinationLat = campus?.latLng?.latitude,
+            destinationLng = campus?.latLng?.longitude,
+            rideStatus = "scheduled",
+            availableSeats = availableSeats,
+            departureTime = buildDepartureTime(departureDate, departureTime, weekOffset),
+            isRecurring = isRecurring,
+            recurringGroupId = recurringGroupId,
+            recurringWeekIndex = recurringWeekIndex,
+            vehicleType = vehicleType,
+            plateNumber = plateNumber,
+            carbonEstimate = carbonEstimate
+        )
+    }
+
+    /**
+     * Build ISO 8601 departure time with UTC offset, adding weekOffset weeks.
+     */
+    private fun buildDepartureTime(date: String, time: String, weekOffset: Int): String {
+        val base = LocalDateTime.parse("${date}T${time}", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+        val shifted = base.plusWeeks(weekOffset.toLong())
+        return shifted.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+    }
+    fun onRecurringChange(value: Boolean) { _form.value = _form.value.copy(isRecurring = value) }
+    fun onVehicleTypeChange(value: String) { _form.value = _form.value.copy(vehicleType = value) }
+    fun onPlateNumberChange(value: String) { _form.value = _form.value.copy(plateNumber = value) }
 
     fun onRecurringWeeksChange(value: Int) {
         _form.value = _form.value.copy(recurringWeeks = value.coerceIn(1, 12))
     }
 
+    /**
+     * Check that departure is at least 24 hours in the future (UTC).
+     */
+    private fun isDepartureValid(date: String, time: String): Boolean {
+        return try {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
+            val departure = LocalDateTime.parse("${date}T${time}", formatter)
+            val earliest = LocalDateTime.now(ZoneOffset.UTC).plusHours(24)
+            !departure.isBefore(earliest)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Submit the ride(s) – either a single ride or a recurring series.
+     */
     fun submitRide() {
         val data = _form.value
         val destination = data.destination
@@ -156,11 +271,12 @@ class UploadRideViewModel(
             val weeksToCreate = if (data.isRecurring) data.recurringWeeks else 1
 
             val rides = (0 until weeksToCreate).map { weekOffset ->
-                Ride(
-                    id = UUID.randomUUID().toString(),
-                    driverId = userId,
-                    vehicleId = null,
+                buildRideInstance(
                     origin = data.origin,
+                    destination = data.destination,
+                    departureDate = data.departureDate,
+                    departureTime = data.departureTime,
+                    weekOffset = weekOffset,
                     destination = destination.name,
                     originLat = data.originLat,
                     originLng = data.originLng,
@@ -168,12 +284,11 @@ class UploadRideViewModel(
                     destinationLng = destination.latLng.longitude,
                     rideStatus = "scheduled",
                     availableSeats = data.availableSeats.toInt(),
-                    departureTime = buildDepartureTime(data.departureDate, data.departureTime, weekOffset),
-                    isRecurring = data.isRecurring,
-                    recurringGroupId = groupId,
-                    recurringWeekIndex = weekOffset + 1,
                     vehicleType = data.vehicleType,
                     plateNumber = data.plateNumber,
+                    isRecurring = data.isRecurring,
+                    recurringGroupId = groupId,
+                    recurringWeekIndex = weekOffset + 1
                 )
             }
 

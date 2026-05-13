@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
 import com.fit3161.fit3162.mogo.data.repo.Booking
-import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.data.repo.MapsRepository
 import com.fit3161.fit3162.mogo.data.repo.Ride
 import com.fit3161.fit3162.mogo.data.repo.RideUser
@@ -14,16 +13,26 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+
+data class OngoingRideDetails(
+    val driverName: String? = null,
+    val origin: String,
+    val destination: String,
+    val departureTime: String,
+    val estimatedDistanceKm: Double? = null,
+    val estimatedDurationMinutes: Int? = null
+)
 
 data class BookUIState(
     val bookings: List<Booking> = emptyList(),
     val rides: List<MapsRepository.RideWithDetour> = emptyList(),
-    val rebookMessage: String? = null,
+    val ongoingRide: OngoingRideDetails? = null,   // <-- ADD THIS
     val isLoading: Boolean = false,
-    val error: String? = null
-){
-
-}
+    val error: String? = null,
+    val rebookMessage: String? = null
+)
 
 class BookViewModel(
     private val repo: BookRepository,
@@ -37,21 +46,12 @@ class BookViewModel(
     init {
         loadBookedRides()
     }
-
-    private fun loadBookedRides() {
+    fun onRebookNextWeek(ride: Ride, oldBooking: Booking) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            try {
-                val bookings = repo.getBookedRides(userId).sortedBy { it.rides?.departureTime }
-                _uiState.value = _uiState.value.copy(bookings = bookings, isLoading = false)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
-            }
-        }
-    }
-
-    fun loadRides(rider: RideUser, pickupLat: Double, pickupLng: Double, date: String?) {
-        viewModelScope.launch {
+            // Calculate new departure time for next week
+            val newDepartureTime = try {
+                val oldTime = java.time.OffsetDateTime.parse(ride.departureTime)
+                oldTime.plusWeeks(1).format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val genderPref = repo.getGenderPreference(userId)
@@ -99,6 +99,7 @@ class BookViewModel(
                 _uiState.value = _uiState.value.copy(rides = sorted, isLoading = false)
 
             } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(rebookMessage = "Invalid departure time")
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
@@ -131,59 +132,70 @@ class BookViewModel(
                 return@launch
             }
 
-            val campusLocation = CAMPUS_OPTIONS[booking.dropoffLocation]
-
-            val result = repo.bookRide(
-                riderId = userId,
-                rideId = nextRide.id,
-                pickupLocation = booking.pickupLocation,
-                pickupLat = booking.pickupLat ?: 0.0,
-                pickupLng = booking.pickupLng ?: 0.0,
-                dropoffLocation = booking.dropoffLocation,
-                dropoffLat = campusLocation?.latLng?.latitude ?: booking.dropoffLat ?: 0.0,
-                dropoffLng = campusLocation?.latLng?.longitude ?: booking.dropoffLng ?: 0.0,
+            // Create a new ride instance for next week
+            val newRide = ride.copy(
+                id = java.util.UUID.randomUUID().toString(),
+                departureTime = newDepartureTime,
+                isRecurring = true,
+                recurringGroupId = ride.recurringGroupId ?: ride.id
             )
 
-            if (result.isSuccess) {
+            repo.uploadRide(newRide).onSuccess {
                 _uiState.value = _uiState.value.copy(rebookMessage = "✅ Rebooked for next week!")
-                loadBookedRides()  // Refresh so the new booking appears
-            } else {
-                val msg = result.exceptionOrNull()?.message ?: ""
-                _uiState.value = _uiState.value.copy(
-                    rebookMessage = when {
-                        msg.contains("Already booked", ignoreCase = true) ||
-                                msg.contains("duplicate key", ignoreCase = true) ||
-                                msg.contains("unique_booking", ignoreCase = true) ->
-                            "❌ You have already rebooked this ride"
-                        msg.contains("No seats available", ignoreCase = true) ->
-                            "❌ This ride is now full"
-                        else -> "❌ Ride unavailable for next week"
-                    }
-                )
+                loadBookedRides() // refresh list
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(rebookMessage = "❌ Failed to rebook: ${it.message}")
             }
         }
     }
-
-    fun clearRebookMessage() {
-        _uiState.value = _uiState.value.copy(rebookMessage = null)
-    }
-
-    // Make loadBookedRides public so UI can trigger manual refresh too
-    fun refresh() = loadBookedRides()
 
     fun cancelBooking(bookingId: String, rideId: String) {
-        _uiState.value = _uiState.value.copy(
-            bookings = _uiState.value.bookings.filter { it.id != bookingId }
-        )
         viewModelScope.launch {
-            val result = repo.cancelBooking(bookingId, rideId)
-            if (result.isFailure) {
-                // Revert on failure
+            val result = repo.cancelBooking(bookingId, userId, "rider")
+            if (result.isSuccess) {
+                _uiState.value = _uiState.value.copy(rebookMessage = "✅ Booking cancelled")
                 loadBookedRides()
-                _uiState.value = _uiState.value.copy(error = "Failed to cancel booking")
+            } else {
+                _uiState.value = _uiState.value.copy(rebookMessage = "❌ Failed to cancel: ${result.exceptionOrNull()?.message}")
             }
         }
     }
+
+    private fun loadBookedRides() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val bookings = repo.getBookedRides(userId)
+                // Compute ongoing ride (first confirmed booking with future departure)
+                val ongoingRide = bookings.firstOrNull { booking ->
+                    val departure = try {
+                        OffsetDateTime.parse(booking.rides?.departureTime)
+                    } catch (e: Exception) { null }
+                    departure != null && departure.isAfter(OffsetDateTime.now(ZoneOffset.UTC))
+                }?.let { booking ->
+                    val ride = booking.rides
+                    OngoingRideDetails(
+                        driverName = ride?.users?.userName,
+                        origin = ride?.origin ?: "",
+                        destination = ride?.destination ?: "",
+                        departureTime = ride?.departureTime ?: "",
+                        estimatedDistanceKm = ride?.carbonEstimate?.let { carbon -> carbon / 0.21 },
+                        estimatedDurationMinutes = ride?.carbonEstimate?.let { carbon -> ((carbon / 0.21) / 40 * 60).toInt() }
+                    )
+                }
+                _uiState.value = _uiState.value.copy(
+                    bookings = bookings,
+                    ongoingRide = ongoingRide,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
+
+    // Add your other existing functions: loadRides(), checkDetours(), onRebookNextWeek(), cancelBooking(), etc.
+    // (Keep them unchanged from your previous version - they are not shown here but must be present.)
 }
 
 class BookViewModelFactory(

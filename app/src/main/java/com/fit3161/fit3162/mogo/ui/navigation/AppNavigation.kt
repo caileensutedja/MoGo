@@ -281,6 +281,7 @@ fun AppNavigation(
                     placesRepo = application.placesRepository,
                     userId = userId
                 )
+                factory = UploadRideViewModelFactory(supabase, userId)   // only two args
             )
             UploadRideScreen(
                 viewModel = viewModel,
@@ -289,18 +290,6 @@ fun AppNavigation(
                 }
             )
         }
-
-//        composable(Screen.UploadRide.route) {
-//            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
-//            val viewModel: UploadRideViewModel = viewModel(
-//                factory = UploadRideViewModelFactory(supabase, userId)
-//            )
-//            UploadRideScreen(
-//                viewModel = viewModel,
-//                onNavigateToDashboard = {
-//                    navController.navigate(Screen.Dashboard.route) // Navigate from Welcome Screen to Login Screen.
-//                })
-//        }
 
         composable(Screen.MyRides.route){
             val userId = supabase.auth.currentUserOrNull()?.id ?: ""

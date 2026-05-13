@@ -132,6 +132,13 @@ fun FutureRideScreenUI(
             color = Color.Gray
         )
         val campusNames = listOf("All") + CAMPUS_OPTIONS.keys.toList()
+        // Campus filter chips
+        Text(
+            text = "Select your Monash campus destination: ",
+            fontSize = 14.sp,
+            color = Color.Gray
+        )
+        val campusNames = listOf("All") + CAMPUS_OPTIONS.keys.toList()
 
         Row(
             modifier = Modifier
@@ -196,6 +203,31 @@ fun FutureRideScreenUI(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
+        // Main content: rides list
+        if (!state.isLoading && state.error == null) {
+            if (state.visibleRides.isEmpty() && state.hiddenRides.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if (state.selectedDate.isNotEmpty())
+                            "No rides available on this date"
+                        else
+                            "No upcoming rides available",
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    // Visible rides
+                    items(state.visibleRides.size) { idx ->
+                        FutureRideCard(
+                            ride = state.visibleRides[idx],
+                            isHidden = false,
+                            onHide = { viewModel.hideRide(state.visibleRides[idx].id) },
+                            onUnhide = {},
+                            onBook = { rideToBook = state.visibleRides[idx] }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
 
                     // Hidden rides section
                     if (state.hiddenRides.isNotEmpty()) {
@@ -228,6 +260,24 @@ fun FutureRideScreenUI(
         }
     }
 }
+                        if (showHidden) {
+                            items(state.hiddenRides.size) { idx ->
+                                FutureRideCard(
+                                    ride = state.hiddenRides[idx],
+                                    isHidden = true,
+                                    onHide = {},
+                                    onUnhide = { viewModel.unhideRide(state.hiddenRides[idx].id) },
+                                    onBook = {} // hidden rides cannot be booked directly
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun FutureRideCard(
@@ -238,7 +288,6 @@ fun FutureRideCard(
     onBook: () -> Unit = {}
 ) {
     val driver = ride.users
-    val vehicle = ride.vehicles
 
     Box(
         modifier = Modifier
@@ -286,36 +335,69 @@ fun FutureRideCard(
                         color = Color(0xFF4CAF50)
                     )
                 }
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = driver?.userName ?: "Unknown Driver",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isHidden) Color.Gray else Color.Black
+            )
+            Text(
+                text = "Vehicle Type: ${ride.vehicleType}",
+                fontSize = 16.sp,
+                color = Color.DarkGray
+            )
+            Text(
+                text = "📍 ${ride.origin} → ${ride.destination}",
+                fontSize = 16.sp,
+                color = Color.DarkGray
+            )
+            Text(
+                text = "🕐 ${formatDepartureTime(ride.departureTime)}",
+                fontSize = 16.sp,
+                color = Color.DarkGray
+            )
+            Text(
+                text = "💺 ${ride.availableSeats} seats available",
+                fontSize = 14.sp,
+                color = Color.DarkGray
+            )
+            ride.carbonEstimate?.let {
+                Text(
+                    text = "🌿 %.2f kg CO₂".format(it),
+                    fontSize = 14.sp,
+                    color = Color(0xFF4CAF50)
+                )
+            }
 
-                Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isHidden) {
-                        Button(
-                            onClick = onUnhide,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Restore")
-                        }
-                    } else {
-                        Button(
-                            onClick = onHide,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEAD7FF)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Not Interested")
-                        }
-                        Button(
-                            onClick = onBook,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Book")
-                        }
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isHidden) {
+                    Button(
+                        onClick = onUnhide,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Restore")
+                    }
+                } else {
+                    Button(
+                        onClick = onHide,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEAD7FF)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Not Interested")
+                    }
+                    Button(
+                        onClick = onBook,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Book")
                     }
                 }
             }

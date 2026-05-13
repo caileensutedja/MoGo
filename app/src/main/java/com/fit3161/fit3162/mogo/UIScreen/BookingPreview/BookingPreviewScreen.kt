@@ -39,7 +39,7 @@ import com.google.maps.android.compose.rememberUpdatedMarkerState
 /**
  * Displays a booked ride as a three-leg route on a map:
  *   - GREEN marker  = driver's starting location
- *   - ORANGE marker = rider's pickup location
+ *   - PINK marker = rider's pickup location
  *   - RED marker    = destination
  *
  * Camera frames all three points when the route loads.
@@ -102,7 +102,7 @@ fun BookingPreviewScreen(viewModel: BookingPreviewViewModel) {
                     state = rememberUpdatedMarkerState(position = s.pickup),
                     title = "Your pickup",
                     icon = BitmapDescriptorFactory.defaultMarker(
-                        BitmapDescriptorFactory.HUE_ORANGE
+                        BitmapDescriptorFactory.HUE_ROSE
                     )
                 )
 

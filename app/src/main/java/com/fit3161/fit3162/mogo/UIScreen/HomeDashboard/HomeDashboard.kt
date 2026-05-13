@@ -15,11 +15,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,8 +34,38 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import java.time.Duration
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
+
+// Helper: format time left until departure
+private fun formatTimeLeft(departureTime: String): String {
+    val now = OffsetDateTime.now(ZoneOffset.UTC)
+    val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "??" }
+    if (departure.isBefore(now)) return "Departed"
+    val minutesLeft = Duration.between(now, departure).toMinutes()
+    return when {
+        minutesLeft < 60 -> "${minutesLeft} min"
+        minutesLeft < 1440 -> "${minutesLeft / 60}h ${minutesLeft % 60}m"
+        else -> "${minutesLeft / 1440}d"
+    }
+}
+
+// Helper: determine ride status title based on current time and duration
+private fun getRideTitle(departureTime: String, durationMinutes: Int?): String {
+    val now = OffsetDateTime.now(ZoneOffset.UTC)
+    val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "Unknown" }
+    if (departure.isAfter(now)) return "Upcoming Ride"
+    if (durationMinutes != null) {
+        val endTime = departure.plusMinutes(durationMinutes.toLong())
+        if (now.isBefore(endTime)) return "Ongoing Ride"
+    }
+    return "Past Ride"
+}
 
 @Composable
 fun HomeScreenUI(
@@ -42,6 +75,7 @@ fun HomeScreenUI(
     onMyRidesClick: () -> Unit = {},
     onNavigateToActiveRide: () -> Unit = {},
     onRoleToggle: (String) -> Unit = {},
+    onNotificationClick: () -> Unit = {}, // new callback
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -68,12 +102,23 @@ fun HomeScreenUI(
             .padding(16.dp)
     ) {
 
-        // Top Row: Back + Profile + Fire Streak
+        // Top Row: Back + (fire streak + notification + profile)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Left: Back button
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color(0xFFDCCBFF), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("<")
+            }
+
+            // Right: Fire streak, notification icon, profile icon
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
@@ -94,6 +139,19 @@ fun HomeScreenUI(
                     }
                 }
 
+                // Notification icon button
+                IconButton(
+                    onClick = onNotificationClick,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notifications",
+                        tint = Color(0xFF4A2C8A)
+                    )
+                }
+
+                // Profile image / placeholder
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -119,7 +177,7 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Greeting (name only)
+        // Greeting
         Text(
             text = "Hello, ${uiState.profile?.user_name ?: ""}",
             fontSize = 34.sp,
@@ -128,7 +186,7 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Role toggle
+        // Role toggle (improved active contrast)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -141,15 +199,18 @@ fun HomeScreenUI(
                     .weight(1f)
                     .height(36.dp)
                     .clip(RoundedCornerShape(50.dp))
-                    .background(if (!isDriver) Color(0xFFDCCBFF) else Color.Transparent)
+                    .background(
+                        if (!isDriver) Color(0xFFB57BFF) else Color.Transparent,
+                        RoundedCornerShape(50.dp)
+                    )
                     .clickable { if (isDriver) onRoleToggle("rider") },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "Rider",
-                    fontWeight = if (!isDriver) FontWeight.SemiBold else FontWeight.Normal,
+                    fontWeight = if (!isDriver) FontWeight.Bold else FontWeight.Normal,
                     fontSize = 14.sp,
-                    color = if (!isDriver) Color(0xFF4A2C8A) else Color.Gray
+                    color = if (!isDriver) Color.White else Color.Gray
                 )
             }
 
@@ -158,15 +219,18 @@ fun HomeScreenUI(
                     .weight(1f)
                     .height(36.dp)
                     .clip(RoundedCornerShape(50.dp))
-                    .background(if (isDriver) Color(0xFFDCCBFF) else Color.Transparent)
+                    .background(
+                        if (isDriver) Color(0xFFB57BFF) else Color.Transparent,
+                        RoundedCornerShape(50.dp)
+                    )
                     .clickable { if (!isDriver) onRoleToggle("driver") },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "Driver",
-                    fontWeight = if (isDriver) FontWeight.SemiBold else FontWeight.Normal,
+                    fontWeight = if (isDriver) FontWeight.Bold else FontWeight.Normal,
                     fontSize = 14.sp,
-                    color = if (isDriver) Color(0xFF4A2C8A) else Color.Gray
+                    color = if (isDriver) Color.White else Color.Gray
                 )
             }
         }
@@ -181,35 +245,112 @@ fun HomeScreenUI(
         )
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ========== HISTORY SECTION ==========
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Rider History Box
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(110.dp)
-                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
-                contentAlignment = Alignment.Center
+        // ========== RIDE SECTION (Upcoming / Ongoing) ==========
+        val ongoing = uiState.ongoingRide
+        if (ongoing != null) {
+            val title = getRideTitle(ongoing.departureTime, ongoing.estimatedDurationMinutes)
+            Text(
+                text = title,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4A2C8A)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E8FF))
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Rider History", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (uiState.riderHistory.isNotEmpty()) {
-                        Text("${uiState.riderHistory.size}", fontWeight = FontWeight.Bold, fontSize = 40.sp, color = Color(0xFF4A2B7A))
-                        Text("completed rides", fontSize = 11.sp, color = Color.Gray)
-                    } else {
-                        Text("No past rides", fontSize = 12.sp, color = Color.Gray)
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "🚗 ${ongoing.driverName ?: "Driver"}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF4A2C8A)
+                        )
+                    }
+
+                    Text(
+                        text = "📍 ${ongoing.origin} → ${ongoing.destination}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "🕐 Departs: ${formatDepartureTime(ongoing.departureTime)}",
+                            fontSize = 13.sp,
+                            color = Color.DarkGray
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0xFFFFE0B2),
+                            modifier = Modifier.clickable(enabled = false) { }
+                        ) {
+                            Text(
+                                text = "⏳ ${formatTimeLeft(ongoing.departureTime)}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFFE65100),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    if (ongoing.estimatedDistanceKm != null || ongoing.estimatedDurationMinutes != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            ongoing.estimatedDistanceKm?.let { distance ->
+                                Text("📏 ${"%.1f".format(distance)} km", fontSize = 12.sp, color = Color.Gray)
+                            }
+                            ongoing.estimatedDurationMinutes?.let { duration ->
+                                Text("⏱️ $duration min trip", fontSize = 12.sp, color = Color.Gray)
+                            }
+                        }
                     }
                 }
             }
-
-            // Driver History Box
+        } else {
+            Text(
+                text = "No upcoming rides",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4A2C8A)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No rides scheduled", fontSize = 14.sp, color = Color.Gray)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(30.dp))
+
+        // ========== HISTORY HEADING ==========
+        Text("History", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // ========== HISTORY SECTION (Role‑specific) ==========
+        if (isDriver) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
                     .height(110.dp)
                     .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
@@ -225,22 +366,39 @@ fun HomeScreenUI(
                     }
                 }
             }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Rider History", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (uiState.riderHistory.isNotEmpty()) {
+                        Text("${uiState.riderHistory.size}", fontWeight = FontWeight.Bold, fontSize = 40.sp, color = Color(0xFF4A2B7A))
+                        Text("completed rides", fontSize = 11.sp, color = Color.Gray)
+                    } else {
+                        Text("No past rides", fontSize = 12.sp, color = Color.Gray)
+                    }
+                }
+            }
         }
 
-        // Bookings Section
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ========== BOOKINGS SECTION ==========
         Text("Bookings", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(12.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // ========== BOOKINGS SECTION ==========
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             val confirmedBookings = uiState.bookings.filter { it.bookingStatus == "confirmed" }
 
-            // Rider Bookings Box (clickable)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -257,7 +415,6 @@ fun HomeScreenUI(
                 }
             }
 
-            // Driver Bookings Box (clickable)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -277,6 +434,7 @@ fun HomeScreenUI(
 
         Spacer(modifier = Modifier.height(30.dp))
 
+        // ========== CARBON METRICS ==========
         // Ongoing Ride
         Text("Ongoing Ride", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
@@ -311,7 +469,6 @@ fun HomeScreenUI(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Box 1: CO₂ saved
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -325,7 +482,6 @@ fun HomeScreenUI(
                 }
             }
 
-            // Box 2: Trees equivalent
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -334,12 +490,11 @@ fun HomeScreenUI(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("↟ ${uiState.treesEquivalent}", fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFF4CAF50))
+                    Text("%.1f".format(uiState.treesEquivalent), fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFF4CAF50))
                     Text("trees equivalent", fontSize = 11.sp, color = Color.Gray)
                 }
             }
 
-            // Box 3: Empty placeholder
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -348,8 +503,17 @@ fun HomeScreenUI(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("?", fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFFCEA2FD))
-                    Text("coming soon", fontSize = 11.sp, color = Color.Gray)
+                    Text(
+                        text = "%.0f".format(uiState.totalDistanceShared),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                        color = Color(0xFF4CAF50)
+                    )
+                    Text(
+                        text = "km shared",
+                        fontSize = 11.sp,
+                        color = Color.Gray
+                    )
                 }
             }
         }

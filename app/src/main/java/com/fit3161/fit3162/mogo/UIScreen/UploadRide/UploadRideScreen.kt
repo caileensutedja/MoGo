@@ -44,6 +44,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -78,12 +79,10 @@ fun UploadRideScreen(
     val datePickerState = rememberDatePickerState(
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                // Allow only dates whose day is >= the day of (now + 24h)
                 return utcTimeMillis >= minMillis
             }
         }
     )
-
 
     // Time Picker State
     var showTimePicker by remember { mutableStateOf(false) }
@@ -118,13 +117,6 @@ fun UploadRideScreen(
             leadingIcon = { Icon(Icons.Default.LocationOn, null) }
         )
 
-//        OutlinedTextField(
-//            value = form.destination,
-//            onValueChange = { viewModel.onDestinationChange(it) },
-//            label = { Text("Destination") },
-//            modifier = Modifier.fillMaxWidth(),
-//            leadingIcon = { Icon(Icons.Default.Flag, null) }
-//        )
         // Campus Dropdown
         var campusExpanded by remember { mutableStateOf(false) }
 
@@ -168,7 +160,7 @@ fun UploadRideScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // DATE SELECTION (Following your FutureRideScreen style)
+        // DATE SELECTION
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -214,25 +206,33 @@ fun UploadRideScreen(
                         }
                         showDatePicker = false
                     }) { Text("Confirm") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
                 }
-            ) { DatePicker(state = datePickerState) }
+            ) {
+                DatePicker(state = datePickerState)
+            }
         }
 
         // TIME PICKER DIALOG
+        // TIME PICKER DIALOG
         if (showTimePicker) {
-            DatePickerDialog( // Reusing dialog container for consistency
+            TimePickerDialog(
                 onDismissRequest = { showTimePicker = false },
+                title = { Text("Select Departure Time") },   // ← add this line
                 confirmButton = {
                     TextButton(onClick = {
                         val formattedTime = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
                         viewModel.onTimeChange(formattedTime)
                         showTimePicker = false
                     }) { Text("Confirm") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
                 }
             ) {
-                Box(Modifier.padding(24.dp)) {
-                    TimePicker(state = timePickerState)
-                }
+                TimePicker(state = timePickerState)
             }
         }
 
@@ -281,9 +281,9 @@ fun UploadRideScreen(
             Text((status as UploadStatus.Error).message, color = Color.Red)
         }
 
-        if (status is UploadStatus.Success){
+        if (status is UploadStatus.Success) {
             AlertDialog(
-                onDismissRequest = {}, // Disable outside click dismiss
+                onDismissRequest = { }, // Disable outside click dismiss
                 title = { Text("Ride Uploaded Successfully!") },
                 confirmButton = {
                     Button(
@@ -312,7 +312,7 @@ fun UploadRideScreen(
                     value = form.recurringWeeks.toFloat(),
                     onValueChange = { viewModel.onRecurringWeeksChange(it.toInt()) },
                     valueRange = 1f..12f,
-                    steps = 10, // 12 positions - 2 ends - 1 = 10 steps between
+                    steps = 10,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(
@@ -335,4 +335,3 @@ fun UploadRideScreen(
         }
     }
 }
-

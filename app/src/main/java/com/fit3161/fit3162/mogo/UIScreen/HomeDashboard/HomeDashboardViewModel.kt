@@ -14,6 +14,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+
+data class OngoingRideDetails(
+    val driverName: String? = null,
+    val origin: String,
+    val destination: String,
+    val departureTime: String,
+    val estimatedDistanceKm: Double? = null,
+    val estimatedDurationMinutes: Int? = null
+)
 
 data class HomeUiState(
     val profile: UserProfile? = null,
@@ -23,7 +34,9 @@ data class HomeUiState(
     val driverRides: List<Ride> = emptyList(),
     val totalCarbonSaved: Double = 0.0,
     val rideStreak: Int = 0,
-    val treesEquivalent: Int = 5,      // streaks are arbitrary for now
+    val totalDistanceShared: Double = 0.0,
+    val treesEquivalent: Double = 0.0,
+    val ongoingRide: OngoingRideDetails? = null,
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -51,6 +64,7 @@ class HomeViewModel(
             }
             try {
                 val profile = profileRepo.getProfile(userId)
+                val isDriver = profile?.user_role?.lowercase() == "driver"
 
                 // Rider data
                 val ongoingBookings = bookRepo.getBookedRides(userId)
@@ -61,23 +75,74 @@ class HomeViewModel(
                 val upcomingDriverRides = allDriverRides.filter { it.rideStatus == "scheduled" }
                 val driverHistory = allDriverRides.filter { it.rideStatus == "completed" }
 
-                // Calculate carbon from BOTH rider history AND driver history
+                // Calculate carbon
                 val riderCarbon = riderHistory.mapNotNull { it.rides?.carbonEstimate }.sum()
                 val driverCarbon = driverHistory.mapNotNull { it.carbonEstimate }.sum()
                 val totalCarbonSaved = riderCarbon + driverCarbon
+                val totalDistanceShared = totalCarbonSaved / 0.21
 
-                // Calculate ride streak
                 val rideStreak = minOf(riderHistory.size + driverHistory.size, 7)
+                val treesEquivalent = totalCarbonSaved / 25.0
+
+                // Determine ongoing ride details (strictly future)
+                val now = OffsetDateTime.now(ZoneOffset.UTC)
+
+                val ongoingRideDetails = if (isDriver) {
+                    upcomingDriverRides
+                        .filter { ride ->
+                            val departure = try {
+                                OffsetDateTime.parse(ride.departureTime)
+                            } catch (e: Exception) { null }
+                            departure != null && departure.isAfter(now)
+                        }
+                        .firstOrNull()
+                        ?.let { ride ->
+                            OngoingRideDetails(
+                                driverName = profile?.user_name,
+                                origin = ride.origin,
+                                destination = ride.destination,
+                                departureTime = ride.departureTime,
+                                estimatedDistanceKm = ride.carbonEstimate?.let { carbon ->
+                                    carbon / 0.21
+                                },
+                                estimatedDurationMinutes = ride.carbonEstimate?.let { carbon ->
+                                    ((carbon / 0.21) / 40 * 60).toInt()
+                                }
+                            )
+                        }
+                } else {
+                    ongoingBookings
+                        .filter { booking ->
+                            val departure = try {
+                                OffsetDateTime.parse(booking.rides?.departureTime)
+                            } catch (e: Exception) { null }
+                            departure != null && departure.isAfter(now)
+                        }
+                        .firstOrNull()
+                        ?.let { booking ->
+                            val ride = booking.rides
+                            OngoingRideDetails(
+                                driverName = ride?.users?.userName,
+                                origin = ride?.origin ?: "",
+                                destination = ride?.destination ?: "",
+                                departureTime = ride?.departureTime ?: "",
+                                estimatedDistanceKm = ride?.carbonEstimate?.let { carbon -> carbon / 0.21 },
+                                estimatedDurationMinutes = ride?.carbonEstimate?.let { carbon -> ((carbon / 0.21) / 40 * 60).toInt() }
+                            )
+                        }
+                }
 
                 _uiState.value = _uiState.value.copy(
                     profile = profile,
                     bookings = ongoingBookings,
+                    totalDistanceShared = totalDistanceShared,
                     riderHistory = riderHistory,
                     driverHistory = driverHistory,
                     driverRides = upcomingDriverRides,
                     totalCarbonSaved = totalCarbonSaved,
                     rideStreak = rideStreak,
-                    treesEquivalent = 5,
+                    treesEquivalent = treesEquivalent,
+                    ongoingRide = ongoingRideDetails,
                     isLoading = false
                 )
 

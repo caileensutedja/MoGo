@@ -202,7 +202,7 @@ fun BookedCardSkeleton(
                     Button(
                         onClick = { showConfirmDialog = true },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFEAD7FF)
+                            containerColor = Color.Red
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {

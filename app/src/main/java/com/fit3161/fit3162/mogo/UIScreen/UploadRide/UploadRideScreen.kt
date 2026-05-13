@@ -58,7 +58,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.convertMillisToDate
-import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.data.model.PresetDestinations
 import com.fit3161.fit3162.mogo.ui.components.AddressAutocompleteField
 import java.time.Instant
@@ -79,7 +78,6 @@ fun UploadRideScreen(
     val datePickerState = rememberDatePickerState(
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                // Allow only dates whose day is >= the day of (now + 24h)
                 return utcTimeMillis >= minMillis
             }
         }
@@ -163,55 +161,6 @@ fun UploadRideScreen(
                 }
             }
         }
-        OutlinedTextField(
-            value = form.origin,
-            onValueChange = { viewModel.onOriginChange(it) },
-            label = { Text("Starting Location/Address") },
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.LocationOn, null) }
-        )
-
-//        OutlinedTextField(
-//            value = form.destination,
-//            onValueChange = { viewModel.onDestinationChange(it) },
-//            label = { Text("Destination") },
-//            modifier = Modifier.fillMaxWidth(),
-//            leadingIcon = { Icon(Icons.Default.Flag, null) }
-//        )
-        // Campus Dropdown
-        var campusExpanded by remember { mutableStateOf(false) }
-
-        ExposedDropdownMenuBox(
-            expanded = campusExpanded,
-            onExpandedChange = { campusExpanded = !campusExpanded },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value = form.destination.ifEmpty { "Select Campus" },
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Destination Campus") },
-                leadingIcon = { Icon(Icons.Default.Flag, null) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = campusExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-            )
-            ExposedDropdownMenu(
-                expanded = campusExpanded,
-                onDismissRequest = { campusExpanded = false }
-            ) {
-                CAMPUS_OPTIONS.keys.forEach { campusName ->
-                    DropdownMenuItem(
-                        text = { Text(campusName) },
-                        onClick = {
-                            viewModel.onDestinationChange(campusName)
-                            campusExpanded = false
-                        }
-                    )
-                }
-            }
-        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -221,7 +170,7 @@ fun UploadRideScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // DATE SELECTION (Following your FutureRideScreen style)
+        // DATE SELECTION
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -273,7 +222,7 @@ fun UploadRideScreen(
 
         // TIME PICKER DIALOG
         if (showTimePicker) {
-            DatePickerDialog( // Reusing dialog container for consistency
+            DatePickerDialog(
                 onDismissRequest = { showTimePicker = false },
                 confirmButton = {
                     TextButton(onClick = {
@@ -318,7 +267,7 @@ fun UploadRideScreen(
             )
         }
 
-        // Vehicle type dropdown — Electric / Hybrid / Petrol
+        // Vehicle type dropdown
         var vehicleTypeMenuExpanded by remember { mutableStateOf(false) }
         val vehicleTypes = listOf("Electric", "Hybrid", "Petrol")
         ExposedDropdownMenuBox(
@@ -400,7 +349,7 @@ fun UploadRideScreen(
                     value = form.recurringWeeks.toFloat(),
                     onValueChange = { viewModel.onRecurringWeeksChange(it.toInt()) },
                     valueRange = 1f..12f,
-                    steps = 10, // 12 positions - 2 ends - 1 = 10 steps between
+                    steps = 10,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(

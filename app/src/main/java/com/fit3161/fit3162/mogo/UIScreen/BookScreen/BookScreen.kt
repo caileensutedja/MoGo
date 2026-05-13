@@ -56,9 +56,6 @@ fun BookScreenUI(
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        /**
-         * To Implement: A link to refer to ongoing ride progress
-         */
         Text(
             text = "None",
             fontSize = 16.sp,
@@ -92,6 +89,7 @@ fun BookScreenUI(
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }
+
         Spacer(modifier = Modifier.height(12.dp))
 
         if (!state.isLoading && state.bookings.isEmpty() && state.error == null) {
@@ -99,21 +97,12 @@ fun BookScreenUI(
                 Text("No booked rides")
             }
         } else {
-//            LazyColumn(modifier = Modifier.weight(1f)) {
-//                items(state.bookings.size) { idx ->
-//                    BookedCardSkeleton(booking = state.bookings[idx])
-//                    Spacer(modifier = Modifier.height(16.dp))
-//                }
-//            }
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(state.bookings.size) { idx ->
                     BookedCardSkeleton(
                         booking = state.bookings[idx],
-                        onRebookNextWeek = { ride, booking -> viewModel.onRebookNextWeek(ride, booking)},
-                        onCancelBooking = { bookingId, rideId -> viewModel.cancelBooking(bookingId, rideId) }
-                    )
-                    BookedCardSkeleton(
-                        booking = state.bookings[idx],
+                        onRebookNextWeek = { ride, booking -> viewModel.onRebookNextWeek(ride, booking) },
+                        onCancelBooking = { bookingId, rideId -> viewModel.cancelBooking(bookingId, rideId) },
                         onDetailsClick = {
                             onNavigateToBookingPreview(state.bookings[idx].id)
                         }
@@ -125,7 +114,7 @@ fun BookScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        //  Future Ride Button
+        // Future Ride Button
         Button(
             onClick = { onNavigateToFutureBookRides() },
             modifier = Modifier
@@ -140,49 +129,14 @@ fun BookScreenUI(
         }
 
         Spacer(modifier = Modifier.height(15.dp))
-
-//        //  Upload Ride Button
-//        Button(
-//            onClick = { onNavigateToUploadRides() },
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(55.dp),
-//            shape = RoundedCornerShape(15.dp),
-//            colors = ButtonDefaults.buttonColors(
-//                containerColor = Color(0xFFCEA2FD)
-//            )
-//        ) {
-//            Text("Upload Future Ride", fontSize = 18.sp)
-//        }
-
-        Spacer(modifier = Modifier.height(15.dp))
-
-        //  My Ride Button
-//        Button(
-//            onClick = { onNavigateToMyRides() },
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(55.dp),
-//            shape = RoundedCornerShape(15.dp),
-//            colors = ButtonDefaults.buttonColors(
-//                containerColor = Color(0xFFCEA2FD)
-//            )
-//        ) {
-//            Text("My Future Ride (Driver)", fontSize = 18.sp)
-//        }
-
-//        Spacer(modifier = Modifier.height(10.dp))
     }
 }
-
 
 @Composable
 fun BookedCardSkeleton(
     booking: Booking,
     onRebookNextWeek: (Ride, Booking) -> Unit = { _, _ -> },
-    onCancelBooking: (String, String) -> Unit = { _, _ -> }) {
-fun BookedCardSkeleton(
-    booking: Booking,
+    onCancelBooking: (String, String) -> Unit = { _, _ -> },
     onDetailsClick: () -> Unit = {}
 ) {
     val ride = booking.rides
@@ -218,8 +172,7 @@ fun BookedCardSkeleton(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text= "Car type: ${ride?.vehicleType}",
-//                        text = "${vehicle?.vehicleMake ?: ""} ${vehicle?.vehicleModel ?: ""} · ${vehicle?.vehicleType ?: "Unknown"}",
+                    text = "Car type: ${ride?.vehicleType}",
                     fontSize = 14.sp,
                     color = Color.DarkGray
                 )
@@ -247,9 +200,6 @@ fun BookedCardSkeleton(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
-                        onClick = {
-                        /* TODO: cancel booking */
-                        },
                         onClick = { showConfirmDialog = true },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFEAD7FF)
@@ -258,7 +208,7 @@ fun BookedCardSkeleton(
                     ) {
                         Text("Cancel")
                     }
-//
+
                     Button(
                         onClick = onDetailsClick,
                         colors = ButtonDefaults.buttonColors(
@@ -269,22 +219,21 @@ fun BookedCardSkeleton(
                         Text("Details")
                     }
                 }
-//                 Rebook button — only show for recurring rides
+
+                // Rebook button — only show for recurring rides
                 if (ride?.isRecurring == true && ride.recurringGroupId != null) {
                     Button(
                         onClick = { onRebookNextWeek(ride, booking) },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Rebook Next Week")
                     }
                 }
-
             }
         }
+
         if (showConfirmDialog) {
             AlertDialog(
                 onDismissRequest = { showConfirmDialog = false },

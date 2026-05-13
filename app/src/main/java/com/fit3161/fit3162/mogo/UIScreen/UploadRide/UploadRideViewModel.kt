@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.model.PresetDestination
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
-import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.data.repo.MapsRepository
 import com.fit3161.fit3162.mogo.data.repo.PlacesRepository
 import com.fit3161.fit3162.mogo.data.repo.Ride
@@ -60,9 +59,6 @@ class UploadRideViewModel(
     private val _status = MutableStateFlow<UploadStatus>(UploadStatus.Idle)
     val status: StateFlow<UploadStatus> = _status.asStateFlow()
 
-//    fun onOriginChange(value: String) { _form.value = _form.value.copy(origin = value) }
-//    fun onDestinationChange(value: String) { _form.value = _form.value.copy(destination = value) }
-    // Form Update Methods
     fun onOriginChange(value: String) {
         // When the user is typing freely, clear any previously-resolved coordinates
         // so we don't accidentally submit stale lat/lng with new typed text.
@@ -104,105 +100,35 @@ class UploadRideViewModel(
     fun onSeatsChange(value: String) {
         if (value.all { it.isDigit() }) _form.value = _form.value.copy(availableSeats = value)
     }
+
     fun onDateChange(value: String) { _form.value = _form.value.copy(departureDate = value) }
     fun onTimeChange(value: String) { _form.value = _form.value.copy(departureTime = value) }
     fun onRecurringChange(value: Boolean) { _form.value = _form.value.copy(isRecurring = value) }
     fun onVehicleTypeChange(value: String) { _form.value = _form.value.copy(vehicleType = value) }
     fun onPlateNumberChange(value: String) { _form.value = _form.value.copy(plateNumber = value) }
 
-//    fun submitRide() {
-//        val data = _form.value
-//
-//        // Validation logic
-//        when {
-//            data.origin.isBlank() -> _status.value = UploadStatus.Error("Origin cannot be empty")
-//            data.destination.isBlank() -> _status.value = UploadStatus.Error("Destination cannot be empty")
-//            data.departureDate.isBlank() -> _status.value = UploadStatus.Error("Please select a date")
-//            data.departureTime.isBlank() -> _status.value = UploadStatus.Error("Please select a time")
-//            !isDepartureValid(data.departureDate, data.departureTime) ->
-//                _status.value = UploadStatus.Error("Departure must be at least 24 hours from now")
-//            else -> {
-//                viewModelScope.launch {
-//                    _status.value = UploadStatus.Loading
-//
-//                    val newRide = Ride(
-//                        id = UUID.randomUUID().toString(),
-//                        driverId = userId,
-//                        vehicleId = null, // or omit if you removed the column
-//                        origin = data.origin,
-//                        destination = data.destination,
-//                        rideStatus = "scheduled",
-//                        availableSeats = data.availableSeats.toInt(),
-//                        departureTime = "${data.departureDate}T${data.departureTime}:00+00:00",
-//                        isRecurring = false,
-//                        vehicleType = data.vehicleType,     // NEW
-//                        plateNumber = data.plateNumber,     // NEW
-//                    )
-//
-//                    repo.uploadRide(newRide)
-//                        .onSuccess { _status.value = UploadStatus.Success }
-//                        .onFailure { _status.value = UploadStatus.Error(it.message ?: "Failed to post ride") }
-//                }
-//            }
-//        }
-//        viewModelScope.launch {
-//            _status.value = UploadStatus.Loading
-//
-//            val campus = CAMPUS_OPTIONS[data.destination]
-//            val groupId = if (data.isRecurring) UUID.randomUUID().toString() else null
-//            val weeksToCreate = if (data.isRecurring) data.recurringWeeks else 1
-//
-//            val rides = (0 until weeksToCreate).map { weekOffset ->
-//                Ride(
-//                    id = UUID.randomUUID().toString(),
-//                    driverId = userId,
-//                    vehicleId = null,
-//                    origin = data.origin,
-//                    destination = data.destination,
-//                    destinationLat = campus?.latLng?.latitude,
-//                    destinationLng = campus?.latLng?.longitude,
-//                    rideStatus = "scheduled",
-//                    availableSeats = data.availableSeats.toInt(),
-//                    departureTime = buildDepartureTime(data.departureDate, data.departureTime, weekOffset),
-//                    isRecurring = data.isRecurring,
-//                    recurringGroupId = groupId,           // new field
-//                    recurringWeekIndex = weekOffset + 1,  // new field
-//                    vehicleType = data.vehicleType,
-//                    plateNumber = data.plateNumber,
-//                )
-//            }
-//
-//            // Upload all at once
-//            repo.uploadRides(rides)
-//                .onSuccess { _status.value = UploadStatus.Success }
-//                .onFailure { _status.value = UploadStatus.Error(it.message ?: "Failed to post ride") }
-//        }
-//    }
+    fun onRecurringWeeksChange(value: Int) {
+        _form.value = _form.value.copy(recurringWeeks = value.coerceIn(1, 12))
+    }
+
     fun submitRide() {
         val data = _form.value
         val destination = data.destination
 
-        // Validation logic
+        // Validation
         when {
-            data.origin.isBlank() ->
+            data.origin.isBlank() -> {
                 _status.value = UploadStatus.Error("Please set a starting location")
-            data.originLat == null || data.originLng == null ->
+                return
+            }
+            data.originLat == null || data.originLng == null -> {
                 _status.value = UploadStatus.Error(
                     "Please pick a starting location from the suggestions, or tap 'Use my current location'"
                 )
-            destination == null ->
-                _status.value = UploadStatus.Error("Please select a destination")
-            data.departureDate.isBlank() ->
-                _status.value = UploadStatus.Error("Please select a date")
-            data.departureTime.isBlank() ->
-                _status.value = UploadStatus.Error("Please select a time")
-            !isDepartureValid(data.departureDate, data.departureTime) ->
-            data.origin.isBlank() -> {
-                _status.value = UploadStatus.Error("Origin cannot be empty")
                 return
             }
-            data.destination.isBlank() -> {
-                _status.value = UploadStatus.Error("Destination cannot be empty")
+            destination == null -> {
+                _status.value = UploadStatus.Error("Please select a destination")
                 return
             }
             data.departureDate.isBlank() -> {
@@ -226,7 +152,6 @@ class UploadRideViewModel(
         viewModelScope.launch {
             _status.value = UploadStatus.Loading
 
-            val campus = CAMPUS_OPTIONS[data.destination]
             val groupId = if (data.isRecurring) UUID.randomUUID().toString() else null
             val weeksToCreate = if (data.isRecurring) data.recurringWeeks else 1
 
@@ -236,9 +161,11 @@ class UploadRideViewModel(
                     driverId = userId,
                     vehicleId = null,
                     origin = data.origin,
-                    destination = data.destination,
-                    destinationLat = campus?.latLng?.latitude,
-                    destinationLng = campus?.latLng?.longitude,
+                    destination = destination.name,
+                    originLat = data.originLat,
+                    originLng = data.originLng,
+                    destinationLat = destination.latLng.latitude,
+                    destinationLng = destination.latLng.longitude,
                     rideStatus = "scheduled",
                     availableSeats = data.availableSeats.toInt(),
                     departureTime = buildDepartureTime(data.departureDate, data.departureTime, weekOffset),
@@ -249,23 +176,6 @@ class UploadRideViewModel(
                     plateNumber = data.plateNumber,
                 )
             }
-                    val newRide = Ride(
-                        id = UUID.randomUUID().toString(),
-                        driverId = userId,
-                        vehicleId = null,
-                        origin = data.origin,
-                        destination = destination.name,
-                        originLat = data.originLat,
-                        originLng = data.originLng,
-                        destinationLat = destination.latLng.latitude,
-                        destinationLng = destination.latLng.longitude,
-                        rideStatus = "scheduled",
-                        availableSeats = data.availableSeats.toInt(),
-                        departureTime = "${data.departureDate}T${data.departureTime}:00+00:00",
-                        isRecurring = false,
-                        vehicleType = data.vehicleType,
-                        plateNumber = data.plateNumber,
-                    )
 
             repo.uploadRides(rides)
                 .onSuccess { _status.value = UploadStatus.Success }
@@ -273,24 +183,13 @@ class UploadRideViewModel(
         }
     }
 
-    fun onRecurringWeeksChange(value: Int) {
-        _form.value = _form.value.copy(recurringWeeks = value.coerceIn(1, 12))
-    }
-
     private fun buildDepartureTime(date: String, time: String, weekOffset: Int): String {
-        val base = LocalDateTime.parse("${date}T${time}", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+        val base = LocalDateTime.parse(
+            "${date}T${time}",
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
+        )
         val shifted = base.plusWeeks(weekOffset.toLong())
         return shifted.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-                    repo.uploadRide(newRide)
-                        .onSuccess { _status.value = UploadStatus.Success }
-                        .onFailure {
-                            _status.value = UploadStatus.Error(
-                                it.message ?: "Failed to post ride"
-                            )
-                        }
-                }
-            }
-        }
     }
 
     private fun isDepartureValid(date: String, time: String): Boolean {
@@ -306,7 +205,6 @@ class UploadRideViewModel(
 
     fun resetStatus() { _status.value = UploadStatus.Idle }
 }
-
 
 class UploadRideViewModelFactory(
     private val client: SupabaseClient,

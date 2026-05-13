@@ -162,6 +162,13 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("com.google.maps.android:android-maps-utils:3.8.2")
 
+    // Places SDK for Android (New)
+//    implementation("com.google.android.libraries.places:places:4.0.0")
+    implementation("com.google.android.libraries.places:places:3.5.0")
+
+    // (Optional) Places KTX for Kotlin extensions
+//    implementation("com.google.maps.android:places-ktx:0.5.2")
+
     // Retrofit for Directions/Routes API
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")

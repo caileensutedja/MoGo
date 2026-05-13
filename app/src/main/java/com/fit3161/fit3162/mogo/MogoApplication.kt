@@ -4,7 +4,10 @@ import android.app.Application
 import android.util.Log
 import com.fit3161.fit3162.mogo.data.remote.RoutesApiService
 import com.fit3161.fit3162.mogo.data.repo.MapsRepository
+import com.fit3161.fit3162.mogo.data.repo.PlacesRepository
 import com.google.android.gms.maps.MapsInitializer
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.net.PlacesClient
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
@@ -86,8 +89,25 @@ class MogoApplication : Application() {
         )
     }
 
+    /**
+     * Wraps the Google Places SDK for autocomplete + place details lookups.
+     * Used by the upload-ride form for address autocomplete.
+     *
+     * Places.initialize() must run before this is accessed — see onCreate().
+     */
+    val placesRepository: PlacesRepository by lazy {
+        val placesClient: PlacesClient = Places.createClient(this)
+        PlacesRepository(placesClient)
+    }
+
     override fun onCreate() {
         super.onCreate()
+
+        // ADDED: Initialize Places SDK before anything tries to create a PlacesClient.
+        // Idempotent — guarded with isInitialized() in case of process restarts.
+        if (!Places.isInitialized()) {
+            Places.initialize(applicationContext, BuildConfig.MAPS_API_KEY)
+        }
 
         // CHANGED: was wrapped in Thread { ... }.start()
         // MapsInitializer MUST run on the main thread (Play Services requirement)

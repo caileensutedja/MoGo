@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
 import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.data.repo.Ride
@@ -29,7 +30,7 @@ import java.util.Locale
 fun FutureRideScreenUI(
     viewModel: FutureRideViewModel,
     modifier: Modifier = Modifier
-    ) {
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
@@ -72,6 +73,37 @@ fun FutureRideScreenUI(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth()
             )
+    // When non-null, the pickup dialog is open for this ride id.
+    var bookingRideId by remember { mutableStateOf<String?>(null) }
+
+    // Pickup dialog
+    bookingRideId?.let { rideId ->
+        PickupDialog(
+            placesRepo = viewModel.placesRepo,
+            onConfirm = { useCurrentLocation, lat, lng, _ ->
+                if (useCurrentLocation) {
+                    viewModel.bookRideUsingCurrentLocation(rideId)
+                } else if (lat != null && lng != null) {
+                    viewModel.bookRideAt(rideId, lat, lng)
+                }
+                bookingRideId = null
+            },
+            onDismiss = { bookingRideId = null }
+        )
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Title
+        Text(
+            text = "Book Future Ride",
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.fillMaxWidth()
+        )
 
             // Show active gender preference if set
             state.genderPreference?.let {
@@ -180,6 +212,32 @@ fun FutureRideScreenUI(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+        // Main content: rides list
+        if (!state.isLoading && state.error == null) {
+            // Case: no visible rides and no hidden rides
+            if (state.visibleRides.isEmpty() && state.hiddenRides.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if (state.selectedDate.isNotEmpty())
+                            "No rides available on this date"
+                        else
+                            "No upcoming rides available",
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    // Visible rides
+                    items(state.visibleRides.size) { idx ->
+                        FutureRideCard(
+                            ride = state.visibleRides[idx],
+                            isHidden = false,
+                            onHide = { viewModel.hideRide(state.visibleRides[idx].id) },
+                            onUnhide = {},
+                            onBook = { bookingRideId = state.visibleRides[idx].id }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
             // Main content: rides list
             if (!state.isLoading && state.error == null) {
                 // Case: no visible rides and no hidden rides
@@ -277,7 +335,7 @@ fun FutureRideCard(
                     color = Color.DarkGray
                 )
                 Text(
-                    text = "📍to ${ride.destination}",
+                    text = "📍 ${ride.origin} → ${ride.destination}",
                     fontSize = 16.sp,
                     color = Color.DarkGray
                 )

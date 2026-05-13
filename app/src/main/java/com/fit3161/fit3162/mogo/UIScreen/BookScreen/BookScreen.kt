@@ -26,7 +26,8 @@ import com.fit3161.fit3162.mogo.data.repo.Ride
 fun BookScreenUI(
     viewModel: BookViewModel,
     modifier: Modifier = Modifier,
-    onNavigateToFutureBookRides: () -> Unit
+    onNavigateToFutureBookRides: () -> Unit,
+    onNavigateToBookingPreview: (String) -> Unit
 ) {
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -111,6 +112,12 @@ fun BookScreenUI(
                         onRebookNextWeek = { ride, booking -> viewModel.onRebookNextWeek(ride, booking)},
                         onCancelBooking = { bookingId, rideId -> viewModel.cancelBooking(bookingId, rideId) }
                     )
+                    BookedCardSkeleton(
+                        booking = state.bookings[idx],
+                        onDetailsClick = {
+                            onNavigateToBookingPreview(state.bookings[idx].id)
+                        }
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -174,6 +181,10 @@ fun BookedCardSkeleton(
     booking: Booking,
     onRebookNextWeek: (Ride, Booking) -> Unit = { _, _ -> },
     onCancelBooking: (String, String) -> Unit = { _, _ -> }) {
+fun BookedCardSkeleton(
+    booking: Booking,
+    onDetailsClick: () -> Unit = {}
+) {
     val ride = booking.rides
     val driver = ride?.users
     var showConfirmDialog by remember { mutableStateOf(false) }
@@ -236,6 +247,9 @@ fun BookedCardSkeleton(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
+                        onClick = {
+                        /* TODO: cancel booking */
+                        },
                         onClick = { showConfirmDialog = true },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFEAD7FF)
@@ -246,7 +260,7 @@ fun BookedCardSkeleton(
                     }
 //
                     Button(
-                        onClick = { /* TODO: show details */ },
+                        onClick = onDetailsClick,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFB57BFF)
                         ),

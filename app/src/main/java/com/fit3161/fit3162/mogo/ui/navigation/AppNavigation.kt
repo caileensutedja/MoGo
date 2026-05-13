@@ -20,13 +20,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
 import com.fit3161.fit3162.mogo.MogoApplication
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModel
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModelFactory
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookingPreviewScreen
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookingPreviewViewModel
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookingPreviewViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
@@ -66,6 +71,7 @@ import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsViewModel
 import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsViewModelFactory
 import com.fit3161.fit3162.mogo.data.SessionManager
+import com.fit3161.fit3162.mogo.data.repo.MapsRepository
 import kotlinx.coroutines.launch
 
 /**
@@ -87,6 +93,9 @@ sealed class Screen(val route: String) {
     object Map : Screen("map")
     object ActiveRide : Screen("activeRide")
     object Settings : Screen("settings")
+    object BookingPreview : Screen("bookingPreview/{bookingId}") {
+        fun createRoute(bookingId: String) = "bookingPreview/$bookingId"
+    }
 }
 
 /**
@@ -120,6 +129,7 @@ fun AppNavigation(
 
     // Single AuthRepository shared across all auth screens.
     val authRepository = AuthRepository(supabase)
+
 
     /**
      * Defines full navigation graph.
@@ -233,6 +243,9 @@ fun AppNavigation(
                 viewModel = viewModel,
                 onNavigateToFutureBookRides = {
                     navController.navigate(Screen.FutureRides.route)
+                },
+                onNavigateToBookingPreview = { bookingId ->
+                    navController.navigate(Screen.BookingPreview.createRoute(bookingId))
                 }
 //                onNavigateToUploadRides = {
 //                    navController.navigate(Screen.UploadRide.route)
@@ -247,24 +260,47 @@ fun AppNavigation(
         composable(Screen.FutureRides.route) {
             val userId = supabase.auth.currentUserOrNull()?.id ?: ""
             val viewModel: FutureRideViewModel = viewModel(
-                factory = FutureRideViewModelFactory(supabase, userId)
+                factory = FutureRideViewModelFactory(
+                    client = supabase,
+                    mapsRepo = application.mapsRepository,
+                    placesRepo = application.placesRepository,
+                    userId = userId
+                )
             )
             FutureRideScreenUI(
                 viewModel = viewModel,
-                )
+            )
         }
 
         composable(Screen.UploadRide.route) {
             val userId = supabase.auth.currentUserOrNull()?.id ?: ""
             val viewModel: UploadRideViewModel = viewModel(
-                factory = UploadRideViewModelFactory(supabase, userId)
+                factory = UploadRideViewModelFactory(
+                    client = supabase,
+                    mapsRepo = application.mapsRepository,
+                    placesRepo = application.placesRepository,
+                    userId = userId
+                )
             )
             UploadRideScreen(
                 viewModel = viewModel,
                 onNavigateToDashboard = {
-                    navController.navigate(Screen.Dashboard.route) // Navigate from Welcome Screen to Login Screen.
-                })
+                    navController.navigate(Screen.Dashboard.route)
+                }
+            )
         }
+
+//        composable(Screen.UploadRide.route) {
+//            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
+//            val viewModel: UploadRideViewModel = viewModel(
+//                factory = UploadRideViewModelFactory(supabase, userId)
+//            )
+//            UploadRideScreen(
+//                viewModel = viewModel,
+//                onNavigateToDashboard = {
+//                    navController.navigate(Screen.Dashboard.route) // Navigate from Welcome Screen to Login Screen.
+//                })
+//        }
 
         composable(Screen.MyRides.route){
             val userId = supabase.auth.currentUserOrNull()?.id ?: ""
@@ -308,7 +344,6 @@ fun AppNavigation(
             )
         }
 
-
         // Map View Composable
         composable(Screen.Map.route) {
             val factory = MapsViewModelFactory(application.mapsRepository)
@@ -325,6 +360,25 @@ fun AppNavigation(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack()}
                 )
+        }
+
+        // Booking Preview composable — shows the three-leg route for a booked ride.
+        composable(
+            route = Screen.BookingPreview.route,
+            arguments = listOf(
+                navArgument("bookingId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId")
+                ?: return@composable
+            val viewModel: BookingPreviewViewModel = viewModel(
+                factory = BookingPreviewViewModelFactory(
+                    client = supabase,
+                    mapsRepo = application.mapsRepository,
+                    bookingId = bookingId
+                )
+            )
+            BookingPreviewScreen(viewModel = viewModel)
         }
     }
 }

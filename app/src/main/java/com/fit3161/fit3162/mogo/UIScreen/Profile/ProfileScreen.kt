@@ -27,9 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.fit3161.fit3162.mogo.UIScreen.Profile.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileViewModel
-import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadStatus
+import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -29,13 +29,17 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,7 +57,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.convertMillisToDate
+import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,13 +118,47 @@ fun UploadRideScreen(
             leadingIcon = { Icon(Icons.Default.LocationOn, null) }
         )
 
-        OutlinedTextField(
-            value = form.destination,
-            onValueChange = { viewModel.onDestinationChange(it) },
-            label = { Text("Destination") },
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Flag, null) }
-        )
+//        OutlinedTextField(
+//            value = form.destination,
+//            onValueChange = { viewModel.onDestinationChange(it) },
+//            label = { Text("Destination") },
+//            modifier = Modifier.fillMaxWidth(),
+//            leadingIcon = { Icon(Icons.Default.Flag, null) }
+//        )
+        // Campus Dropdown
+        var campusExpanded by remember { mutableStateOf(false) }
+
+        ExposedDropdownMenuBox(
+            expanded = campusExpanded,
+            onExpandedChange = { campusExpanded = !campusExpanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = form.destination.ifEmpty { "Select Campus" },
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Destination Campus") },
+                leadingIcon = { Icon(Icons.Default.Flag, null) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = campusExpanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+            ExposedDropdownMenu(
+                expanded = campusExpanded,
+                onDismissRequest = { campusExpanded = false }
+            ) {
+                CAMPUS_OPTIONS.keys.forEach { campusName ->
+                    DropdownMenuItem(
+                        text = { Text(campusName) },
+                        onClick = {
+                            viewModel.onDestinationChange(campusName)
+                            campusExpanded = false
+                        }
+                    )
+                }
+            }
+        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -260,6 +300,29 @@ fun UploadRideScreen(
                     }
                 }
             )
+        }
+
+        if (form.isRecurring) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Repeat for ${form.recurringWeeks} week${if (form.recurringWeeks != 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Slider(
+                    value = form.recurringWeeks.toFloat(),
+                    onValueChange = { viewModel.onRecurringWeeksChange(it.toInt()) },
+                    valueRange = 1f..12f,
+                    steps = 10, // 12 positions - 2 ends - 1 = 10 steps between
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("1 week", fontSize = 12.sp, color = Color.Gray)
+                    Text("12 weeks", fontSize = 12.sp, color = Color.Gray)
+                }
+            }
         }
 
         Button(

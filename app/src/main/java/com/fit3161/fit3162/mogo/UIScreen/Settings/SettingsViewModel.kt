@@ -79,6 +79,10 @@ class SettingsViewModel(
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(error = null, successMessage = null)
     }
+
+    fun showSaved() {
+        _uiState.value = _uiState.value.copy(successMessage = "Settings saved!")
+    }
 }
 
 class SettingsViewModelFactory(

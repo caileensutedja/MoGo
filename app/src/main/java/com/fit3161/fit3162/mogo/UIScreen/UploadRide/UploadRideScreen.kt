@@ -72,7 +72,6 @@ fun UploadRideScreen(
     val form by viewModel.form.collectAsState()
     val status by viewModel.status.collectAsState()
 
-    // Date Picker State
     var showDatePicker by remember { mutableStateOf(false) }
     val minMillis = Instant.now().plusSeconds(24 * 60 * 60).toEpochMilli()
 
@@ -84,7 +83,6 @@ fun UploadRideScreen(
         }
     )
 
-    // Time Picker State
     var showTimePicker by remember { mutableStateOf(false) }
     val timePickerState = rememberTimePickerState()
 
@@ -109,7 +107,7 @@ fun UploadRideScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Origin field with Places Autocomplete + "Use my current location"
+        // Origin field with Places Autocomplete
         AddressAutocompleteField(
             label = "Starting Location",
             currentValue = form.origin,
@@ -124,9 +122,6 @@ fun UploadRideScreen(
             },
             setValue = { viewModel.onOriginChange(it) }
         )
-
-        // Campus Dropdown
-        var campusExpanded by remember { mutableStateOf(false) }
 
         // Destination dropdown — preset campuses
         var destinationMenuExpanded by remember { mutableStateOf(false) }
@@ -174,7 +169,7 @@ fun UploadRideScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // DATE SELECTION
+        // DATE + TIME SELECTION
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -230,12 +225,10 @@ fun UploadRideScreen(
         }
 
         // TIME PICKER DIALOG
-        // TIME PICKER DIALOG
         if (showTimePicker) {
-            DatePickerDialog(
             TimePickerDialog(
                 onDismissRequest = { showTimePicker = false },
-                title = { Text("Select Departure Time") },   // ← add this line
+                title = { Text("Select Departure Time") },
                 confirmButton = {
                     TextButton(onClick = {
                         val formattedTime = String.format(
@@ -334,7 +327,6 @@ fun UploadRideScreen(
         if (status is UploadStatus.Success) {
             AlertDialog(
                 onDismissRequest = {},
-                onDismissRequest = { }, // Disable outside click dismiss
                 title = { Text("Ride Uploaded Successfully!") },
                 confirmButton = {
                     Button(

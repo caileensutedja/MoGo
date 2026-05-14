@@ -23,7 +23,6 @@ import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
-// Helper: format time left until departure
 private fun formatTimeLeft(departureTime: String): String {
     val now = OffsetDateTime.now(ZoneOffset.UTC)
     val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "??" }
@@ -36,7 +35,6 @@ private fun formatTimeLeft(departureTime: String): String {
     }
 }
 
-// Helper: determine ride title based on current time and estimated duration
 private fun getRideTitle(departureTime: String, durationMinutes: Int?): String {
     val now = OffsetDateTime.now(ZoneOffset.UTC)
     val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "Unknown" }
@@ -83,11 +81,6 @@ fun BookScreenUI(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = "None",
-            fontSize = 16.sp,
-            color = Color.Gray
-        )
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -205,8 +198,6 @@ fun BookScreenUI(
                         onDetailsClick = {
                             onNavigateToBookingPreview(state.bookings[idx].id)
                         }
-                        onRebookNextWeek = { ride, booking -> viewModel.onRebookNextWeek(ride, booking) },
-                        onCancelBooking = { bookingId, rideId -> viewModel.cancelBooking(bookingId, rideId) }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
@@ -215,7 +206,6 @@ fun BookScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Future Ride Button
         Button(
             onClick = { onNavigateToFutureBookRides() },
             modifier = Modifier
@@ -228,7 +218,6 @@ fun BookScreenUI(
         }
 
         Spacer(modifier = Modifier.height(15.dp))
-        Spacer(modifier = Modifier.height(10.dp))
     }
 }
 
@@ -238,8 +227,6 @@ fun BookedCard(
     onRebookNextWeek: (Ride, Booking) -> Unit = { _, _ -> },
     onCancelBooking: (String, String) -> Unit = { _, _ -> },
     onDetailsClick: () -> Unit = {}
-) {
-    onCancelBooking: (String, String) -> Unit = { _, _ -> }
 ) {
     val ride = booking.rides
     val driver = ride?.users
@@ -255,7 +242,7 @@ fun BookedCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Driver profile picture (from avatar_url)
+            // Driver profile picture
             if (driver?.avatarUrl != null) {
                 AsyncImage(
                     model = driver.avatarUrl,
@@ -288,7 +275,6 @@ fun BookedCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Car type: ${ride?.vehicleType}",
                     text = "Car type: ${ride?.vehicleType ?: "Unknown"}",
                     fontSize = 14.sp,
                     color = Color.DarkGray
@@ -318,11 +304,7 @@ fun BookedCard(
                 ) {
                     Button(
                         onClick = { showConfirmDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Red
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEAD7FF)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -331,11 +313,6 @@ fun BookedCard(
 
                     Button(
                         onClick = onDetailsClick,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFB57BFF)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                        onClick = { /* TODO: show details */ },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
@@ -358,25 +335,9 @@ fun BookedCard(
                 }
             }
         }
-
-        if (showConfirmDialog) {
-            AlertDialog(
-                onDismissRequest = { showConfirmDialog = false },
-                title = { Text("Cancel Booking") },
-                text = { Text("Are you sure you want to cancel this booking?") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showConfirmDialog = false
-                        if (ride != null) onCancelBooking(booking.id, ride.id)
-                    }) { Text("Yes, Cancel", color = Color.Red) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showConfirmDialog = false }) { Text("Cancel") }
-                }
-            )
-        }
     }
 
+    // Cancel confirmation dialog
     if (showConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },

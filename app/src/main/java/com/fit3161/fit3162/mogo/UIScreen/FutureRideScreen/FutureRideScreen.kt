@@ -33,10 +33,8 @@ fun FutureRideScreenUI(
     val datePickerState = rememberDatePickerState()
     var showHidden by remember { mutableStateOf(false) }
 
-    // When non-null, the pickup dialog is open for this ride id.
     var bookingRideId by remember { mutableStateOf<String?>(null) }
 
-    // Pickup dialog
     bookingRideId?.let { rideId ->
         PickupDialog(
             placesRepo = viewModel.placesRepo,
@@ -132,13 +130,6 @@ fun FutureRideScreenUI(
             color = Color.Gray
         )
         val campusNames = listOf("All") + CAMPUS_OPTIONS.keys.toList()
-        // Campus filter chips
-        Text(
-            text = "Select your Monash campus destination: ",
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
-        val campusNames = listOf("All") + CAMPUS_OPTIONS.keys.toList()
 
         Row(
             modifier = Modifier
@@ -178,7 +169,7 @@ fun FutureRideScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Main content: rides list
+        // Rides list
         if (!state.isLoading && state.error == null) {
             if (state.visibleRides.isEmpty() && state.hiddenRides.isEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -200,31 +191,6 @@ fun FutureRideScreenUI(
                             onHide = { viewModel.hideRide(state.visibleRides[idx].id) },
                             onUnhide = {},
                             onBook = { bookingRideId = state.visibleRides[idx].id }
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-        // Main content: rides list
-        if (!state.isLoading && state.error == null) {
-            if (state.visibleRides.isEmpty() && state.hiddenRides.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = if (state.selectedDate.isNotEmpty())
-                            "No rides available on this date"
-                        else
-                            "No upcoming rides available",
-                        color = Color.Gray
-                    )
-                }
-            } else {
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    // Visible rides
-                    items(state.visibleRides.size) { idx ->
-                        FutureRideCard(
-                            ride = state.visibleRides[idx],
-                            isHidden = false,
-                            onHide = { viewModel.hideRide(state.visibleRides[idx].id) },
-                            onUnhide = {},
-                            onBook = { rideToBook = state.visibleRides[idx] }
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
@@ -260,24 +226,6 @@ fun FutureRideScreenUI(
         }
     }
 }
-                        if (showHidden) {
-                            items(state.hiddenRides.size) { idx ->
-                                FutureRideCard(
-                                    ride = state.hiddenRides[idx],
-                                    isHidden = true,
-                                    onHide = {},
-                                    onUnhide = { viewModel.unhideRide(state.hiddenRides[idx].id) },
-                                    onBook = {} // hidden rides cannot be booked directly
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun FutureRideCard(
@@ -298,43 +246,6 @@ fun FutureRideCard(
             )
             .padding(16.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = driver?.userName ?: "Unknown Driver",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isHidden) Color.Gray else Color.Black
-                )
-                Text(
-                    text = "Vehicle Type: ${ride.vehicleType}",
-                    fontSize = 16.sp,
-                    color = Color.DarkGray
-                )
-                Text(
-                    text = "📍 ${ride.origin} → ${ride.destination}",
-                    fontSize = 16.sp,
-                    color = Color.DarkGray
-                )
-                Text(
-                    text = "🕐 ${formatDepartureTime(ride.departureTime)}",
-                    fontSize = 16.sp,
-                    color = Color.DarkGray
-                )
-                Text(
-                    text = "💺 ${ride.availableSeats} seats available",
-                    fontSize = 14.sp,
-                    color = Color.DarkGray
-                )
-                ride.carbonEstimate?.let {
-                    Text(
-                        text = "🌿 %.2f kg CO₂".format(it),
-                        fontSize = 14.sp,
-                        color = Color(0xFF4CAF50)
-                    )
-                }
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = driver?.userName ?: "Unknown Driver",

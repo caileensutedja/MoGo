@@ -20,17 +20,27 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
 import com.fit3161.fit3162.mogo.MogoApplication
+import com.fit3161.fit3162.mogo.UIScreen.ActiveRide.ActiveRideScreen
+import com.fit3161.fit3162.mogo.UIScreen.ActiveRide.ActiveRideViewModel
+import com.fit3161.fit3162.mogo.UIScreen.ActiveRide.ActiveRideViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModel
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookViewModelFactory
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookingPreviewScreen
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookingPreviewViewModel
+import com.fit3161.fit3162.mogo.UIScreen.BookScreen.BookingPreviewViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModel
+import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesScreen
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesViewModel
 import com.fit3161.fit3162.mogo.UIScreen.MyRides.MyRidesViewModelFactory
@@ -38,17 +48,20 @@ import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.OfferScreenUI
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModel
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterScreen
-import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInScreen
-import com.fit3161.fit3162.mogo.UIScreen.WelcomeScreen.WelcomeScreen
-import com.fit3161.fit3162.mogo.data.repo.AuthRepository
-import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModel
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModel
 import com.fit3161.fit3162.mogo.UIScreen.RegisterScreen.RegisterViewModelFactory
+import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsScreenUI
+import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsViewModel
+import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsViewModelFactory
+import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInScreen
+import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModel
 import com.fit3161.fit3162.mogo.UIScreen.SignInScreen.SignInViewModelFactory
 import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideScreen
 import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideViewModel
 import com.fit3161.fit3162.mogo.UIScreen.UploadRide.UploadRideViewModelFactory
-import io.github.jan.supabase.auth.auth
+import com.fit3161.fit3162.mogo.UIScreen.WelcomeScreen.WelcomeScreen
+import com.fit3161.fit3162.mogo.data.SessionManager
+import com.fit3161.fit3162.mogo.data.repo.AuthRepository
 import com.fit3161.fit3162.mogo.ui.maps.MapScreenUI
 import com.fit3161.fit3162.mogo.ui.maps.MapsViewModel
 import com.fit3161.fit3162.mogo.ui.maps.MapsViewModelFactory
@@ -57,15 +70,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.fit3161.fit3162.mogo.UIScreen.ActiveRide.ActiveRideScreen
-import com.fit3161.fit3162.mogo.UIScreen.ActiveRide.ActiveRideViewModel
-import com.fit3161.fit3162.mogo.UIScreen.ActiveRide.ActiveRideViewModelFactory
-import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModel
-import com.fit3161.fit3162.mogo.UIScreen.HomeDashboard.HomeViewModelFactory
-import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsScreenUI
-import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsViewModel
-import com.fit3161.fit3162.mogo.UIScreen.Settings.SettingsViewModelFactory
-import com.fit3161.fit3162.mogo.data.SessionManager
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.launch
 
 /**
@@ -77,16 +82,19 @@ sealed class Screen(val route: String) {
     object Welcome : Screen("welcome")
     object Login : Screen("login")
     object Register : Screen("register")
-    object Dashboard : Screen("dashboard") // TODO: This is temporary. Remove during clean up/when done.
+    object Dashboard : Screen("dashboard")
     object Booked : Screen("booked")
     object FutureRides : Screen("futureRides")
-    object UploadRide: Screen("uploadRide")
-    object MyRides: Screen("myRides")
-    object Profile: Screen("profile")
-    object Offer: Screen("offer")
+    object UploadRide : Screen("uploadRide")
+    object MyRides : Screen("myRides")
+    object Profile : Screen("profile")
+    object Offer : Screen("offer")
     object Map : Screen("map")
     object ActiveRide : Screen("activeRide")
     object Settings : Screen("settings")
+    object BookingPreview : Screen("bookingPreview/{bookingId}") {
+        fun createRoute(bookingId: String) = "bookingPreview/$bookingId"
+    }
 }
 
 /**
@@ -100,14 +108,11 @@ fun AppNavigation(
     application: MogoApplication,
     navController: NavHostController,
     onRoleChanged: () -> Unit = {},
-    roleTrigger: Int = 0) {
-
+    roleTrigger: Int = 0
+) {
     val sessionManager = remember { SessionManager(application) }
     val isLoggedIn by sessionManager.isLoggedIn.collectAsState(initial = false)
     val timestamp by sessionManager.loginTimestamp.collectAsState(initial = 0L)
-    Log.d("DEBUG LOG IN/is logged in", "${isLoggedIn}")
-    Log.d("DEBUG LOG IN/session manager", "${!sessionManager.isSessionExpired(timestamp)}")
-
 
     val startDestination = if (isLoggedIn && !sessionManager.isSessionExpired(timestamp)) {
         Screen.Dashboard.route
@@ -121,6 +126,7 @@ fun AppNavigation(
     // Single AuthRepository shared across all auth screens.
     val authRepository = AuthRepository(supabase)
 
+
     /**
      * Defines full navigation graph.
      *
@@ -132,19 +138,19 @@ fun AppNavigation(
      */
     NavHost(
         navController = navController,
-        // TODO: Logic fix if alr logged in or not -> Session Persistence
-        startDestination = startDestination // App starts in Welcome Screen when first launched.
+        startDestination = startDestination
     ) {
 
-        // Welcome Screen composable.
+        // Welcome Screen
         composable(Screen.Welcome.route) {
             WelcomeScreen(
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) // Navigate from Welcome Screen to Login Screen.
-                })
+                    navController.navigate(Screen.Login.route)
+                }
+            )
         }
 
-        // Login Screen composable.
+        // Login Screen
         composable(Screen.Login.route) {
             val viewModel: SignInViewModel = viewModel(
                 factory = SignInViewModelFactory(authRepository, sessionManager)
@@ -155,14 +161,14 @@ fun AppNavigation(
                     navController.navigate(Screen.Register.route)
                 },
                 onLoginSuccess = {
-                    navController.navigate(Screen.Dashboard.route) { // Go to HomeScreen after Login
+                    navController.navigate(Screen.Dashboard.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             )
         }
 
-        // Register Screen composable.
+        // Register Screen
         composable(Screen.Register.route) {
             val viewModel: RegisterViewModel = viewModel(
                 factory = RegisterViewModelFactory(authRepository)
@@ -173,6 +179,95 @@ fun AppNavigation(
             )
         }
 
+        // Dashboard / Home Screen
+        composable(Screen.Dashboard.route) {
+            val viewModel: HomeViewModel = viewModel(
+                factory = HomeViewModelFactory(supabase)
+            )
+            LaunchedEffect(roleTrigger) {
+                viewModel.loadData()
+            }
+            HomeScreenUI(
+                viewModel = viewModel,
+                onProfileClick = { navController.navigate(Screen.Profile.route) },
+                onBookedClick = { navController.navigate(Screen.Booked.route) },
+                onMyRidesClick = { navController.navigate(Screen.MyRides.route) },
+                onNavigateToActiveRide = { navController.navigate(Screen.ActiveRide.route) },
+                onRoleToggle = { newRole ->
+                    viewModel.switchRole(newRole, onRoleChanged)
+                }
+            )
+        }
+
+        // Booked Rides Screen
+        composable(Screen.Booked.route) {
+            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
+            val viewModel: BookViewModel = viewModel(
+                factory = BookViewModelFactory(
+                    client = supabase,
+                    mapsRepo = application.mapsRepository,
+                    userId = userId
+                )
+            )
+            BookScreenUI(
+                viewModel = viewModel,
+                onNavigateToFutureBookRides = {
+                    navController.navigate(Screen.FutureRides.route)
+                },
+                onNavigateToBookingPreview = { bookingId ->
+                    navController.navigate(Screen.BookingPreview.createRoute(bookingId))
+                }
+            )
+        }
+
+        // Future Rides Screen
+        composable(Screen.FutureRides.route) {
+            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
+            val viewModel: FutureRideViewModel = viewModel(
+                factory = FutureRideViewModelFactory(
+                    client = supabase,
+                    mapsRepo = application.mapsRepository,
+                    placesRepo = application.placesRepository,
+                    userId = userId
+                )
+            )
+            FutureRideScreenUI(viewModel = viewModel)
+        }
+
+        // Upload Ride Screen
+        composable(Screen.UploadRide.route) {
+            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
+            val viewModel: UploadRideViewModel = viewModel(
+                factory = UploadRideViewModelFactory(
+                    client = supabase,
+                    mapsRepo = application.mapsRepository,
+                    placesRepo = application.placesRepository,
+                    userId = userId
+                )
+            )
+            UploadRideScreen(
+                viewModel = viewModel,
+                onNavigateToDashboard = {
+                    navController.navigate(Screen.Dashboard.route)
+                }
+            )
+        }
+
+        // My Rides Screen (driver)
+        composable(Screen.MyRides.route) {
+            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
+            val viewModel: MyRidesViewModel = viewModel(
+                factory = MyRidesViewModelFactory(supabase, userId)
+            )
+            MyRidesScreen(
+                viewModel,
+                onNavigateToUploadRides = {
+                    navController.navigate(Screen.UploadRide.route)
+                }
+            )
+        }
+
+        // Active Ride Screen (safety: share trip + SOS)
         composable(Screen.ActiveRide.route) {
             val viewModel: ActiveRideViewModel = viewModel(
                 factory = ActiveRideViewModelFactory(supabase)
@@ -194,102 +289,15 @@ fun AppNavigation(
             }
         }
 
-        // TODO: Remove during code cleanup. Dashboard only contains a single button: SignOut to go back to the previous. screen.
-
-        composable(Screen.Dashboard.route) {
-            val viewModel: HomeViewModel = viewModel(
-                factory = HomeViewModelFactory(supabase)
-            )
-            LaunchedEffect(roleTrigger) {
-                viewModel.loadData()
-            }
-            HomeScreenUI(
-                viewModel = viewModel,
-                onProfileClick = { navController.navigate(Screen.Profile.route)},
-                onBookedClick = { navController.navigate(Screen.Booked.route) },
-                onMyRidesClick = { navController.navigate(Screen.MyRides.route) },
-                onNavigateToActiveRide = { navController.navigate(Screen.ActiveRide.route) },
-                onRoleToggle = { newRole ->
-                    viewModel.switchRole(newRole, onRoleChanged)
-                }
-            )
-        }
-
-        /**
-         * FIX SCREENS BELOW
-         */
-        // Booked UI composable.
-        // Booked UI composable.
-        composable(Screen.Booked.route) {
-            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
-            val viewModel: BookViewModel = viewModel(
-                factory = BookViewModelFactory(
-                    client = supabase,
-                    mapsRepo = application.mapsRepository,  // ← ADD THIS
-                    userId = userId
-                )
-            )
-            BookScreenUI(
-                viewModel = viewModel,
-                onNavigateToFutureBookRides = {
-                    navController.navigate(Screen.FutureRides.route)
-                }
-//                onNavigateToUploadRides = {
-//                    navController.navigate(Screen.UploadRide.route)
-//                },
-//                onNavigateToMyRides = {
-//                    navController.navigate(Screen.MyRides.route)
-//                }
-            )
-        }
-
-        // Future Rides UI composable.
-        composable(Screen.FutureRides.route) {
-            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
-            val viewModel: FutureRideViewModel = viewModel(
-                factory = FutureRideViewModelFactory(supabase, userId)
-            )
-            FutureRideScreenUI(
-                viewModel = viewModel,
-                )
-        }
-
-        composable(Screen.UploadRide.route) {
-            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
-            val viewModel: UploadRideViewModel = viewModel(
-                factory = UploadRideViewModelFactory(supabase, userId)   // only two args
-            )
-            UploadRideScreen(
-                viewModel = viewModel,
-                onNavigateToDashboard = {
-                    navController.navigate(Screen.Dashboard.route)
-                }
-            )
-        }
-
-        composable(Screen.MyRides.route){
-            val userId = supabase.auth.currentUserOrNull()?.id ?: ""
-            val viewModel: MyRidesViewModel = viewModel(
-                factory = MyRidesViewModelFactory(supabase, userId)
-            )
-            MyRidesScreen(
-                viewModel,
-                onNavigateToUploadRides = {
-                    navController.navigate(Screen.UploadRide.route)
-                }
-            )
-        }
-
-        // Offer UI composable.
+        // Offer Screen
         composable(Screen.Offer.route) {
             val viewModel: OfferViewModel = viewModel(
                 factory = OfferViewModelFactory(supabase)
             )
-            OfferScreenUI(
-                viewModel = viewModel
-            )
+            OfferScreenUI(viewModel = viewModel)
         }
 
+        // Profile Screen
         composable(Screen.Profile.route) {
             val scope = rememberCoroutineScope()
             ProfileRoute(
@@ -298,7 +306,7 @@ fun AppNavigation(
                     scope.launch {
                         sessionManager.clearSession()
                         navController.navigate(Screen.Welcome.route) {
-                            popUpTo(0) { inclusive = true }  // clears the entire back stack
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 },
@@ -309,27 +317,44 @@ fun AppNavigation(
             )
         }
 
+        // Settings Screen
+        composable(Screen.Settings.route) {
+            val viewModel: SettingsViewModel = viewModel(
+                factory = SettingsViewModelFactory(supabase)
+            )
+            SettingsScreenUI(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
 
-        // Map View Composable
+        // Map View Screen
         composable(Screen.Map.route) {
             val factory = MapsViewModelFactory(application.mapsRepository)
             val viewModel: MapsViewModel = viewModel(factory = factory)
             MapScreenUI(viewModel = viewModel)
         }
 
-        composable(Screen.Settings.route) {
-            val viewModel: SettingsViewModel = viewModel(
-                factory = SettingsViewModelFactory(supabase)
+        // Booking Preview Screen (shows route on map)
+        composable(
+            route = Screen.BookingPreview.route,
+            arguments = listOf(
+                navArgument("bookingId") { type = NavType.StringType }
             )
-
-            SettingsScreenUI(
-                viewModel = viewModel,
-                onBack = { navController.popBackStack()}
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId")
+                ?: return@composable
+            val viewModel: BookingPreviewViewModel = viewModel(
+                factory = BookingPreviewViewModelFactory(
+                    client = supabase,
+                    mapsRepo = application.mapsRepository,
+                    bookingId = bookingId
                 )
+            )
+            BookingPreviewScreen(viewModel = viewModel)
         }
     }
 }
-
 
 /**
  * Data class for the bottom bar consisting of route, label, and icon.
@@ -340,15 +365,11 @@ data class BottomNavItem(
     val icon: ImageVector
 )
 
-// val profileRepository = ProfileRepository(supabase)
-
-
 /**
  * Composable bottom bar for easy navigation.
  */
 @Composable
 fun BottomBar(navController: NavHostController, userRole: String = "rider") {
-
     val currentRoute =
         navController.currentBackStackEntryAsState().value?.destination?.route
 
@@ -358,26 +379,19 @@ fun BottomBar(navController: NavHostController, userRole: String = "rider") {
         BottomNavItem(Screen.Booked.route, "Booked", Icons.Filled.CalendarMonth)
     }
 
-    // Lists within the bottom bar
     val items = listOf(
         BottomNavItem(Screen.Dashboard.route, "Home", Icons.Filled.Home),
         riderOrDriver,
         BottomNavItem(Screen.Offer.route, "Offer", Icons.Filled.LocalOffer),
         BottomNavItem(Screen.Profile.route, "Profile", Icons.Filled.Person),
-
         BottomNavItem(Screen.Map.route, "Map View", Icons.Filled.Map)
     )
 
     NavigationBar {
         items.forEach { item ->
-            // When the icon is clicked, it will be highlighted and the user will be redirected to the intended screen
             NavigationBarItem(
-                icon = {
-                    Icon(item.icon, contentDescription = item.label)
-                },
-                label = {
-                    Text(item.label)
-                },
+                icon = { Icon(item.icon, contentDescription = item.label) },
+                label = { Text(item.label) },
                 selected = currentRoute == item.route,
                 onClick = {
                     navController.navigate(item.route) {
@@ -386,7 +400,6 @@ fun BottomBar(navController: NavHostController, userRole: String = "rider") {
                     }
                 }
             )
-
         }
     }
 }

@@ -6,14 +6,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,18 +33,20 @@ fun FutureRideScreenUI(
     val datePickerState = rememberDatePickerState()
     var showHidden by remember { mutableStateOf(false) }
 
-    // Booking dialog state
-    var rideToBook by remember { mutableStateOf<Ride?>(null) }
+    var bookingRideId by remember { mutableStateOf<String?>(null) }
 
-    // Show pickup dialog when a ride is selected
-    rideToBook?.let { ride ->
-        PickupLocationDialog(
-            ride = ride,
-            onConfirm = { pickupName, pickupLat, pickupLng ->
-                viewModel.bookRide(ride, pickupName, pickupLat, pickupLng)
-                rideToBook = null
+    bookingRideId?.let { rideId ->
+        PickupDialog(
+            placesRepo = viewModel.placesRepo,
+            onConfirm = { useCurrentLocation, lat, lng, _ ->
+                if (useCurrentLocation) {
+                    viewModel.bookRideUsingCurrentLocation(rideId)
+                } else if (lat != null && lng != null) {
+                    viewModel.bookRideAt(rideId, lat, lng)
+                }
+                bookingRideId = null
             },
-            onDismiss = { rideToBook = null }
+            onDismiss = { bookingRideId = null }
         )
     }
 
@@ -123,7 +123,7 @@ fun FutureRideScreenUI(
             }
         }
 
-        // Campus filter chips
+        // Campus filter
         Text(
             text = "Select your Monash campus destination: ",
             fontSize = 14.sp,
@@ -169,7 +169,7 @@ fun FutureRideScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Main content: rides list
+        // Rides list
         if (!state.isLoading && state.error == null) {
             if (state.visibleRides.isEmpty() && state.hiddenRides.isEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -190,7 +190,7 @@ fun FutureRideScreenUI(
                             isHidden = false,
                             onHide = { viewModel.hideRide(state.visibleRides[idx].id) },
                             onUnhide = {},
-                            onBook = { rideToBook = state.visibleRides[idx] }
+                            onBook = { bookingRideId = state.visibleRides[idx].id }
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
@@ -215,8 +215,7 @@ fun FutureRideScreenUI(
                                     ride = state.hiddenRides[idx],
                                     isHidden = true,
                                     onHide = {},
-                                    onUnhide = { viewModel.unhideRide(state.hiddenRides[idx].id) },
-                                    onBook = {} // hidden rides cannot be booked directly
+                                    onUnhide = { viewModel.unhideRide(state.hiddenRides[idx].id) }
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                             }
@@ -315,80 +314,6 @@ fun FutureRideCard(
             }
         }
     }
-}
-
-@Composable
-fun PickupLocationDialog(
-    ride: Ride,
-    onConfirm: (name: String, lat: Double, lng: Double) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var pickupName by remember { mutableStateOf("") }
-    var pickupLat by remember { mutableStateOf("") }
-    var pickupLng by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Enter Pickup Location") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "Destination: ${ride.destination}",
-                    fontSize = 13.sp,
-                    color = Color.Gray
-                )
-                Text(
-                    text = "Departure: ${formatDepartureTime(ride.departureTime)}",
-                    fontSize = 13.sp,
-                    color = Color.Gray
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedTextField(
-                    value = pickupName,
-                    onValueChange = { pickupName = it },
-                    label = { Text("Pickup address / name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = pickupLat,
-                    onValueChange = { pickupLat = it },
-                    label = { Text("Pickup latitude") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                )
-                OutlinedTextField(
-                    value = pickupLng,
-                    onValueChange = { pickupLng = it },
-                    label = { Text("Pickup longitude") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                )
-                error?.let { Text(it, color = Color.Red, fontSize = 12.sp) }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val lat = pickupLat.toDoubleOrNull()
-                    val lng = pickupLng.toDoubleOrNull()
-                    when {
-                        pickupName.isBlank() -> error = "Please enter a pickup address"
-                        lat == null -> error = "Latitude must be a number"
-                        lng == null -> error = "Longitude must be a number"
-                        else -> onConfirm(pickupName, lat, lng)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF))
-            ) { Text("Confirm Booking") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
 }
 
 fun convertMillisToDate(millis: Long): String {

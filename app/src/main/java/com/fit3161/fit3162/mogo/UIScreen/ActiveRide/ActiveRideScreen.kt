@@ -1,7 +1,6 @@
 package com.fit3161.fit3162.mogo.UIScreen.ActiveRide
 
 import android.net.Uri
-import android.provider.ContactsContract
 import android.telephony.SmsManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -103,7 +102,7 @@ fun ActiveRideScreen(
         Text(
             text = "< Back",
             fontSize = 16.sp,
-            modifier = androidx.compose.ui.Modifier.clickable { onBack() }
+            modifier = Modifier.clickable { onBack() }
         )
 
         Spacer(modifier = Modifier.height(16.dp))

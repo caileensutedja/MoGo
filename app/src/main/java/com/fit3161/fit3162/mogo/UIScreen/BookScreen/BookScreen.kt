@@ -23,7 +23,6 @@ import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
-// Helper: format time left until departure
 private fun formatTimeLeft(departureTime: String): String {
     val now = OffsetDateTime.now(ZoneOffset.UTC)
     val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "??" }
@@ -36,7 +35,6 @@ private fun formatTimeLeft(departureTime: String): String {
     }
 }
 
-// Helper: determine ride title based on current time and estimated duration
 private fun getRideTitle(departureTime: String, durationMinutes: Int?): String {
     val now = OffsetDateTime.now(ZoneOffset.UTC)
     val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "Unknown" }
@@ -52,7 +50,8 @@ private fun getRideTitle(departureTime: String, durationMinutes: Int?): String {
 fun BookScreenUI(
     viewModel: BookViewModel,
     modifier: Modifier = Modifier,
-    onNavigateToFutureBookRides: () -> Unit
+    onNavigateToFutureBookRides: () -> Unit,
+    onNavigateToBookingPreview: (String) -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -195,7 +194,10 @@ fun BookScreenUI(
                     BookedCard(
                         booking = state.bookings[idx],
                         onRebookNextWeek = { ride, booking -> viewModel.onRebookNextWeek(ride, booking) },
-                        onCancelBooking = { bookingId, rideId -> viewModel.cancelBooking(bookingId, rideId) }
+                        onCancelBooking = { bookingId, rideId -> viewModel.cancelBooking(bookingId, rideId) },
+                        onDetailsClick = {
+                            onNavigateToBookingPreview(state.bookings[idx].id)
+                        }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
@@ -215,7 +217,7 @@ fun BookScreenUI(
             Text("Book Future Ride", fontSize = 18.sp)
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(15.dp))
     }
 }
 
@@ -223,7 +225,8 @@ fun BookScreenUI(
 fun BookedCard(
     booking: Booking,
     onRebookNextWeek: (Ride, Booking) -> Unit = { _, _ -> },
-    onCancelBooking: (String, String) -> Unit = { _, _ -> }
+    onCancelBooking: (String, String) -> Unit = { _, _ -> },
+    onDetailsClick: () -> Unit = {}
 ) {
     val ride = booking.rides
     val driver = ride?.users
@@ -239,7 +242,7 @@ fun BookedCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Driver profile picture (from avatar_url)
+            // Driver profile picture
             if (driver?.avatarUrl != null) {
                 AsyncImage(
                     model = driver.avatarUrl,
@@ -301,14 +304,15 @@ fun BookedCard(
                 ) {
                     Button(
                         onClick = { showConfirmDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEAD7FF)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Cancel")
                     }
+
                     Button(
-                        onClick = { /* TODO: show details */ },
+                        onClick = onDetailsClick,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
@@ -333,6 +337,7 @@ fun BookedCard(
         }
     }
 
+    // Cancel confirmation dialog
     if (showConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },

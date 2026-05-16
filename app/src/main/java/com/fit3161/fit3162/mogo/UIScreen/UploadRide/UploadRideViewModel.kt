@@ -15,6 +15,17 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
+
+// (Optional – uncomment if you later add OkHttp and OpenRouteService)
+// import okhttp3.OkHttpClient
+// import okhttp3.Request
+// import org.json.JSONObject
+// import kotlinx.coroutines.Dispatchers
+// import kotlinx.coroutines.withContext
 
 data class UploadRideForm(
     val origin: String = "",
@@ -62,8 +73,22 @@ class UploadRideViewModel(
     }
 
     /**
-     * Approximate distance (km) between two campus locations.
-     * Uses hard‑coded values for known Monash routes, otherwise 10 km fallback.
+     * Haversine formula – straight‑line distance between two lat/lng points (km)
+     */
+    private fun haversineDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val R = 6371.0 // Earth radius in km
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                sin(dLon / 2) * sin(dLon / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return R * c
+    }
+
+    /**
+     * Approximate distance (km) between two campus locations using a hard‑coded map.
+     * Fallback to 10 km if route not found.
      */
     private fun getApproximateDistanceKm(origin: String, destination: String): Double {
         fun normalize(s: String): String {
@@ -97,6 +122,35 @@ class UploadRideViewModel(
     }
 
     /**
+     * OpenRouteService API call (currently commented – uncomment when you have origin coordinates)
+     * Requires adding OkHttp and originLat/originLng to UploadRideForm.
+     */
+    /*
+    private suspend fun getRoadDistanceFromORS(
+        originLat: Double, originLng: Double,
+        destLat: Double, destLng: Double
+    ): Double? = withContext(Dispatchers.IO) {
+        try {
+            val client = OkHttpClient()
+            val url = "https://api.openrouteservice.org/v2/directions/driving-car?start=$originLng,$originLat&end=$destLng,$destLat"
+            val request = Request.Builder().url(url).build()
+            val response = client.newCall(request).execute()
+            val json = JSONObject(response.body?.string() ?: return@withContext null)
+            val distanceMeters = json.getJSONArray("features")
+                .getJSONObject(0)
+                .getJSONObject("properties")
+                .getJSONArray("segments")
+                .getJSONObject(0)
+                .getDouble("distance")
+            distanceMeters / 1000.0
+        } catch (e: Exception) {
+            Log.e("ORS", "Failed to get road distance", e)
+            null
+        }
+    }
+    */
+
+    /**
      * Build a single ride instance (used for each recurring week).
      */
     private fun buildRideInstance(
@@ -113,7 +167,14 @@ class UploadRideViewModel(
         recurringWeekIndex: Int
     ): Ride {
         val campus = CAMPUS_OPTIONS[destination]
-        val distanceKm = getApproximateDistanceKm(origin, destination)
+
+        // Get distance (hard‑coded map or Haversine fallback)
+        var distanceKm = getApproximateDistanceKm(origin, destination)
+        if (distanceKm == 10.0 && campus != null) {
+            // If default fallback was used and we have destination coordinates,
+            // we could compute straight‑line distance (optional – not needed now)
+        }
+
         val factor = when (vehicleType.lowercase()) {
             "ev" -> 0.01
             "hybrid" -> 0.12

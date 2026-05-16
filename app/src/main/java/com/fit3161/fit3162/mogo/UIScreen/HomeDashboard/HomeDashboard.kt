@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,8 +23,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,11 +80,13 @@ fun HomeScreenUI(
     onMyRidesClick: () -> Unit = {},
     onNavigateToActiveRide: () -> Unit = {},
     onRoleToggle: (String) -> Unit = {},
-    onNotificationClick: () -> Unit = {}, // new callback
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDriver = uiState.profile?.user_role?.lowercase() == "driver"
+
+    // State for notification dialog
+    var showNotificationDialog by remember { mutableStateOf(false) }
 
     if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -141,7 +148,7 @@ fun HomeScreenUI(
 
                 // Notification icon button
                 IconButton(
-                    onClick = onNotificationClick,
+                    onClick = { showNotificationDialog = true },
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
@@ -435,33 +442,6 @@ fun HomeScreenUI(
         Spacer(modifier = Modifier.height(30.dp))
 
         // ========== CARBON METRICS ==========
-        // Ongoing Ride
-        Text("Ongoing Ride", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-
-        val ongoingRide = uiState.bookings.firstOrNull { it.bookingStatus == "confirmed" }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(90.dp)
-                .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
-                .clickable { if (ongoingRide != null) onNavigateToActiveRide() },
-            contentAlignment = Alignment.Center
-        ) {
-            if (ongoingRide != null) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("To: ${ongoingRide.rides?.destination ?: ongoingRide.dropoffLocation}", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    Text("Departs: ${ongoingRide.rides?.departureTime ?: ""}", fontSize = 13.sp, color = Color.Gray)
-                }
-            } else {
-                Text("No ongoing ride", fontSize = 14.sp, color = Color.Gray)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // carbon metrics
         Text("Carbon Metrics", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -517,5 +497,19 @@ fun HomeScreenUI(
                 }
             }
         }
+    }
+
+    // Notification Dialog
+    if (showNotificationDialog) {
+        AlertDialog(
+            onDismissRequest = { showNotificationDialog = false },
+            title = { Text("Notifications") },
+            text = { Text("No notifications at this time.") },
+            confirmButton = {
+                TextButton(onClick = { showNotificationDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }

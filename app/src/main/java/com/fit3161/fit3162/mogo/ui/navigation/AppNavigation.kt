@@ -73,11 +73,6 @@ import androidx.compose.ui.Modifier
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.launch
 
-/**
- * Defines every screen route in the app.
- *
- * @param route the name of the route (typically named after the screen names).
- */
 sealed class Screen(val route: String) {
     object Welcome : Screen("welcome")
     object Login : Screen("login")
@@ -97,12 +92,6 @@ sealed class Screen(val route: String) {
     }
 }
 
-/**
- * Handles navigation between screens for the entire app.
- * Defines how the screens are connected to each other.
- *
- * @param application [MogoApplication] instance used to access the shared Supabase client.
- */
 @Composable
 fun AppNavigation(
     application: MogoApplication,
@@ -120,46 +109,26 @@ fun AppNavigation(
         Screen.Welcome.route
     }
 
-    // Get Supabase client instance.
     val supabase = application.supabase
-
-    // Single AuthRepository shared across all auth screens.
     val authRepository = AuthRepository(supabase)
 
-
-    /**
-     * Defines full navigation graph.
-     *
-     * From official documentation:
-     * "Provides a place in the Compose hierarchy for self-contained navigation to occur.
-     * Once this is called, any Composable within the given NavGraphBuilder can be navigated to
-     * from the provided navController."
-     *
-     */
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
-
-        // Welcome Screen
         composable(Screen.Welcome.route) {
             WelcomeScreen(
-                onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route)
-                }
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) }
             )
         }
 
-        // Login Screen
         composable(Screen.Login.route) {
             val viewModel: SignInViewModel = viewModel(
                 factory = SignInViewModelFactory(authRepository, sessionManager)
             )
             SignInScreen(
                 viewModel = viewModel,
-                onNavigateToRegister = {
-                    navController.navigate(Screen.Register.route)
-                },
+                onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                 onLoginSuccess = {
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
@@ -168,7 +137,6 @@ fun AppNavigation(
             )
         }
 
-        // Register Screen
         composable(Screen.Register.route) {
             val viewModel: RegisterViewModel = viewModel(
                 factory = RegisterViewModelFactory(authRepository)
@@ -179,27 +147,21 @@ fun AppNavigation(
             )
         }
 
-        // Dashboard / Home Screen
         composable(Screen.Dashboard.route) {
             val viewModel: HomeViewModel = viewModel(
                 factory = HomeViewModelFactory(supabase)
             )
-            LaunchedEffect(roleTrigger) {
-                viewModel.loadData()
-            }
+            LaunchedEffect(roleTrigger) { viewModel.loadData() }
             HomeScreenUI(
                 viewModel = viewModel,
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onBookedClick = { navController.navigate(Screen.Booked.route) },
                 onMyRidesClick = { navController.navigate(Screen.MyRides.route) },
                 onNavigateToActiveRide = { navController.navigate(Screen.ActiveRide.route) },
-                onRoleToggle = { newRole ->
-                    viewModel.switchRole(newRole, onRoleChanged)
-                }
+                onRoleToggle = { newRole -> viewModel.switchRole(newRole, onRoleChanged) }
             )
         }
 
-        // Booked Rides Screen
         composable(Screen.Booked.route) {
             val userId = supabase.auth.currentUserOrNull()?.id ?: ""
             val viewModel: BookViewModel = viewModel(
@@ -211,16 +173,13 @@ fun AppNavigation(
             )
             BookScreenUI(
                 viewModel = viewModel,
-                onNavigateToFutureBookRides = {
-                    navController.navigate(Screen.FutureRides.route)
-                },
+                onNavigateToFutureBookRides = { navController.navigate(Screen.FutureRides.route) },
                 onNavigateToBookingPreview = { bookingId ->
                     navController.navigate(Screen.BookingPreview.createRoute(bookingId))
                 }
             )
         }
 
-        // Future Rides Screen
         composable(Screen.FutureRides.route) {
             val userId = supabase.auth.currentUserOrNull()?.id ?: ""
             val viewModel: FutureRideViewModel = viewModel(
@@ -234,46 +193,33 @@ fun AppNavigation(
             FutureRideScreenUI(viewModel = viewModel)
         }
 
-        // Upload Ride Screen
+        // ✅ Fixed: use simple factory (only client + userId)
         composable(Screen.UploadRide.route) {
             val userId = supabase.auth.currentUserOrNull()?.id ?: ""
             val viewModel: UploadRideViewModel = viewModel(
-                factory = UploadRideViewModelFactory(
-                    client = supabase,
-                    mapsRepo = application.mapsRepository,
-                    placesRepo = application.placesRepository,
-                    userId = userId
-                )
+                factory = UploadRideViewModelFactory(supabase, userId)
             )
             UploadRideScreen(
                 viewModel = viewModel,
-                onNavigateToDashboard = {
-                    navController.navigate(Screen.Dashboard.route)
-                }
+                onNavigateToDashboard = { navController.navigate(Screen.Dashboard.route) }
             )
         }
 
-        // My Rides Screen (driver)
         composable(Screen.MyRides.route) {
             val userId = supabase.auth.currentUserOrNull()?.id ?: ""
             val viewModel: MyRidesViewModel = viewModel(
                 factory = MyRidesViewModelFactory(supabase, userId)
             )
-            MyRidesScreen(
-                viewModel,
-                onNavigateToUploadRides = {
-                    navController.navigate(Screen.UploadRide.route)
-                }
-            )
+            MyRidesScreen(viewModel) {
+                navController.navigate(Screen.UploadRide.route)
+            }
         }
 
-        // Active Ride Screen (safety: share trip + SOS)
         composable(Screen.ActiveRide.route) {
             val viewModel: ActiveRideViewModel = viewModel(
                 factory = ActiveRideViewModelFactory(supabase)
             )
             val uiState by viewModel.uiState.collectAsState()
-
             uiState.booking?.let { booking ->
                 ActiveRideScreen(
                     booking = booking,
@@ -284,12 +230,9 @@ fun AppNavigation(
             } ?: Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
-            ) {
-                Text("No active ride found.")
-            }
+            ) { Text("No active ride found.") }
         }
 
-        // Offer Screen
         composable(Screen.Offer.route) {
             val viewModel: OfferViewModel = viewModel(
                 factory = OfferViewModelFactory(supabase)
@@ -297,7 +240,6 @@ fun AppNavigation(
             OfferScreenUI(viewModel = viewModel)
         }
 
-        // Profile Screen
         composable(Screen.Profile.route) {
             val scope = rememberCoroutineScope()
             ProfileRoute(
@@ -311,13 +253,10 @@ fun AppNavigation(
                     }
                 },
                 onRoleChanged = onRoleChanged,
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route)
-                }
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
             )
         }
 
-        // Settings Screen
         composable(Screen.Settings.route) {
             val viewModel: SettingsViewModel = viewModel(
                 factory = SettingsViewModelFactory(supabase)
@@ -328,22 +267,17 @@ fun AppNavigation(
             )
         }
 
-        // Map View Screen
         composable(Screen.Map.route) {
             val factory = MapsViewModelFactory(application.mapsRepository)
             val viewModel: MapsViewModel = viewModel(factory = factory)
             MapScreenUI(viewModel = viewModel)
         }
 
-        // Booking Preview Screen (shows route on map)
         composable(
             route = Screen.BookingPreview.route,
-            arguments = listOf(
-                navArgument("bookingId") { type = NavType.StringType }
-            )
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val bookingId = backStackEntry.arguments?.getString("bookingId")
-                ?: return@composable
+            val bookingId = backStackEntry.arguments?.getString("bookingId") ?: return@composable
             val viewModel: BookingPreviewViewModel = viewModel(
                 factory = BookingPreviewViewModelFactory(
                     client = supabase,
@@ -356,29 +290,20 @@ fun AppNavigation(
     }
 }
 
-/**
- * Data class for the bottom bar consisting of route, label, and icon.
- */
 data class BottomNavItem(
     val route: String,
     val label: String,
     val icon: ImageVector
 )
 
-/**
- * Composable bottom bar for easy navigation.
- */
 @Composable
 fun BottomBar(navController: NavHostController, userRole: String = "rider") {
-    val currentRoute =
-        navController.currentBackStackEntryAsState().value?.destination?.route
-
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val riderOrDriver = if (userRole.lowercase() == "driver") {
         BottomNavItem(Screen.MyRides.route, "My Rides", Icons.Filled.CalendarMonth)
     } else {
         BottomNavItem(Screen.Booked.route, "Booked", Icons.Filled.CalendarMonth)
     }
-
     val items = listOf(
         BottomNavItem(Screen.Dashboard.route, "Home", Icons.Filled.Home),
         riderOrDriver,
@@ -386,7 +311,6 @@ fun BottomBar(navController: NavHostController, userRole: String = "rider") {
         BottomNavItem(Screen.Profile.route, "Profile", Icons.Filled.Person),
         BottomNavItem(Screen.Map.route, "Map View", Icons.Filled.Map)
     )
-
     NavigationBar {
         items.forEach { item ->
             NavigationBarItem(

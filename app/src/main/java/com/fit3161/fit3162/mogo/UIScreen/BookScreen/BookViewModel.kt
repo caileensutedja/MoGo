@@ -54,7 +54,6 @@ class BookViewModel(
             try {
                 val bookings = repo.getBookedRides(userId).sortedBy { it.rides?.departureTime }
 
-                // Compute ongoing ride (first confirmed booking with future departure)
                 val ongoingRide = bookings.firstOrNull { booking ->
                     val departure = try {
                         OffsetDateTime.parse(booking.rides?.departureTime)
@@ -92,36 +91,30 @@ class BookViewModel(
                 val blockedByRider = emptySet<String>()
                 val blockedByDriver = emptySet<String>()
 
-                // 1. DB query
                 val candidates = if (date != null)
                     repo.getFutureRidesByDate(userId, date, genderPref ?: "")
                 else
                     repo.getAllFutureRides(userId, genderPref ?: "")
 
-                // 2. Hard memory filters
                 val hardFiltered = candidates.filter { ride ->
                     repo.passesHardMemoryFilters(ride, userId, rider, alreadyBooked, blockedByRider, blockedByDriver)
                 }
 
-                // 3. Soft filters
                 val softFiltered = hardFiltered.filter { ride ->
                     repo.passesSoftFilters(ride, userId, rider)
                 }
 
-                // 4. Radius pre-filter
                 val inRadius = softFiltered.filter { ride ->
                     val oLat = ride.originLat ?: return@filter false
                     val oLng = ride.originLng ?: return@filter false
                     repo.isWithinRadiusKm(pickupLat, pickupLng, oLat, oLng, 5.0)
                 }
 
-                // 5. Detour check — strict first, relax if empty
                 var withDetour = checkDetours(inRadius, pickupLat, pickupLng, maxDetourKm = 5.0)
                 if (withDetour.isEmpty()) {
                     withDetour = checkDetours(inRadius, pickupLat, pickupLng, maxDetourKm = 10.0)
                 }
 
-                // 6. Sort
                 val sorted = repo.sortRides(withDetour)
                 _uiState.value = _uiState.value.copy(rides = sorted, isLoading = false)
 
@@ -159,17 +152,12 @@ class BookViewModel(
                 return@launch
             }
 
-            val campusLocation = CAMPUS_OPTIONS[booking.dropoffLocation]
-
             val result = repo.bookRide(
-                riderId = userId,
                 rideId = nextRide.id,
-                pickupLocation = booking.pickupLocation,
+                riderId = userId,
                 pickupLat = booking.pickupLat ?: 0.0,
                 pickupLng = booking.pickupLng ?: 0.0,
-                dropoffLocation = booking.dropoffLocation,
-                dropoffLat = campusLocation?.latLng?.latitude ?: booking.dropoffLat ?: 0.0,
-                dropoffLng = campusLocation?.latLng?.longitude ?: booking.dropoffLng ?: 0.0,
+                seatsBooked = 1
             )
 
             if (result.isSuccess) {
@@ -197,7 +185,8 @@ class BookViewModel(
             bookings = _uiState.value.bookings.filter { it.id != bookingId }
         )
         viewModelScope.launch {
-            val result = repo.cancelBooking(bookingId, rideId)
+            // ✅ Fixed: pass userId and role "rider"
+            val result = repo.cancelBooking(bookingId, userId, "rider")
             if (result.isFailure) {
                 loadBookedRides()
                 _uiState.value = _uiState.value.copy(error = "Failed to cancel booking")

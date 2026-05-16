@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
 import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.data.repo.Ride
+import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.FutureRideViewModel   // explicit import
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -33,20 +34,32 @@ fun FutureRideScreenUI(
     val datePickerState = rememberDatePickerState()
     var showHidden by remember { mutableStateOf(false) }
 
-    var bookingRideId by remember { mutableStateOf<String?>(null) }
+    // Simple pickup dialog
+    var rideToBook by remember { mutableStateOf<Ride?>(null) }
 
-    bookingRideId?.let { rideId ->
-        PickupDialog(
-            placesRepo = viewModel.placesRepo,
-            onConfirm = { useCurrentLocation, lat, lng, _ ->
-                if (useCurrentLocation) {
-                    viewModel.bookRideUsingCurrentLocation(rideId)
-                } else if (lat != null && lng != null) {
-                    viewModel.bookRideAt(rideId, lat, lng)
+    rideToBook?.let { ride ->
+        AlertDialog(
+            onDismissRequest = { rideToBook = null },
+            title = { Text("Confirm Booking") },
+            text = {
+                Column {
+                    Text("Destination: ${ride.destination}")
+                    Text("Departure: ${formatDepartureTime(ride.departureTime)}")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Use your current location for pickup?")
                 }
-                bookingRideId = null
             },
-            onDismiss = { bookingRideId = null }
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.bookRideUsingCurrentLocation(ride.id)
+                    rideToBook = null
+                }) {
+                    Text("Yes, Use My Location")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { rideToBook = null }) { Text("Cancel") }
+            }
         )
     }
 
@@ -55,7 +68,6 @@ fun FutureRideScreenUI(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Title
         Text(
             text = "Book Future Ride",
             fontSize = 30.sp,
@@ -63,7 +75,6 @@ fun FutureRideScreenUI(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Show active gender preference if set
         state.genderPreference?.let {
             Text(
                 text = "Showing: $it drivers only",
@@ -76,14 +87,12 @@ fun FutureRideScreenUI(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Selected Date Text
         Text(
             text = state.selectedDate.ifEmpty { "No Date selected" },
             fontSize = 18.sp,
             color = Color.Gray
         )
 
-        // Buttons for Date Picker and Clear
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -98,7 +107,6 @@ fun FutureRideScreenUI(
             }
         }
 
-        // Date Picker Dialog
         if (showDatePicker) {
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
@@ -109,21 +117,16 @@ fun FutureRideScreenUI(
                             val formattedDate = convertMillisToDate(millis)
                             viewModel.onDateSelected(formattedDate)
                         }
-                    }) {
-                        Text("Confirm")
-                    }
+                    }) { Text("Confirm") }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDatePicker = false }) {
-                        Text("Cancel")
-                    }
+                    TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
                 }
             ) {
                 DatePicker(state = datePickerState)
             }
         }
 
-        // Campus filter
         Text(
             text = "Select your Monash campus destination: ",
             fontSize = 14.sp,
@@ -157,19 +160,16 @@ fun FutureRideScreenUI(
             }
         }
 
-        // Loading State
         if (state.isLoading) {
             CircularProgressIndicator()
         }
 
-        // Error State
         state.error?.let {
             Text("Error: $it", color = Color.Red)
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Rides list
         if (!state.isLoading && state.error == null) {
             if (state.visibleRides.isEmpty() && state.hiddenRides.isEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -183,19 +183,17 @@ fun FutureRideScreenUI(
                 }
             } else {
                 LazyColumn(modifier = Modifier.weight(1f)) {
-                    // Visible rides
                     items(state.visibleRides.size) { idx ->
                         FutureRideCard(
                             ride = state.visibleRides[idx],
                             isHidden = false,
                             onHide = { viewModel.hideRide(state.visibleRides[idx].id) },
                             onUnhide = {},
-                            onBook = { bookingRideId = state.visibleRides[idx].id }
+                            onBook = { rideToBook = state.visibleRides[idx] }
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    // Hidden rides section
                     if (state.hiddenRides.isNotEmpty()) {
                         item {
                             TextButton(onClick = { showHidden = !showHidden }) {

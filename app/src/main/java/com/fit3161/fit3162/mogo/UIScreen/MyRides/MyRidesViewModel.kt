@@ -42,7 +42,6 @@ class MyRidesViewModel(
     }
 
     fun cancelRide(rideId: String) {
-        // Optimistically remove from UI
         _uiState.value = _uiState.value.copy(
             rides = _uiState.value.rides.filter { it.id != rideId }
         )

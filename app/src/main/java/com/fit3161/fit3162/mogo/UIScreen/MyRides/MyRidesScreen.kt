@@ -63,7 +63,7 @@ fun MyRidesScreen(
 
         if (!state.isLoading && state.rides.isEmpty() && state.error == null) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("No booked rides")
+                Text("No rides posted")
             }
         } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
@@ -78,7 +78,6 @@ fun MyRidesScreen(
             }
         }
 
-        // Upload Ride Button
         Button(
             onClick = { onNavigateToUploadRides() },
             modifier = Modifier
@@ -107,9 +106,7 @@ fun MyRideCard(ride: Ride, onCancelRide: () -> Unit) {
                 TextButton(onClick = {
                     showConfirmDialog = false
                     onCancelRide()
-                }) {
-                    Text("Yes, Cancel", color = Color.Red)
-                }
+                }) { Text("Yes, Cancel", color = Color.Red) }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) { Text("Go Back") }
@@ -117,62 +114,64 @@ fun MyRideCard(ride: Ride, onCancelRide: () -> Unit) {
         )
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp))
-            .padding(16.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E8FF))
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Placeholder for car image
-            Box(
-                modifier = Modifier
-                    .size(70.dp)
-                    .background(Color(0xFFDCCBFF), RoundedCornerShape(10.dp))
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = formatDepartureTime(ride.departureTime),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4A2C8A)
             )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "🚙 ${ride.vehicleType}",
+                fontSize = 14.sp,
+                color = Color.DarkGray
+            )
+            Text(
+                text = "📍 ${ride.origin} → ${ride.destination}",
+                fontSize = 14.sp
+            )
+            Text(
+                text = "💺 ${ride.availableSeats} seats available left",
+                fontSize = 14.sp,
+                color = Color.DarkGray
+            )
+            Text(
+                text = "Status: ${ride.rideStatus}",
+                fontSize = 14.sp,
+                color = when (ride.rideStatus) {
+                    "scheduled" -> Color(0xFF4CAF50)
+                    "cancelled" -> Color.Red
+                    else -> Color.Gray
+                }
+            )
+            vehicle?.let {
                 Text(
-                    text = "🕐 ${formatDepartureTime(ride.departureTime)}",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text("🚙 ${ride.vehicleType}", fontSize = 14.sp, color = Color.DarkGray)
-                Text("📍 ${ride.origin} → ${ride.destination}", fontSize = 14.sp)
-                Text("💺 ${ride.availableSeats} seats available left", fontSize = 14.sp, color = Color.DarkGray)
-                Text(
-                    text = "Status: ${ride.rideStatus}",
+                    "🚙 ${it.vehicleMake} ${it.vehicleModel ?: ""} · ${it.plateNumber}",
                     fontSize = 14.sp,
-                    color = when (ride.rideStatus) {
-                        "scheduled" -> Color(0xFF4CAF50)
-                        "cancelled" -> Color.Red
-                        else -> Color.Gray
-                    }
+                    color = Color.DarkGray
                 )
-                vehicle?.let {
-                    Text(
-                        "🚙 ${it.vehicleMake} ${it.vehicleModel ?: ""} · ${it.plateNumber}",
-                        fontSize = 14.sp, color = Color.DarkGray
-                    )
-                }
-                ride.carbonEstimate?.let {
-                    Text("🌿 %.2f kg CO₂".format(it), fontSize = 13.sp, color = Color(0xFF4CAF50))
-                }
+            }
+            ride.carbonEstimate?.let {
+                Text("🌿 %.2f kg CO₂".format(it), fontSize = 13.sp, color = Color(0xFF4CAF50))
+            }
 
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Button(
-                        onClick = { showConfirmDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFCDD2)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Cancel Ride", color = Color.Red)
-                    }
-                }
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Button(
+                onClick = { showConfirmDialog = true },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFCDD2)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Cancel Ride", color = Color.Red)
             }
         }
     }

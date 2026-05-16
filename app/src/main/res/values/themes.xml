@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.MoGo" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- You can add custom color overrides here if needed -->
+        <item name="colorPrimary">#6200EE</item>
+        <item name="colorPrimaryDark">#3700B3</item>
+        <item name="colorAccent">#03DAC5</item>
+        <item name="android:windowBackground">@color/white</item>
+    </style>
 
-    <style name="Theme.MoGo" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Splash screen theme (requires core-splashscreen library) -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#F3E8FF</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/white</item>
+        <item name="postSplashScreenTheme">@style/Theme.MoGo</item>
+    </style>
 </resources>

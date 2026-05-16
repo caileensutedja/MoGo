@@ -20,7 +20,7 @@ data class FutureRideUiState(
     val rides: List<Ride> = emptyList(),
     val hiddenRideIds: Set<String> = emptySet(),
     val selectedCampus: String? = null,
-    val genderPreference: String? = null, // Filters gender preference
+    val genderPreference: String? = null,
     val isLoading: Boolean = false,
     val bookingMessage: String? = null,
     val error: String? = null
@@ -28,20 +28,20 @@ data class FutureRideUiState(
     val visibleRides: List<Ride>
         get() = rides
             .filter { it.id !in hiddenRideIds }
-            .filter { selectedCampus == null || it.destination == selectedCampus }  // ADD THIS
+            .filter { selectedCampus == null || it.destination == selectedCampus }
 
     val hiddenRides: List<Ride>
         get() = rides
             .filter { it.id in hiddenRideIds }
-            .filter { selectedCampus == null || it.destination == selectedCampus }  // ADD THIS
+            .filter { selectedCampus == null || it.destination == selectedCampus }
 }
 
-
-class FutureRideViewModel (
+class FutureRideViewModel(
     private val repo: BookRepository,
     private val mapsRepo: MapsRepository,
     val placesRepo: PlacesRepository,
-    private val userId: String) : ViewModel() {
+    private val userId: String
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FutureRideUiState())
     val uiState: StateFlow<FutureRideUiState> = _uiState.asStateFlow()
@@ -57,16 +57,12 @@ class FutureRideViewModel (
                 )
                 loadAllFutureRides()
             } catch (e: Exception) {
-                Log.e("CRASH", "Init failed. Full Error: ${e.stackTraceToString()}") // This gives the full story
+                Log.e("CRASH", "Init failed", e)
                 _uiState.value = _uiState.value.copy(error = "Connection Failed: ${e.message}")
             }
         }
     }
 
-    /**
-     * Book a ride at an explicit pickup location (rider chose an address from
-     * the autocomplete picker).
-     */
     fun bookRideAt(rideId: String, pickupLat: Double, pickupLng: Double) {
         viewModelScope.launch {
             try {
@@ -76,7 +72,6 @@ class FutureRideViewModel (
                     pickupLat = pickupLat,
                     pickupLng = pickupLng
                 ).onSuccess {
-                    // Optimistically remove from the list since they've booked it
                     _uiState.value = _uiState.value.copy(
                         rides = _uiState.value.rides.filter { it.id != rideId }
                     )
@@ -89,9 +84,6 @@ class FutureRideViewModel (
         }
     }
 
-    /**
-     * Book a ride using the rider's current device location as the pickup.
-     */
     fun bookRideUsingCurrentLocation(rideId: String) {
         viewModelScope.launch {
             try {
@@ -132,8 +124,8 @@ class FutureRideViewModel (
         viewModelScope.launch {
             try {
                 val rides = repo.getAllFutureRides(
-                    userId = userId,  // ← userId FIRST
-                    genderPreference = _uiState.value.genderPreference  // ← SECOND (optional)
+                    userId = userId,
+                    genderPreference = _uiState.value.genderPreference
                 )
                 _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
             } catch (e: Exception) {
@@ -149,7 +141,8 @@ class FutureRideViewModel (
                 val rides = repo.getFutureRidesByDate(
                     userId,
                     date,
-                    genderPreference = _uiState.value.genderPreference)
+                    genderPreference = _uiState.value.genderPreference
+                )
                 _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
@@ -158,16 +151,13 @@ class FutureRideViewModel (
     }
 
     fun hideRide(rideId: String) {
-        // Optimistically update UI immediately
         _uiState.value = _uiState.value.copy(
             hiddenRideIds = _uiState.value.hiddenRideIds + rideId
         )
         viewModelScope.launch {
             try {
                 repo.hideRide(userId, rideId)
-                Log.d("HIDE", "Success to hide ride: $rideId")
             } catch (e: Exception) {
-                // Revert if DB call fails
                 _uiState.value = _uiState.value.copy(
                     hiddenRideIds = _uiState.value.hiddenRideIds - rideId
                 )
@@ -177,7 +167,6 @@ class FutureRideViewModel (
     }
 
     fun unhideRide(rideId: String) {
-        // Optimistically update UI immediately
         _uiState.value = _uiState.value.copy(
             hiddenRideIds = _uiState.value.hiddenRideIds - rideId
         )
@@ -185,7 +174,6 @@ class FutureRideViewModel (
             try {
                 repo.unhideRide(userId, rideId)
             } catch (e: Exception) {
-                // Revert if DB call fails
                 _uiState.value = _uiState.value.copy(
                     hiddenRideIds = _uiState.value.hiddenRideIds + rideId
                 )
@@ -194,25 +182,19 @@ class FutureRideViewModel (
         }
     }
 
+    // ========== FIXED: Use simple bookRide (no dropoff details) ==========
     fun bookRide(ride: Ride, pickupName: String, pickupLat: Double, pickupLng: Double) {
-        val campusLocation = CAMPUS_OPTIONS[ride.destination]
-        val dropoffLat = campusLocation?.latLng?.latitude ?: ride.destinationLat ?: 0.0
-        val dropoffLng = campusLocation?.latLng?.longitude ?: ride.destinationLng ?: 0.0
-
+        // The pickupName is ignored; we only use the coordinates.
         viewModelScope.launch {
             val result = repo.bookRide(
-                riderId = userId,
                 rideId = ride.id,
-                pickupLocation = pickupName,
+                riderId = userId,
                 pickupLat = pickupLat,
                 pickupLng = pickupLng,
-                dropoffLocation = ride.destination,
-                dropoffLat = dropoffLat,
-                dropoffLng = dropoffLng,
+                seatsBooked = 1
             )
             if (result.isSuccess) {
                 _uiState.value = _uiState.value.copy(bookingMessage = "Ride booked successfully!")
-                // Reload to reflect updated seat count and remove this ride from list
                 if (_uiState.value.selectedDate.isNotEmpty())
                     loadRidesByDate(_uiState.value.selectedDate)
                 else
@@ -228,7 +210,6 @@ class FutureRideViewModel (
     fun clearBookingMessage() {
         _uiState.value = _uiState.value.copy(bookingMessage = null)
     }
-
 }
 
 class FutureRideViewModelFactory(
@@ -240,7 +221,12 @@ class FutureRideViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(FutureRideViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return FutureRideViewModel(BookRepository(client), mapsRepo, placesRepo, userId) as T
+            return FutureRideViewModel(
+                BookRepository(client),
+                mapsRepo,
+                placesRepo,
+                userId
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

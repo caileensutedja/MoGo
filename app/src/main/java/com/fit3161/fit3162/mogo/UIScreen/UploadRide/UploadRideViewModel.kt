@@ -3,10 +3,8 @@ package com.fit3161.fit3162.mogo.UIScreen.UploadRide
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.fit3161.fit3162.mogo.data.model.PresetDestination
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
-import com.fit3161.fit3162.mogo.data.repo.MapsRepository
-import com.fit3161.fit3162.mogo.data.repo.PlacesRepository
+import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.data.repo.Ride
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,23 +16,14 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-/**
- * Form state for the upload-ride screen.
- *
- * Coordinates are tracked separately from the display string because the
- * origin can come from either Places Autocomplete (resolved coordinates)
- * or "Use my current location" (device coordinates with a friendly label).
- */
 data class UploadRideForm(
     val origin: String = "",
-    val originLat: Double? = null,
-    val originLng: Double? = null,
-    val destination: PresetDestination? = null,
+    val destination: String = "",
     val availableSeats: String = "3",
-    val departureDate: String = "",   // YYYY-MM-DD
-    val departureTime: String = "",   // HH:MM
+    val departureDate: String = "",
+    val departureTime: String = "",
     val isRecurring: Boolean = false,
-    val recurringWeeks: Int = 1,      // how many weeks to repeat
+    val recurringWeeks: Int = 1,
     val vehicleType: String = "",
     val plateNumber: String = ""
 )
@@ -48,8 +37,6 @@ sealed class UploadStatus {
 
 class UploadRideViewModel(
     private val repo: BookRepository,
-    private val mapsRepo: MapsRepository,
-    val placesRepo: PlacesRepository,
     private val userId: String
 ) : ViewModel() {
 
@@ -59,56 +46,20 @@ class UploadRideViewModel(
     private val _status = MutableStateFlow<UploadStatus>(UploadStatus.Idle)
     val status: StateFlow<UploadStatus> = _status.asStateFlow()
 
-    // ── Origin methods ───────────────────────────────────────────
-
-    fun onOriginChange(value: String) {
-        _form.value = _form.value.copy(origin = value, originLat = null, originLng = null)
-    }
-
-    fun onOriginPlacePicked(name: String, lat: Double, lng: Double) {
-        _form.value = _form.value.copy(origin = name, originLat = lat, originLng = lng)
-    }
-
-    fun useCurrentLocationForOrigin() {
-        viewModelScope.launch {
-            mapsRepo.getDeviceLocation().fold(
-                onSuccess = { latLng ->
-                    _form.value = _form.value.copy(
-                        origin = "Current location",
-                        originLat = latLng.latitude,
-                        originLng = latLng.longitude
-                    )
-                },
-                onFailure = {
-                    _status.value = UploadStatus.Error(
-                        "Couldn't get your location: ${it.message}"
-                    )
-                }
-            )
-        }
-    }
-
-    // ── Form update methods ──────────────────────────────────────
-
-    fun onDestinationChange(value: PresetDestination) {
-        _form.value = _form.value.copy(destination = value)
-    }
-
+    // Form updates
+    fun onOriginChange(value: String) { _form.value = _form.value.copy(origin = value) }
+    fun onDestinationChange(value: String) { _form.value = _form.value.copy(destination = value) }
     fun onSeatsChange(value: String) {
         if (value.all { it.isDigit() }) _form.value = _form.value.copy(availableSeats = value)
     }
-
     fun onDateChange(value: String) { _form.value = _form.value.copy(departureDate = value) }
     fun onTimeChange(value: String) { _form.value = _form.value.copy(departureTime = value) }
     fun onRecurringChange(value: Boolean) { _form.value = _form.value.copy(isRecurring = value) }
     fun onVehicleTypeChange(value: String) { _form.value = _form.value.copy(vehicleType = value) }
     fun onPlateNumberChange(value: String) { _form.value = _form.value.copy(plateNumber = value) }
-
     fun onRecurringWeeksChange(value: Int) {
         _form.value = _form.value.copy(recurringWeeks = value.coerceIn(1, 12))
     }
-
-    // ── Carbon estimate ──────────────────────────────────────────
 
     private fun getApproximateDistanceKm(origin: String, destination: String): Double {
         fun normalize(s: String): String {
@@ -120,10 +71,8 @@ class UploadRideViewModel(
                 .replace("cbd", "city")
                 .trim()
         }
-
         val o = normalize(origin)
         val d = normalize(destination)
-
         val distances = mapOf(
             "clayton|caulfield" to 12.0,
             "clayton|parkville" to 22.0,
@@ -136,20 +85,17 @@ class UploadRideViewModel(
             "clayton|m-city" to 3.0,
             "caulfield|melb cbd" to 9.0,
         )
-
         val key = listOf(o, d).sorted().joinToString("|")
         return distances[key] ?: 10.0
     }
 
-    // ── Ride building ────────────────────────────────────────────
-
     private fun buildRideInstance(
         data: UploadRideForm,
-        destination: PresetDestination,
         weekOffset: Int,
         recurringGroupId: String?
     ): Ride {
-        val distanceKm = getApproximateDistanceKm(data.origin, destination.name)
+        val campus = CAMPUS_OPTIONS[data.destination]
+        val distanceKm = getApproximateDistanceKm(data.origin, data.destination)
         val factor = when (data.vehicleType.lowercase()) {
             "electric", "ev" -> 0.01
             "hybrid" -> 0.12
@@ -162,11 +108,11 @@ class UploadRideViewModel(
             driverId = userId,
             vehicleId = null,
             origin = data.origin,
-            destination = destination.name,
-            originLat = data.originLat,
-            originLng = data.originLng,
-            destinationLat = destination.latLng.latitude,
-            destinationLng = destination.latLng.longitude,
+            destination = data.destination,
+            originLat = null,
+            originLng = null,
+            destinationLat = campus?.latLng?.latitude,
+            destinationLng = campus?.latLng?.longitude,
             rideStatus = "scheduled",
             availableSeats = data.availableSeats.toInt(),
             departureTime = buildDepartureTime(data.departureDate, data.departureTime, weekOffset),
@@ -180,10 +126,7 @@ class UploadRideViewModel(
     }
 
     private fun buildDepartureTime(date: String, time: String, weekOffset: Int): String {
-        val base = LocalDateTime.parse(
-            "${date}T${time}",
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
-        )
+        val base = LocalDateTime.parse("${date}T${time}", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
         val shifted = base.plusWeeks(weekOffset.toLong())
         return shifted.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
     }
@@ -199,25 +142,16 @@ class UploadRideViewModel(
         }
     }
 
-    // ── Submit ────────────────────────────────────────────────────
-
     fun submitRide() {
         val data = _form.value
-        val destination = data.destination
 
         when {
             data.origin.isBlank() -> {
-                _status.value = UploadStatus.Error("Please set a starting location")
+                _status.value = UploadStatus.Error("Origin cannot be empty")
                 return
             }
-            data.originLat == null || data.originLng == null -> {
-                _status.value = UploadStatus.Error(
-                    "Please pick a starting location from the suggestions, or tap 'Use my current location'"
-                )
-                return
-            }
-            destination == null -> {
-                _status.value = UploadStatus.Error("Please select a destination")
+            data.destination.isBlank() -> {
+                _status.value = UploadStatus.Error("Destination cannot be empty")
                 return
             }
             data.departureDate.isBlank() -> {
@@ -245,12 +179,7 @@ class UploadRideViewModel(
             val weeksToCreate = if (data.isRecurring) data.recurringWeeks else 1
 
             val rides = (0 until weeksToCreate).map { weekOffset ->
-                buildRideInstance(
-                    data = data,
-                    destination = destination,
-                    weekOffset = weekOffset,
-                    recurringGroupId = groupId
-                )
+                buildRideInstance(data, weekOffset, groupId)
             }
 
             repo.uploadRides(rides)
@@ -264,19 +193,12 @@ class UploadRideViewModel(
 
 class UploadRideViewModelFactory(
     private val client: SupabaseClient,
-    private val mapsRepo: MapsRepository,
-    private val placesRepo: PlacesRepository,
     private val userId: String
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(UploadRideViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return UploadRideViewModel(
-                BookRepository(client),
-                mapsRepo,
-                placesRepo,
-                userId
-            ) as T
+            return UploadRideViewModel(BookRepository(client), userId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

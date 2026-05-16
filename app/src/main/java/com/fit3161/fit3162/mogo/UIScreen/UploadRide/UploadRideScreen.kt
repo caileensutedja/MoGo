@@ -1,7 +1,6 @@
 package com.fit3161.fit3162.mogo.UIScreen.UploadRide
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +20,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -59,8 +59,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.convertMillisToDate
-import com.fit3161.fit3162.mogo.data.model.PresetDestinations
-import com.fit3161.fit3162.mogo.ui.components.AddressAutocompleteField
+import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,9 +71,9 @@ fun UploadRideScreen(
     val form by viewModel.form.collectAsState()
     val status by viewModel.status.collectAsState()
 
+    // Date picker state
     var showDatePicker by remember { mutableStateOf(false) }
     val minMillis = Instant.now().plusSeconds(24 * 60 * 60).toEpochMilli()
-
     val datePickerState = rememberDatePickerState(
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
@@ -83,8 +82,12 @@ fun UploadRideScreen(
         }
     )
 
+    // Time picker state
     var showTimePicker by remember { mutableStateOf(false) }
     val timePickerState = rememberTimePickerState()
+
+    // Destination campus dropdown state
+    var campusExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -96,7 +99,7 @@ fun UploadRideScreen(
     ) {
         Icon(
             imageVector = Icons.Default.DirectionsCar,
-            contentDescription = null,
+            contentDescription = "Car icon",
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.primary
         )
@@ -107,54 +110,42 @@ fun UploadRideScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Origin field with Places Autocomplete
-        AddressAutocompleteField(
-            label = "Starting Location",
-            currentValue = form.origin,
-            placesRepo = viewModel.placesRepo,
-            onCurrentLocation = { viewModel.useCurrentLocationForOrigin() },
-            onPlacePicked = { resolved ->
-                viewModel.onOriginPlacePicked(
-                    name = resolved.name,
-                    lat = resolved.latLng.latitude,
-                    lng = resolved.latLng.longitude
-                )
-            },
-            setValue = { viewModel.onOriginChange(it) }
+        // Origin (simple text field – user types manually)
+        OutlinedTextField(
+            value = form.origin,
+            onValueChange = { viewModel.onOriginChange(it) },
+            label = { Text("Starting Location / Address") },
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) }
         )
 
-        // Destination dropdown — preset campuses
-        var destinationMenuExpanded by remember { mutableStateOf(false) }
+        // Destination campus dropdown
         ExposedDropdownMenuBox(
-            expanded = destinationMenuExpanded,
-            onExpandedChange = { destinationMenuExpanded = it },
+            expanded = campusExpanded,
+            onExpandedChange = { campusExpanded = !campusExpanded },
             modifier = Modifier.fillMaxWidth()
         ) {
             OutlinedTextField(
-                value = form.destination?.name ?: "",
+                value = form.destination.ifEmpty { "Select Campus" },
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Destination") },
-                placeholder = { Text("Select a campus") },
+                label = { Text("Destination Campus") },
                 leadingIcon = { Icon(Icons.Default.Flag, null) },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = destinationMenuExpanded)
-                },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = campusExpanded) },
                 modifier = Modifier
-                    .menuAnchor()
                     .fillMaxWidth()
+                    .menuAnchor()
             )
-
             ExposedDropdownMenu(
-                expanded = destinationMenuExpanded,
-                onDismissRequest = { destinationMenuExpanded = false }
+                expanded = campusExpanded,
+                onDismissRequest = { campusExpanded = false }
             ) {
-                PresetDestinations.all.forEach { preset ->
+                CAMPUS_OPTIONS.keys.forEach { campusName ->
                     DropdownMenuItem(
-                        text = { Text(preset.name) },
+                        text = { Text(campusName) },
                         onClick = {
-                            viewModel.onDestinationChange(preset)
-                            destinationMenuExpanded = false
+                            viewModel.onDestinationChange(campusName)
+                            campusExpanded = false
                         }
                     )
                 }
@@ -169,7 +160,7 @@ fun UploadRideScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // DATE + TIME SELECTION
+        // Date + Time row
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -204,7 +195,7 @@ fun UploadRideScreen(
             )
         }
 
-        // DATE PICKER DIALOG
+        // Date picker dialog
         if (showDatePicker) {
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
@@ -224,18 +215,14 @@ fun UploadRideScreen(
             }
         }
 
-        // TIME PICKER DIALOG
+        // Time picker dialog
         if (showTimePicker) {
             TimePickerDialog(
                 onDismissRequest = { showTimePicker = false },
                 title = { Text("Select Departure Time") },
                 confirmButton = {
                     TextButton(onClick = {
-                        val formattedTime = String.format(
-                            "%02d:%02d",
-                            timePickerState.hour,
-                            timePickerState.minute
-                        )
+                        val formattedTime = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
                         viewModel.onTimeChange(formattedTime)
                         showTimePicker = false
                     }) { Text("Confirm") }
@@ -274,11 +261,12 @@ fun UploadRideScreen(
         }
 
         // Vehicle type dropdown
-        var vehicleTypeMenuExpanded by remember { mutableStateOf(false) }
+        var vehicleExpanded by remember { mutableStateOf(false) }
         val vehicleTypes = listOf("Electric", "Hybrid", "Petrol")
+
         ExposedDropdownMenuBox(
-            expanded = vehicleTypeMenuExpanded,
-            onExpandedChange = { vehicleTypeMenuExpanded = it },
+            expanded = vehicleExpanded,
+            onExpandedChange = { vehicleExpanded = !vehicleExpanded },
             modifier = Modifier.fillMaxWidth()
         ) {
             OutlinedTextField(
@@ -286,26 +274,21 @@ fun UploadRideScreen(
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Vehicle Type") },
-                placeholder = { Text("Select vehicle type") },
+                placeholder = { Text("Select type") },
                 leadingIcon = { Icon(Icons.Default.DirectionsCar, null) },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = vehicleTypeMenuExpanded)
-                },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = vehicleExpanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor()
             )
-
             ExposedDropdownMenu(
-                expanded = vehicleTypeMenuExpanded,
-                onDismissRequest = { vehicleTypeMenuExpanded = false }
+                expanded = vehicleExpanded,
+                onDismissRequest = { vehicleExpanded = false }
             ) {
                 vehicleTypes.forEach { type ->
                     DropdownMenuItem(
                         text = { Text(type) },
                         onClick = {
                             viewModel.onVehicleTypeChange(type)
-                            vehicleTypeMenuExpanded = false
+                            vehicleExpanded = false
                         }
                     )
                 }
@@ -335,12 +318,8 @@ fun UploadRideScreen(
                             onNavigateToDashboard()
                         },
                         shape = RoundedCornerShape(15.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFCEA2FD)
-                        )
-                    ) {
-                        Text("Continue")
-                    }
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCEA2FD))
+                    ) { Text("Continue") }
                 }
             )
         }
@@ -370,9 +349,7 @@ fun UploadRideScreen(
 
         Button(
             onClick = { viewModel.submitRide() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
             enabled = status !is UploadStatus.Loading
         ) {
             if (status is UploadStatus.Loading) CircularProgressIndicator(color = Color.White)

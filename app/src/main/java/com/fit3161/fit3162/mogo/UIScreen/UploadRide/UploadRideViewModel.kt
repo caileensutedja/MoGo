@@ -1,5 +1,6 @@
 package com.fit3161.fit3162.mogo.UIScreen.UploadRide
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -46,7 +47,7 @@ class UploadRideViewModel(
     private val _status = MutableStateFlow<UploadStatus>(UploadStatus.Idle)
     val status: StateFlow<UploadStatus> = _status.asStateFlow()
 
-    // Form updates
+    // Form update methods
     fun onOriginChange(value: String) { _form.value = _form.value.copy(origin = value) }
     fun onDestinationChange(value: String) { _form.value = _form.value.copy(destination = value) }
     fun onSeatsChange(value: String) {

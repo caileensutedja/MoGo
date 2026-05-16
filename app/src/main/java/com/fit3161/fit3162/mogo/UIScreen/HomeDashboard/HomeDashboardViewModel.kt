@@ -37,6 +37,7 @@ data class HomeUiState(
     val totalDistanceShared: Double = 0.0,
     val treesEquivalent: Double = 0.0,
     val ongoingRide: OngoingRideDetails? = null,
+    val hasUnreadNotification: Boolean = false,   // NEW
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -143,6 +144,9 @@ class HomeViewModel(
                     rideStreak = rideStreak,
                     treesEquivalent = treesEquivalent,
                     ongoingRide = ongoingRideDetails,
+                    // For demo, we set a notification badge if there's any unread system message.
+                    // You can set this to true when certain events occur (e.g., ride cancellation).
+                    hasUnreadNotification = false,
                     isLoading = false
                 )
 

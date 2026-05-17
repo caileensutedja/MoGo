@@ -1,0 +1,23 @@
+Index: app/src/main/java/com/fit3161/fit3162/mogo/data/repo/OfferRepository.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.fit3161.fit3162.mogo.data.repo\ndata class Offer(\n    val id: String,\n    val title: String,\n    val store: String,\n    val amount: Int,\n    val tc: String,\n    val date: String\n)\nclass OfferRepository {\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/fit3161/fit3162/mogo/data/repo/OfferRepository.kt b/app/src/main/java/com/fit3161/fit3162/mogo/data/repo/OfferRepository.kt
+--- a/app/src/main/java/com/fit3161/fit3162/mogo/data/repo/OfferRepository.kt	(revision ef309a8504195c52fcb12eb17eea19a26871de01)
++++ b/app/src/main/java/com/fit3161/fit3162/mogo/data/repo/OfferRepository.kt	(date 1776137399086)
+@@ -1,11 +1,0 @@
+-package com.fit3161.fit3162.mogo.data.repo
+-data class Offer(
+-    val id: String,
+-    val title: String,
+-    val store: String,
+-    val amount: Int,
+-    val tc: String,
+-    val date: String
+-)
+-class OfferRepository {
+-}
+\ No newline at end of file

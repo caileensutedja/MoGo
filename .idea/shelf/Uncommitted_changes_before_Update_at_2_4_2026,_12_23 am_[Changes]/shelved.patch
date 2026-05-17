@@ -1,0 +1,74 @@
+Index: gradle/wrapper/gradle-wrapper.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>distributionBase=GRADLE_USER_HOME\ndistributionPath=wrapper/dists\ndistributionUrl=https\\://services.gradle.org/distributions/gradle-9.0.0-bin.zip\nnetworkTimeout=10000\nvalidateDistributionUrl=true\nzipStoreBase=GRADLE_USER_HOME\nzipStorePath=wrapper/dists\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>ISO-8859-1
+===================================================================
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+--- a/gradle/wrapper/gradle-wrapper.properties	(revision 3c42c3d9a62d886987acbf12fe2b591d805edeae)
++++ b/gradle/wrapper/gradle-wrapper.properties	(date 1775008575394)
+@@ -1,6 +1,8 @@
++#Wed Apr 01 12:56:15 AEDT 2026
+ distributionBase=GRADLE_USER_HOME
+ distributionPath=wrapper/dists
+-distributionUrl=https\://services.gradle.org/distributions/gradle-9.0.0-bin.zip
++distributionSha256Sum=b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06
++distributionUrl=https\://services.gradle.org/distributions/gradle-9.3.1-bin.zip
+ networkTimeout=10000
+ validateDistributionUrl=true
+ zipStoreBase=GRADLE_USER_HOME
+Index: app/src/main/java/com/fit3161/fit3162/mogo/UIScreen/SignInScreen/SignInViewModel.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.fit3161.fit3162.mogo.UIScreen.SignInScreen\n\nimport androidx.lifecycle.ViewModel\nimport androidx.lifecycle.ViewModelProvider\nimport androidx.lifecycle.viewModelScope\nimport com.fit3161.fit3162.mogo.data.model.AuthState\nimport com.fit3161.fit3162.mogo.data.repo.AuthRepository\nimport kotlinx.coroutines.flow.MutableStateFlow\nimport kotlinx.coroutines.flow.StateFlow\nimport kotlinx.coroutines.flow.asStateFlow\nimport kotlinx.coroutines.launch\nimport com.fit3161.fit3162.mogo.data.SessionManager\n\n\n/**\n * LoginViewModel manages LoginScreen state and business logic.\n */\nclass SignInViewModel(private val repo: AuthRepository, private val sessionManager: SessionManager) : ViewModel() {\n\n    private val _state = MutableStateFlow<AuthState>(AuthState.Idle)\n    val state: StateFlow<AuthState> = _state.asStateFlow()\n\n    /**\n     * Validates email then attempts to log in via [AuthRepository].\n     */\n    fun login(email: String, password: String) {\n        if (!isValidEmail(email)) {\n            _state.value = AuthState.Error(\n                \"Please use your @student.monash.edu or @monash.edu.au email.\"\n            )\n            return\n        }\n        viewModelScope.launch { // Login attempt happens here.\n            _state.value = AuthState.Loading\n            repo.login(email.trim(), password)\n                .onSuccess { user ->\n                    // user will be the object returned from the DB\n                    sessionManager.saveSession(\n                        name = \"\",       // TODO: from DB response\n                        email = email.trim()\n                    )\n                    _state.value = AuthState.Success\n                }\n                .onFailure { _state.value = AuthState.Error(it.message ?: \"Login failed.\") }\n        }\n    }\n\n    /**\n     * Reset state (AuthState) to Idle.\n     */\n    fun resetState() {\n        _state.value = AuthState.Idle\n    }\n\n    /**\n     * Checks if organization email is valid .\n     */\n    private fun isValidEmail(email: String): Boolean {\n        val lower = email.trim().lowercase()\n        return lower.endsWith(\"@student.monash.edu\")\n                || lower.endsWith(\"@monash.edu.au\")\n    }\n}\n\n/**\n *\n * Factory for LoginViewModel.\n *\n * Required because LoginViewModel has a constructor parameter (AuthRepository).\n * Android's default ViewModelProvider cannot instantiate parameterised ViewModels\n * without a factory.\n */\nclass SignInViewModelFactory(\n    private val repo: AuthRepository,\n    private val sessionManager: SessionManager\n) : ViewModelProvider.Factory {\n    override fun <T : ViewModel> create(modelClass: Class<T>): T {\n        if (modelClass.isAssignableFrom(SignInViewModel::class.java)) {\n            @Suppress(\"UNCHECKED_CAST\")\n            return SignInViewModel(repo, sessionManager) as T\n        }\n        throw IllegalArgumentException(\"Unknown ViewModel class\")\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/fit3161/fit3162/mogo/UIScreen/SignInScreen/SignInViewModel.kt b/app/src/main/java/com/fit3161/fit3162/mogo/UIScreen/SignInScreen/SignInViewModel.kt
+--- a/app/src/main/java/com/fit3161/fit3162/mogo/UIScreen/SignInScreen/SignInViewModel.kt	(revision 3c42c3d9a62d886987acbf12fe2b591d805edeae)
++++ b/app/src/main/java/com/fit3161/fit3162/mogo/UIScreen/SignInScreen/SignInViewModel.kt	(date 1775008689340)
+@@ -10,6 +10,7 @@
+ import kotlinx.coroutines.flow.asStateFlow
+ import kotlinx.coroutines.launch
+ import com.fit3161.fit3162.mogo.data.SessionManager
++//import io.github.jan.supabase.auth.SessionManager
+ 
+ 
+ /**
+Index: .idea/studiobot.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/studiobot.xml b/.idea/studiobot.xml
+new file mode 100644
+--- /dev/null	(date 1774681191833)
++++ b/.idea/studiobot.xml	(date 1774681191833)
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="StudioBotProjectSettings">
++    <option name="shareContext" value="OptedIn" />
++  </component>
++</project>
+\ No newline at end of file
+Index: app/src/main/java/com/fit3161/fit3162/mogo/data/SessionManager.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.fit3161.fit3162.mogo.data\n\nimport android.content.Context\nimport androidx.datastore.preferences.core.*\nimport androidx.datastore.preferences.preferencesDataStore\nimport kotlinx.coroutines.flow.Flow\nimport kotlinx.coroutines.flow.map\n\nval Context.dataStore by preferencesDataStore(name = \"user_session\")\n\nclass SessionManager(private val context: Context) {\n\n    companion object {\n        val KEY_IS_LOGGED_IN = booleanPreferencesKey(\"is_logged_in\")\n        val KEY_USER_NAME = stringPreferencesKey(\"user_name\")\n        val KEY_USER_EMAIL = stringPreferencesKey(\"user_email\")\n        val KEY_LOGIN_TIMESTAMP = longPreferencesKey(\"login_timestamp\")\n    }\n\n    // --- READ ---\n    val isLoggedIn: Flow<Boolean> = context.dataStore.data\n        .map { prefs -> prefs[KEY_IS_LOGGED_IN] ?: false }\n\n    val userName: Flow<String> = context.dataStore.data\n        .map { prefs -> prefs[KEY_USER_NAME] ?: \"\" }\n\n    val userEmail: Flow<String> = context.dataStore.data\n        .map { prefs -> prefs[KEY_USER_EMAIL] ?: \"\" }\n\n    val loginTimestamp: Flow<Long> = context.dataStore.data\n        .map { prefs -> prefs[KEY_LOGIN_TIMESTAMP] ?: 0L }\n\n    // --- WRITE ---\n    // Your colleague will also call saveSession() after their DB insert - nothing changes here\n    suspend fun saveSession(name: String, email: String) {\n        context.dataStore.edit { prefs ->\n            prefs[KEY_IS_LOGGED_IN] = true\n            prefs[KEY_USER_NAME] = name\n            prefs[KEY_USER_EMAIL] = email\n            prefs[KEY_LOGIN_TIMESTAMP] = System.currentTimeMillis()\n        }\n    }\n\n    suspend fun clearSession() {\n        context.dataStore.edit { prefs -> prefs.clear() }\n    }\n\n    // --- 13-WEEK EXPIRY (your R18 requirement) ---\n    fun isSessionExpired(loginTimestamp: Long): Boolean {\n        val thirteenWeeks = 13L * 7 * 24 * 60 * 60 * 1000\n        return System.currentTimeMillis() - loginTimestamp > thirteenWeeks\n    }\n}
+===================================================================
+diff --git a/app/src/main/java/com/fit3161/fit3162/mogo/data/SessionManager.kt b/app/src/main/java/com/fit3161/fit3162/mogo/data/SessionManager.kt
+--- a/app/src/main/java/com/fit3161/fit3162/mogo/data/SessionManager.kt	(revision 3c42c3d9a62d886987acbf12fe2b591d805edeae)
++++ b/app/src/main/java/com/fit3161/fit3162/mogo/data/SessionManager.kt	(date 1775009124965)
+@@ -5,8 +5,8 @@
+ import androidx.datastore.preferences.preferencesDataStore
+ import kotlinx.coroutines.flow.Flow
+ import kotlinx.coroutines.flow.map
+-
+-val Context.dataStore by preferencesDataStore(name = "user_session")
++//
++val Context.dataStore by preferenceDataStore(name = "user_session")
+ 
+ class SessionManager(private val context: Context) {
+ 

@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileViewModel
-import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
+import com.fit3161.fit3162.mogo.data.model.PresetDestinations
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -479,8 +479,8 @@ fun ProfileScreenUI(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
-                        CAMPUS_OPTIONS.keys.forEach { option ->
-                            DropdownMenuItem(
+                        PresetDestinations.all.map { it.name }.forEach { option ->
+                        DropdownMenuItem(
                                 text = { Text(option) },
                                 onClick = { tempHomeCampus = option; expanded = false }
                             )

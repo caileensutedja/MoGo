@@ -5,11 +5,11 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.model.Location
+import com.fit3161.fit3162.mogo.data.model.PresetDestinations
 import com.fit3161.fit3162.mogo.data.repo.AuthRepository
 import com.fit3161.fit3162.mogo.data.repo.ImageUploadRepository
 import com.fit3161.fit3162.mogo.data.repo.ProfileRepository
 import com.fit3161.fit3162.mogo.data.repo.UserProfile
-import com.fit3161.fit3162.mogo.data.repo.locationFromCampusName
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -103,4 +103,10 @@ class ProfileViewModel(
             }
         }
     }
+}
+
+/** Converts a campus name to a Location, using PresetDestinations as the source. */
+fun locationFromCampusName(name: String): Location? {
+    val preset = PresetDestinations.byName(name) ?: return null
+    return Location(preset.name, preset.latLng)
 }

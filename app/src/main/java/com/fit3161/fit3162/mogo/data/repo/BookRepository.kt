@@ -1,25 +1,20 @@
 package com.fit3161.fit3162.mogo.data.repo
 
 import android.util.Log
-import com.fit3161.fit3162.mogo.data.model.Location
-import com.google.android.gms.maps.model.LatLng
-import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
-import io.github.jan.supabase.postgrest.rpc
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+// Represents a user profile joined from the users table.
 @Serializable
 data class RideUser(
         @SerialName("user_id") val userId: String,
@@ -31,10 +26,10 @@ data class RideUser(
         @SerialName("user_role") val userRole: String? = null,
         @SerialName("driver_rating") val driverRating: Double? = null,
         @SerialName("home_campus") val homeCampus: String? = null,
-        @SerialName("avatar_url") val avatarUrl: String? = null,   // ← add this
         @SerialName("time_created") val timeCreated: String? = null,
         @SerialName("updated_at") val updatedAt: String? = null,
-        @SerialName("gender_preference") val genderPreference: String? = null
+        @SerialName("gender_preference") val genderPreference: String? = null,
+        @SerialName("avatar_url") val avatarUrl: String? = null
 )
 
 @Serializable
@@ -69,11 +64,16 @@ data class Ride(
         @SerialName("departure_time") val departureTime: String,
         @SerialName("carbon_estimate") val carbonEstimate: Double? = null,
         @SerialName("is_recurring") val isRecurring: Boolean,
+        @SerialName("recurring_group_id") val recurringGroupId: String? = null,
+        @SerialName("recurring_week_index") val recurringWeekIndex: Int? = null,
         @SerialName("time_created") val timeCreated: String? = null,
         @SerialName("vehicle_type") val vehicleType: String,
         @SerialName("plate_number") val plateNumber: String,
-        @SerialName("recurring_group_id") val recurringGroupId: String? = null,
-        @SerialName("recurring_week_index") val recurringWeekIndex: Int? = null,
+        @SerialName("cancellation_reason") val cancellationReason: String? = null,
+        @SerialName("driver_live_lat") val driverLiveLat: Double? = null,
+        @SerialName("driver_live_lng") val driverLiveLng: Double? = null,
+        @SerialName("rider_live_lat") val riderLiveLat: Double? = null,
+        @SerialName("rider_live_lng") val riderLiveLng: Double? = null,
         val users: RideUser? = null,
         val vehicles: Vehicle? = null
 )
@@ -85,31 +85,28 @@ data class Booking(
         @SerialName("rider_id") val riderId: String,
         @SerialName("pickup_location") val pickupLocation: String,
         @SerialName("dropoff_location") val dropoffLocation: String,
-        @SerialName("pickup_lat") val pickupLat: Double? = null,
-        @SerialName("pickup_lng") val pickupLng: Double? = null,
         @SerialName("seats_booked") val seatsBooked: Int,
         @SerialName("booking_status") val bookingStatus: String,
-        @SerialName("time_created") val timeCreated: String? = null,
+        @SerialName("pickup_lat") val pickupLat: Double? = null,
+        @SerialName("pickup_lng") val pickupLng: Double? = null,
         @SerialName("dropoff_lat") val dropoffLat: Double? = null,
         @SerialName("dropoff_lng") val dropoffLng: Double? = null,
+        @SerialName("estimated_distance_meters") val estimatedDistanceMeters: Int? = null,
+        @SerialName("estimated_duration_seconds") val estimatedDurationSeconds: Int? = null,
+        @SerialName("cancellation_reason") val cancellationReason: String? = null,
+        @SerialName("time_created") val timeCreated: String? = null,
         val rides: Ride? = null
 )
 
-/**
- * Write-only DTO for inserting a new booking.
- * Excludes DB-generated fields (booking_id, time_created) and joined nested
- * objects (rides) that don't exist as columns on the bookings table.
- */
+// Lightweight booking info for the driver's "My Rides" view.
 @Serializable
-data class BookingInsert(
-        @SerialName("ride_id") val rideId: String,
+data class RideBookingInfo(
+        @SerialName("booking_id") val bookingId: String,
         @SerialName("rider_id") val riderId: String,
         @SerialName("pickup_location") val pickupLocation: String,
-        @SerialName("dropoff_location") val dropoffLocation: String,
-        @SerialName("pickup_lat") val pickupLat: Double,
-        @SerialName("pickup_lng") val pickupLng: Double,
         @SerialName("seats_booked") val seatsBooked: Int,
-        @SerialName("booking_status") val bookingStatus: String
+        @SerialName("booking_status") val bookingStatus: String,
+        val users: RideUser? = null
 )
 
 @Serializable
@@ -117,15 +114,6 @@ data class HiddenRide(
         @SerialName("ride_id") val rideId: String
 )
 
-
-val CAMPUS_OPTIONS: Map<String, Location> = mapOf(
-        "Clayton"    to Location("Clayton",    LatLng(-37.9105, 145.1363)),
-        "Caulfield"  to Location("Caulfield",  LatLng(-37.8768, 145.0452)),
-        "Peninsula"  to Location("Peninsula",  LatLng(-38.1484, 145.1302)),
-        "Parkville"  to Location("Parkville",  LatLng(-37.7963, 144.9614)),
-)
-
-fun locationFromCampusName(name: String): Location? = CAMPUS_OPTIONS[name]
 
 class BookRepository(private val client: SupabaseClient) {
 
@@ -139,26 +127,20 @@ class BookRepository(private val client: SupabaseClient) {
                 }
         }
 
+        suspend fun uploadRides(rides: List<Ride>): Result<Unit> {
+                return try {
+                        client.from("rides").insert(rides)
+                        Result.success(Unit)
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Batch upload failed", e)
+                        Result.failure(e)
+                }
+        }
+
         suspend fun getUserVehicles(userId: String): List<Vehicle> {
                 return client.from("vehicles")
                         .select() { filter { eq("driver_id", userId) } }
                         .decodeList<Vehicle>()
-        }
-
-        /**
-         *
-         */
-        suspend fun getBookingById(bookingId: String): Booking? {
-                return try {
-                        client.from("bookings")
-                                .select(Columns.raw("*, rides(*, users(*), vehicles(*))")) {
-                                        filter { eq("booking_id", bookingId) }
-                                }
-                                .decodeSingleOrNull<Booking>()
-                } catch (e: Exception) {
-                        Log.e("REPO_ERROR", "Failed to fetch booking", e)
-                        null
-                }
         }
 
         suspend fun getBookedRideIds(userId: String): Set<String> {
@@ -175,53 +157,6 @@ class BookRepository(private val client: SupabaseClient) {
                         .toSet()
         }
 
-        suspend fun cancelBooking(bookingId: String, userId: String, role: String): Result<Unit> {
-                return try {
-                        // 1. Get the ride_id from the booking
-                        val booking = client.from("bookings")
-                                .select(Columns.raw("ride_id")) {
-                                        filter { eq("booking_id", bookingId) }
-                                }
-                                .decodeSingleOrNull<Booking>()
-                                ?: return Result.failure(Exception("Booking not found"))
-
-                        val rideId = booking.rideId
-
-                        // 2. Update booking status
-                        client.from("bookings")
-                                .update(
-                                        buildJsonObject {
-                                                put("booking_status", "cancelled")
-                                                put("cancelled_by", role)
-                                                put("cancellation_time", "now()")
-                                        }
-                                ) {
-                                        filter { eq("booking_id", bookingId) }
-                                }
-
-                        // 3. Increment available seats safely (fetch then update)
-                        val currentRide = client.from("rides")
-                                .select(Columns.raw("available_seats")) {
-                                        filter { eq("ride_id", rideId) }
-                                }
-                                .decodeSingleOrNull<Ride>()
-                                ?: return Result.failure(Exception("Ride not found"))
-
-                        client.from("rides")
-                                .update(
-                                        buildJsonObject {
-                                                put("available_seats", currentRide.availableSeats + 1)
-                                        }
-                                ) {
-                                        filter { eq("ride_id", rideId) }
-                                }
-
-                        Result.success(Unit)
-                } catch (e: Exception) {
-                        Result.failure(e)
-                }
-        }
-
         suspend fun getBookedRides(userId: String): List<Booking> {
                 return client
                         .from("bookings")
@@ -235,38 +170,44 @@ class BookRepository(private val client: SupabaseClient) {
                         .decodeList<Booking>()
         }
 
-        /**
-         * Creates a new booking row for a rider on a given ride.
-         * Captures the rider's pickup coordinates so the driver knows where to stop.
-         */
-        suspend fun bookRide(
-                rideId: String,
-                riderId: String,
-                pickupLat: Double,
-                pickupLng: Double,
-                seatsBooked: Int = 1
-        ): Result<Unit> {
+        suspend fun getBookingById(bookingId: String): Booking? {
                 return try {
-                        client.from("bookings").insert(
-                                BookingInsert(
-                                        rideId = rideId,
-                                        riderId = riderId,
-                                        pickupLocation = "Rider's location",
-                                        dropoffLocation = "Destination",
-                                        pickupLat = pickupLat,
-                                        pickupLng = pickupLng,
-                                        seatsBooked = seatsBooked,
-                                        bookingStatus = "confirmed"
-                                )
-                        )
-                        Result.success(Unit)
+                        client.from("bookings")
+                                .select(Columns.raw("*, rides(*, users(*), vehicles(*))")) {
+                                        filter { eq("booking_id", bookingId) }
+                                }
+                                .decodeSingleOrNull<Booking>()
                 } catch (e: Exception) {
-                        Log.e("REPO_ERROR", "Booking failed", e)
-                        Result.failure(e)
+                        Log.e("REPO_ERROR", "Get booking by ID failed", e)
+                        null
                 }
         }
 
-        suspend fun getAllFutureRides(userId: String, genderPreference: String? = null): List<Ride> {
+        suspend fun getBookingsForRide(rideId: String): List<RideBookingInfo> {
+                return try {
+                        client.from("bookings")
+                                .select(
+                                        Columns.raw(
+                                                "booking_id, rider_id, pickup_location, " +
+                                                        "seats_booked, booking_status, users(*)"
+                                        )
+                                ) {
+                                        filter {
+                                                eq("ride_id", rideId)
+                                                neq("booking_status", "cancelled")
+                                        }
+                                }
+                                .decodeList<RideBookingInfo>()
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Get bookings for ride failed", e)
+                        emptyList()
+                }
+        }
+
+        suspend fun getAllFutureRides(
+                userId: String,
+                genderPreference: String? = null
+        ): List<Ride> {
                 val nowUtc = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
                 val thirtyMinsFromNowUtc = nowUtc.plusMinutes(30)
                         .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
@@ -274,9 +215,7 @@ class BookRepository(private val client: SupabaseClient) {
                 val bookedRideIds = client
                         .from("bookings")
                         .select(Columns.raw("ride_id")) {
-                                filter { eq("rider_id", userId)
-                                        neq("booking_status", "cancelled")}
-
+                                filter { eq("rider_id", userId) }
                         }
                         .decodeList<BookedRideId>()
                         .map { it.rideId }
@@ -307,7 +246,7 @@ class BookRepository(private val client: SupabaseClient) {
                 date: String,
                 genderPreference: String? = null
         ): List<Ride> {
-                val zoneOffset = java.time.ZoneOffset.ofHours(10) // AEST
+                val zoneOffset = java.time.ZoneOffset.ofHours(10)
                 val localDate = java.time.LocalDate.parse(date)
 
                 val startOfDayUtc = localDate.atStartOfDay()
@@ -333,8 +272,18 @@ class BookRepository(private val client: SupabaseClient) {
                         .select(Columns.raw("*, users!inner(*), vehicles!left(*)")) {
                                 filter {
                                         and {
-                                                gte("departure_time", startOfDayUtc.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))
-                                                lte("departure_time", endOfDayUtc.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                                                gte(
+                                                        "departure_time",
+                                                        startOfDayUtc.format(
+                                                                java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME
+                                                        )
+                                                )
+                                                lte(
+                                                        "departure_time",
+                                                        endOfDayUtc.format(
+                                                                java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME
+                                                        )
+                                                )
                                                 eq("ride_status", "scheduled")
                                                 gt("available_seats", 0)
                                                 neq("driver_id", userId)
@@ -348,6 +297,7 @@ class BookRepository(private val client: SupabaseClient) {
                         .decodeList<Ride>()
                         .filter { it.id !in bookedRideIds }
         }
+
         suspend fun getGenderPreference(userId: String): String? {
                 return client
                         .from("users")
@@ -359,19 +309,46 @@ class BookRepository(private val client: SupabaseClient) {
                         ?.genderPreference
         }
 
+        // FIX: Now joins users(*) so ride.users.userName is populated.
+        // Previously only joined vehicles(*), causing the driver's name
+        // to show as "Unknown" on ActiveRideScreen and MyRidesScreen.
         suspend fun getMyRides(userId: String): List<Ride> {
                 return client
                         .from("rides")
-                        .select(Columns.raw("*, vehicles(*)")) {
+                        .select(Columns.raw("*, users(*), vehicles(*)")) {
                                 filter { eq("driver_id", userId) }
                                 order("departure_time", Order.ASCENDING)
                         }
                         .decodeList<Ride>()
         }
 
-        suspend fun cancelRide(rideId: String): Result<Unit> {
+        // Soft-delete a ride with a cancellation reason.
+        // Also cancels all associated bookings.
+        suspend fun cancelRide(rideId: String, reason: String = ""): Result<Unit> {
                 return try {
-                        client.from("rides").delete { filter { eq("ride_id", rideId) } }
+                        client.from("rides").update(
+                                buildJsonObject {
+                                        put("ride_status", "cancelled")
+                                        if (reason.isNotBlank()) {
+                                                put("cancellation_reason", reason)
+                                        }
+                                }
+                        ) {
+                                filter { eq("ride_id", rideId) }
+                        }
+
+                        client.from("bookings").update(
+                                buildJsonObject {
+                                        put("booking_status", "cancelled")
+                                        put("cancellation_reason", "Ride cancelled by driver")
+                                }
+                        ) {
+                                filter {
+                                        eq("ride_id", rideId)
+                                        neq("booking_status", "cancelled")
+                                }
+                        }
+
                         Result.success(Unit)
                 } catch (e: Exception) {
                         Log.e("REPO_ERROR", "Cancel ride failed", e)
@@ -379,12 +356,54 @@ class BookRepository(private val client: SupabaseClient) {
                 }
         }
 
+        // Cancel a booking with a reason. Restores seats on the ride.
+        suspend fun cancelBooking(
+                bookingId: String,
+                rideId: String,
+                reason: String = ""
+        ): Result<Unit> {
+                return try {
+                        val booking = client.from("bookings")
+                                .select { filter { eq("booking_id", bookingId) } }
+                                .decodeSingleOrNull<Booking>()
+                        val seatsToRestore = booking?.seatsBooked ?: 1
+
+                        client.from("bookings").update(
+                                buildJsonObject {
+                                        put("booking_status", "cancelled")
+                                        if (reason.isNotBlank()) {
+                                                put("cancellation_reason", reason)
+                                        }
+                                }
+                        ) {
+                                filter { eq("booking_id", bookingId) }
+                        }
+
+                        val ride = client.from("rides")
+                                .select { filter { eq("ride_id", rideId) } }
+                                .decodeSingleOrNull<Ride>()
+                        if (ride != null) {
+                                client.from("rides").update(
+                                        buildJsonObject {
+                                                put("available_seats", ride.availableSeats + seatsToRestore)
+                                        }
+                                ) {
+                                        filter { eq("ride_id", rideId) }
+                                }
+                        }
+
+                        Result.success(Unit)
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Cancel booking failed", e)
+                        Result.failure(e)
+                }
+        }
+
         suspend fun hideRide(userId: String, rideId: String) {
                 try {
-                        client.from("hidden_rides").insert(mapOf(
-                                "user_id" to userId,
-                                "ride_id" to rideId
-                        ))
+                        client.from("hidden_rides").insert(
+                                mapOf("user_id" to userId, "ride_id" to rideId)
+                        )
                 } catch (e: Exception) {
                         Log.e("MOGO_DEBUG", "FAILED to hide ride. Error: ${e.message}")
                 }
@@ -414,8 +433,7 @@ class BookRepository(private val client: SupabaseClient) {
 
         suspend fun getRiderHistory(userId: String): List<Booking> {
                 return try {
-                        client
-                                .from("bookings")
+                        client.from("bookings")
                                 .select(Columns.raw("*, rides(*, users(*), vehicles(*))")) {
                                         filter {
                                                 and {
@@ -434,8 +452,7 @@ class BookRepository(private val client: SupabaseClient) {
 
         suspend fun getDriverHistory(userId: String): List<Ride> {
                 return try {
-                        client
-                                .from("rides")
+                        client.from("rides")
                                 .select(Columns.raw("*, users(*), vehicles(*)")) {
                                         filter {
                                                 and {
@@ -454,8 +471,7 @@ class BookRepository(private val client: SupabaseClient) {
 
         suspend fun getOngoingRiderBookings(userId: String): List<Booking> {
                 return try {
-                        client
-                                .from("bookings")
+                        client.from("bookings")
                                 .select(Columns.raw("*, rides(*, users(*), vehicles(*))")) {
                                         filter {
                                                 and {
@@ -476,8 +492,7 @@ class BookRepository(private val client: SupabaseClient) {
                 val nowUtc = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
                         .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                 return try {
-                        client
-                                .from("rides")
+                        client.from("rides")
                                 .select(Columns.raw("*, users(*), vehicles(*)")) {
                                         filter {
                                                 and {
@@ -492,6 +507,152 @@ class BookRepository(private val client: SupabaseClient) {
                 } catch (e: Exception) {
                         Log.e("REPO_ERROR", "Failed to get upcoming driver rides", e)
                         emptyList()
+                }
+        }
+
+        suspend fun startRide(rideId: String): Result<Unit> {
+                return try {
+                        client.from("rides").update(
+                                buildJsonObject { put("ride_status", "in_progress") }
+                        ) {
+                                filter { eq("ride_id", rideId) }
+                        }
+                        Result.success(Unit)
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Start ride failed", e)
+                        Result.failure(e)
+                }
+        }
+
+        suspend fun completeRide(rideId: String): Result<Unit> {
+                return try {
+                        client.from("rides").update(
+                                buildJsonObject {
+                                        put("ride_status", "completed")
+                                        put("driver_live_lat", null as Double?)
+                                        put("driver_live_lng", null as Double?)
+                                        put("rider_live_lat", null as Double?)
+                                        put("rider_live_lng", null as Double?)
+                                }
+                        ) {
+                                filter { eq("ride_id", rideId) }
+                        }
+
+                        client.from("bookings").update(
+                                buildJsonObject { put("booking_status", "completed") }
+                        ) {
+                                filter { eq("ride_id", rideId) }
+                        }
+
+                        Result.success(Unit)
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Complete ride failed", e)
+                        Result.failure(e)
+                }
+        }
+
+        suspend fun updateDriverLocation(rideId: String, lat: Double, lng: Double) {
+                try {
+                        client.from("rides").update(
+                                buildJsonObject {
+                                        put("driver_live_lat", lat)
+                                        put("driver_live_lng", lng)
+                                }
+                        ) {
+                                filter { eq("ride_id", rideId) }
+                        }
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Update driver location failed", e)
+                }
+        }
+
+        suspend fun updateRiderLocation(rideId: String, lat: Double, lng: Double) {
+                try {
+                        client.from("rides").update(
+                                buildJsonObject {
+                                        put("rider_live_lat", lat)
+                                        put("rider_live_lng", lng)
+                                }
+                        ) {
+                                filter { eq("ride_id", rideId) }
+                        }
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Update rider location failed", e)
+                }
+        }
+
+        suspend fun getRideLiveLocations(rideId: String): Ride? {
+                return try {
+                        client.from("rides")
+                                .select { filter { eq("ride_id", rideId) } }
+                                .decodeSingleOrNull<Ride>()
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Get live locations failed", e)
+                        null
+                }
+        }
+
+        suspend fun getNextRecurringRide(
+                recurringGroupId: String,
+                afterDepartureTime: String
+        ): Ride? {
+                return try {
+                        client.from("rides")
+                                .select(Columns.raw("*, users(*), vehicles(*)")) {
+                                        filter {
+                                                and {
+                                                        eq("recurring_group_id", recurringGroupId)
+                                                        gt("departure_time", afterDepartureTime)
+                                                        eq("ride_status", "scheduled")
+                                                }
+                                        }
+                                        order("departure_time", Order.ASCENDING)
+                                        limit(1)
+                                }
+                                .decodeSingleOrNull<Ride>()
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Get next recurring ride failed", e)
+                        null
+                }
+        }
+
+        suspend fun bookRide(
+                riderId: String,
+                rideId: String,
+                pickupLocation: String = "",
+                pickupLat: Double = 0.0,
+                pickupLng: Double = 0.0,
+                dropoffLocation: String = "",
+                dropoffLat: Double = 0.0,
+                dropoffLng: Double = 0.0,
+                estimatedDistanceMeters: Int? = null,
+                estimatedDurationSeconds: Int? = null
+        ): Result<Unit> {
+                return try {
+                        client.from("bookings").insert(
+                                buildJsonObject {
+                                        put("rider_id", riderId)
+                                        put("ride_id", rideId)
+                                        put("pickup_location", pickupLocation)
+                                        put("pickup_lat", pickupLat)
+                                        put("pickup_lng", pickupLng)
+                                        put("dropoff_location", dropoffLocation)
+                                        put("dropoff_lat", dropoffLat)
+                                        put("dropoff_lng", dropoffLng)
+                                        put("seats_booked", 1)
+                                        put("booking_status", "confirmed")
+                                        if (estimatedDistanceMeters != null) {
+                                                put("estimated_distance_meters", estimatedDistanceMeters)
+                                        }
+                                        if (estimatedDurationSeconds != null) {
+                                                put("estimated_duration_seconds", estimatedDurationSeconds)
+                                        }
+                                }
+                        )
+                        Result.success(Unit)
+                } catch (e: Exception) {
+                        Log.e("REPO_ERROR", "Book ride failed", e)
+                        Result.failure(e)
                 }
         }
 
@@ -525,8 +686,10 @@ class BookRepository(private val client: SupabaseClient) {
         }
 
         fun isWithinRadiusKm(
-                pickupLat: Double, pickupLng: Double,
-                centerLat: Double, centerLng: Double,
+                pickupLat: Double,
+                pickupLng: Double,
+                centerLat: Double,
+                centerLng: Double,
                 radiusKm: Double
         ): Boolean {
                 val R = 6371.0
@@ -540,166 +703,26 @@ class BookRepository(private val client: SupabaseClient) {
                 return R * c <= radiusKm
         }
 
-        fun sortRides(rides: List<MapsRepository.RideWithDetour>): List<MapsRepository.RideWithDetour> {
+        fun sortRides(
+                rides: List<MapsRepository.RideWithDetour>
+        ): List<MapsRepository.RideWithDetour> {
                 val nowUtc = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
-                return rides.sortedWith(compareBy(
-                        { ride ->
-                                val dep = runCatching {
-                                        java.time.OffsetDateTime.parse(ride.ride.departureTime)
-                                }.getOrNull()
-                                if (dep != null && dep.isBefore(nowUtc.plusMinutes(15))) 0 else 1
-                        },
-                        { ride -> when (ride.ride.vehicleType.uppercase()) {
-                                "EV" -> 0; "HYBRID" -> 1; else -> 2
-                        } },
-                        { ride -> -(ride.ride.users?.driverRating ?: 0.0) },
-                        { ride -> ride.addedMinutes }
-                ))
-        }
-
-        // Bulk insert for recurring rides
-        suspend fun uploadRides(rides: List<Ride>): Result<Unit> {
-                return try {
-                        client.from("rides").insert(rides)
-                        Result.success(Unit)
-                } catch (e: Exception) {
-                        Log.e("REPO_ERROR", "Bulk upload failed", e)
-                        Result.failure(e)
-                }
-        }
-
-        // For "rebook next week" — find the next ride in the same recurring group
-        suspend fun getNextRecurringRide(
-                recurringGroupId: String,
-                afterDepartureTime: String
-        ): Ride? {
-                return try {
-                        client.from("rides")
-                                .select(Columns.raw("*, users(*), vehicles(*)")) {
-                                        filter {
-                                                and {
-                                                        eq("recurring_group_id", recurringGroupId)
-                                                        eq("ride_status", "scheduled")
-                                                        gt("departure_time", afterDepartureTime)
-                                                        gt("available_seats", 0)
-                                                }
+                return rides.sortedWith(
+                        compareBy(
+                                { ride ->
+                                        val dep = runCatching {
+                                                java.time.OffsetDateTime.parse(ride.ride.departureTime)
+                                        }.getOrNull()
+                                        if (dep != null && dep.isBefore(nowUtc.plusMinutes(15))) 0 else 1
+                                },
+                                { ride ->
+                                        when (ride.ride.vehicleType.uppercase()) {
+                                                "EV" -> 0; "HYBRID" -> 1; else -> 2
                                         }
-                                        order("departure_time", Order.ASCENDING)
-                                        limit(1)
-                                }
-                                .decodeSingleOrNull<Ride>()
-                } catch (e: Exception) {
-                        null
-                }
-        }
-
-        // Book a ride (insert into bookings)
-        suspend fun bookRide(
-                riderId: String,
-                rideId: String,
-                pickupLocation: String,
-                pickupLat: Double,
-                pickupLng: Double,
-                dropoffLocation: String,
-                dropoffLat: Double,
-                dropoffLng: Double,
-        ): Result<Unit> {
-                return try {
-                        // 1. Re-check seats atomically via RPC (returns false if no seats left)
-                        val hasSeats = client.postgrest
-                                .rpc("decrement_seats", mapOf("p_ride_id" to rideId))
-                                .data
-                                .trimIndent()
-                                .toBooleanStrictOrNull() ?: false
-
-                        if (!hasSeats) return Result.failure(Exception("No seats available"))
-
-                        // 2. Insert booking with all lat/lng fields
-                        val booking = Booking(
-                                id = UUID.randomUUID().toString(),
-                                rideId = rideId,
-                                riderId = riderId,
-                                pickupLocation = pickupLocation,
-                                pickupLat = pickupLat,
-                                pickupLng = pickupLng,
-                                dropoffLocation = dropoffLocation,
-                                dropoffLat = dropoffLat,
-                                dropoffLng = dropoffLng,
-                                seatsBooked = 1,
-                                bookingStatus = "confirmed"
+                                },
+                                { ride -> -(ride.ride.users?.driverRating ?: 0.0) },
+                                { ride -> ride.addedMinutes }
                         )
-                        client.from("bookings").insert(booking)
-                        Result.success(Unit)
-                } catch (e: Exception) {
-                        Log.e("REPO_ERROR", "bookRide failed", e)
-                        Result.failure(e)
-                }
+                )
         }
-
-//        suspend fun cancelBooking(bookingId: String, rideId: String): Result<Unit> {
-//                return try {
-//                        // 1. Soft-delete the booking
-//                        client.from("bookings").update({
-//                                set("booking_status", "cancelled")
-//                                set("cancelled_by", "rider")
-//                                set("cancellation_time", java.time.LocalDateTime.now().toString())
-//                        }) {
-//                                filter { eq("booking_id", bookingId) }
-//                        }
-//                        // 2. Restore the seat atomically via RPC
-//                        client.postgrest.rpc("increment_seats", mapOf("p_ride_id" to rideId))
-//                        Result.success(Unit)
-//                } catch (e: Exception) {
-//                        Log.e("REPO_ERROR", "cancelBooking failed", e)
-//                        Result.failure(e)
-//                }
-//        }
-
-        suspend fun cancelBooking(bookingId: String, rideId: String): Result<Unit> {
-                return try {
-                        client.from("bookings").update({
-                                set("booking_status", "cancelled")
-                                set("cancelled_by", "rider")
-                                set("cancellation_time", java.time.LocalDateTime.now().toString())
-                        }) {
-                                filter { eq("booking_id", bookingId) }
-                        }
-                        client.postgrest.rpc("increment_seats", mapOf("p_ride_id" to rideId))  // ← must be increment, not decrement
-                        Result.success(Unit)
-                } catch (e: Exception) {
-                        Log.e("REPO_ERROR", "cancelBooking failed", e)
-                        Result.failure(e)
-                }
-        }
-//        suspend fun bookRide(
-//                riderId: String,
-//                rideId: String,
-//                pickupLocation: String,
-//                pickupLat: Double,
-//                pickupLng: Double,
-//                dropoffLocation: String,
-//                dropoffLat: Double,
-//                dropoffLng: Double,
-//        ): Result<Unit> {
-//                return try {
-//                        val booking = Booking(
-//                                id = UUID.randomUUID().toString(),
-//                                rideId = rideId,
-//                                riderId = riderId,
-//                                pickupLocation = pickupLocation,
-//                                dropoffLocation = dropoffLocation,
-//                                seatsBooked = 1,
-//                                bookingStatus = "confirmed"
-//                        )
-//                        client.from("bookings").insert(booking)
-//                        // Decrement available_seats
-//                        client.from("rides").update({ set("available_seats", /* raw rpc preferred */ 0) }) {
-//                                // Ideally use a Postgres function/RPC to do available_seats - 1 atomically
-//                                filter { eq("ride_id", rideId) }
-//                        }
-//                        Result.success(Unit)
-//                } catch (e: Exception) {
-//                        Result.failure(e)
-//                }
-//        }
 }

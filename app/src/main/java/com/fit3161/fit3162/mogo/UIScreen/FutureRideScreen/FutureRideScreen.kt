@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.EventSeat
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
 import com.fit3161.fit3162.mogo.data.model.PresetDestinations
 import com.fit3161.fit3162.mogo.data.repo.PlacesRepository
@@ -30,6 +30,7 @@ import com.fit3161.fit3162.mogo.ui.components.AddressAutocompleteField
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Dialog that lets the rider choose their pickup location before confirming a booking.
@@ -140,6 +141,9 @@ fun FutureRideScreenUI(
     viewModel: FutureRideViewModel,
     modifier: Modifier = Modifier
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
@@ -163,28 +167,28 @@ fun FutureRideScreenUI(
         )
     }
 
-    // Booking success/error message
-    state.bookingMessage?.let { message ->
-        AlertDialog(
-            onDismissRequest = { viewModel.clearBookingMessage() },
-            title = {
-                Text(
-                    if (message.contains("success", true)) "Booked!"
-                    else "Booking Issue",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = { Text(message) },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.clearBookingMessage() },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFB57BFF)
-                    )
-                ) { Text("OK", color = Color.White) }
-            }
-        )
-    }
+//    // Booking success/error message
+//    state.bookingMessage?.let { message ->
+//        AlertDialog(
+//            onDismissRequest = { viewModel.clearBookingMessage() },
+//            title = {
+//                Text(
+//                    if (message.contains("success", true)) "Booked!"
+//                    else "Booking Issue",
+//                    fontWeight = FontWeight.Bold
+//                )
+//            },
+//            text = { Text(message) },
+//            confirmButton = {
+//                Button(
+//                    onClick = { viewModel.clearBookingMessage() },
+//                    colors = ButtonDefaults.buttonColors(
+//                        containerColor = Color(0xFFB57BFF)
+//                    )
+//                ) { Text("OK", color = Color.White) }
+//            }
+//        )
+//    }
 
     Column(
         modifier = modifier
@@ -232,6 +236,7 @@ fun FutureRideScreenUI(
                 }
             }
         }
+
 
         // Date picker dialog
         if (showDatePicker) {
@@ -299,6 +304,24 @@ fun FutureRideScreenUI(
         }
 
         Spacer(modifier = Modifier.height(20.dp))
+
+        if (state.showBookSuccess) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissBookSuccess() },
+                title = { Text("Booked!", fontWeight = FontWeight.Bold) },
+                text = { Text("Your ride has been booked successfully.") },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.dismissBookSuccess() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFB57BFF)
+                        )
+                    ) {
+                        Text("OK", color = Color.White)
+                    }
+                }
+            )
+        }
 
         // Rides list
         if (!state.isLoading && state.error == null) {
@@ -446,5 +469,6 @@ fun FutureRideCard(
 
 fun convertMillisToDate(millis: Long): String {
     val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    formatter.timeZone = TimeZone.getTimeZone("UTC")
     return formatter.format(Date(millis))
 }

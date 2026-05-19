@@ -1,5 +1,6 @@
 package com.fit3161.fit3162.mogo.UIScreen.UploadRide
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -235,7 +236,9 @@ class UploadRideViewModel(
                 _status.value = UploadStatus.Error("Please set a starting location")
                 return
             }
+
             data.originLat == null || data.originLng == null -> {
+                Log.d("DATE_DEBUG", "$data")
                 _status.value = UploadStatus.Error(
                     "Please pick a location from suggestions, or tap 'Use my current location'"
                 )

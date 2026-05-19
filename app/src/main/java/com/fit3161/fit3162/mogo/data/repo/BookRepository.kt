@@ -163,16 +163,53 @@ class BookRepository(private val client: SupabaseClient) {
         suspend fun getFutureRidesByDate(userId: String, date: String, genderPreference: String? = null): List<Ride> {
                 val zoneOffset = java.time.ZoneOffset.ofHours(10)
                 val localDate = java.time.LocalDate.parse(date)
-                val startUtc = localDate.atStartOfDay().atOffset(zoneOffset).withOffsetSameInstant(java.time.ZoneOffset.UTC)
-                val endUtc = localDate.plusDays(1).atStartOfDay().atOffset(zoneOffset).withOffsetSameInstant(java.time.ZoneOffset.UTC).minusNanos(1)
+                val startUtc = localDate.atStartOfDay(java.time.ZoneId.of("Australia/Melbourne"))
+                        .toInstant().toString()
+                val endUtc = localDate.plusDays(1).atStartOfDay(java.time.ZoneId.of("Australia/Melbourne"))
+                        .toInstant().toString()
+                Log.d("DATE_DEBUG", "Querying from $startUtc to $endUtc")
+
+//                val localDate = java.time.LocalDate.parse(date)
+//                val startUtc = localDate.atStartOfDay().atOffset(zoneOffset).withOffsetSameInstant(java.time.ZoneOffset.UTC)
+//                val endUtc = localDate.plusDays(1).atStartOfDay().atOffset(zoneOffset).withOffsetSameInstant(java.time.ZoneOffset.UTC).minusNanos(1)
                 val bookedIds = client.from("bookings").select(Columns.raw("ride_id")) { filter { eq("rider_id", userId) } }
                         .decodeList<BookedRideId>().map { it.rideId }.toSet()
-                return client.from("rides")
+                val allRides = client.from("rides")
                         .select(Columns.raw("*, users!inner(*), vehicles!left(*)")) {
                                 filter { and { gte("departure_time", startUtc.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)); lte("departure_time", endUtc.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)); eq("ride_status", "scheduled"); gt("available_seats", 0); neq("driver_id", userId); if (genderPreference != null) eq("users.user_gender", genderPreference) } }
                                 order("departure_time", Order.ASCENDING)
-                        }.decodeList<Ride>().filter { it.id !in bookedIds }
+                        }.decodeList<Ride>()
+
+                Log.d("DATE_DEBUG", "Raw rides before booked filter: ${allRides.size}")
+                allRides.forEach { Log.d("DATE_DEBUG", "Raw ride departure: ${it.departureTime}") }
+
+                return allRides.filter { it.id !in bookedIds }
+//                return client.from("rides")
+//                        .select(Columns.raw("*, users!inner(*), vehicles!left(*)")) {
+//                                filter { and { gte("departure_time", startUtc.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)); lte("departure_time", endUtc.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)); eq("ride_status", "scheduled"); gt("available_seats", 0); neq("driver_id", userId); if (genderPreference != null) eq("users.user_gender", genderPreference) } }
+//                                order("departure_time", Order.ASCENDING)
+//                        }.decodeList<Ride>().filter { it.id !in bookedIds }
         }
+//        suspend fun getFutureRidesByDate(userId: String, date: String, genderPreference: String? = null): List<Ride> {
+//                val startUtc = "${date}T00:00:00Z"
+//                val endUtc = "${date}T23:59:59Z"
+//
+//                Log.d("DATE_DEBUG", "Querying from $startUtc to $endUtc")
+//                val bookedIds = client.from("bookings").select(Columns.raw("ride_id")) { filter { eq("rider_id", userId) } }
+//                        .decodeList<BookedRideId>().map { it.rideId }.toSet()
+//                val allRides = client.from("rides")
+//                        .select(Columns.raw("*, users!inner(*), vehicles!left(*)")) {
+//                                filter {
+//                                        gte("departure_time", startUtc)
+//                                        lte("departure_time", endUtc)
+//                                        eq("ride_status", "scheduled")
+//                                        gt("available_seats", 0)
+//                                        neq("driver_id", userId)
+//                                }
+//                        }.decodeList<Ride>().filter { it.id !in bookedIds }
+//
+//                return allRides
+//}
 
         suspend fun getGenderPreference(userId: String): String? {
                 return client.from("users")

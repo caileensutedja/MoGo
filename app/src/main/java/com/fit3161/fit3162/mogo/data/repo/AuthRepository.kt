@@ -25,10 +25,9 @@ class AuthRepository(private val supabase: SupabaseClient) {
                 this.password = password
                 // INSERT NAME TO DB
                 data = buildJsonObject {
-                    put("user_name", JsonPrimitive(name))
-                    put("user_phone", JsonPrimitive(phoneNumber))
-                    put("user_gender", JsonPrimitive(gender))
-                    put("role", JsonPrimitive("rider"))
+                    put("name", JsonPrimitive(name))
+                    put("phone", JsonPrimitive(phoneNumber))
+                    put("gender", JsonPrimitive(gender))
                 }
             }
             Result.success(Unit)

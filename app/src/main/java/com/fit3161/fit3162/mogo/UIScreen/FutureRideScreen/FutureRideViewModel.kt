@@ -24,6 +24,7 @@ data class FutureRideUiState(
     val genderPreference: String? = null,
     val isLoading: Boolean = false,
     val bookingMessage: String? = null,
+    val showBookSuccess: Boolean = false,
     val error: String? = null
 ) {
     val visibleRides get() = rides.filter { it.id !in hiddenRideIds }.filter { selectedCampus == null || it.destination == selectedCampus }
@@ -66,7 +67,7 @@ class FutureRideViewModel(
                     mapsRepo.getRoute(LatLng(pickupLat, pickupLng), LatLng(destLat, destLng)).onSuccess { distanceMeters = it.distanceMeters; durationSeconds = it.durationSeconds }
                 }
                 repo.bookRide(rideId = rideId, riderId = userId, pickupLocation = resolvedName, pickupLat = pickupLat, pickupLng = pickupLng, estimatedDistanceMeters = distanceMeters, estimatedDurationSeconds = durationSeconds)
-                    .onSuccess { _uiState.value = _uiState.value.copy(rides = _uiState.value.rides.filter { it.id != rideId }) }
+                    .onSuccess { _uiState.value = _uiState.value.copy(showBookSuccess = true, rides = _uiState.value.rides.filter { it.id != rideId }) }
                     .onFailure { _uiState.value = _uiState.value.copy(error = "Booking failed: ${it.message}") }
             } catch (e: Exception) { _uiState.value = _uiState.value.copy(error = e.message) }
         }
@@ -89,15 +90,32 @@ class FutureRideViewModel(
 
     private fun loadAllFutureRides() {
         viewModelScope.launch {
-            try { val rides = repo.getAllFutureRides(userId, _uiState.value.genderPreference); _uiState.value = _uiState.value.copy(rides = rides, isLoading = false) }
-            catch (e: Exception) { _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
+            try {
+                val rides = repo.getAllFutureRides(userId, _uiState.value.genderPreference)
+//                _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
+                _uiState.value = _uiState.value.copy(
+                    rides = rides,
+                    isLoading = false,
+                    showBookSuccess = _uiState.value.showBookSuccess
+                )
+            }
+            catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
         }
     }
 
     fun loadRidesByDate(date: String) {
         viewModelScope.launch {
+            Log.d("DATE_DEBUG", "Loading rides for date: $date")
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            try { val rides = repo.getFutureRidesByDate(userId, date, _uiState.value.genderPreference); _uiState.value = _uiState.value.copy(rides = rides, isLoading = false) }
+            try {
+
+                val rides = repo.getFutureRidesByDate(userId, date, _uiState.value.genderPreference)
+                Log.d("DATE_DEBUG", "Got ${rides.size} rides")
+                rides.forEach { Log.d("DATE_DEBUG", "Ride: ${it.departureTime}") }
+                _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
+
+            }
             catch (e: Exception) { _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
         }
     }
@@ -117,15 +135,44 @@ class FutureRideViewModel(
         val dropoffLat = ride.destinationLat ?: 0.0
         val dropoffLng = ride.destinationLng ?: 0.0
         viewModelScope.launch {
-            var distanceMeters: Int? = null; var durationSeconds: Int? = null
-            mapsRepo.getRoute(LatLng(pickupLat, pickupLng), LatLng(dropoffLat, dropoffLng)).onSuccess { distanceMeters = it.distanceMeters; durationSeconds = it.durationSeconds }
-            val result = repo.bookRide(riderId = userId, rideId = ride.id, pickupLocation = pickupName, pickupLat = pickupLat, pickupLng = pickupLng, dropoffLocation = ride.destination, dropoffLat = dropoffLat, dropoffLng = dropoffLng, estimatedDistanceMeters = distanceMeters, estimatedDurationSeconds = durationSeconds)
-            if (result.isSuccess) { _uiState.value = _uiState.value.copy(bookingMessage = "Ride booked successfully!"); if (_uiState.value.selectedDate.isNotEmpty()) loadRidesByDate(_uiState.value.selectedDate) else loadAllFutureRides() }
-            else { _uiState.value = _uiState.value.copy(bookingMessage = result.exceptionOrNull()?.message ?: "Booking failed") }
+            var distanceMeters: Int? = null;
+            var durationSeconds: Int? = null
+            mapsRepo.getRoute(LatLng(pickupLat, pickupLng), LatLng(dropoffLat, dropoffLng))
+                .onSuccess {
+                    distanceMeters = it.distanceMeters; durationSeconds = it.durationSeconds
+                }
+            val result = repo.bookRide(
+                riderId = userId,
+                rideId = ride.id,
+                pickupLocation = pickupName,
+                pickupLat = pickupLat,
+                pickupLng = pickupLng,
+                dropoffLocation = ride.destination,
+                dropoffLat = dropoffLat,
+                dropoffLng = dropoffLng,
+                estimatedDistanceMeters = distanceMeters,
+                estimatedDurationSeconds = durationSeconds
+            )
+            if (result.isSuccess) {
+                _uiState.value = _uiState.value.copy(showBookSuccess = true)
+                if (_uiState.value.selectedDate.isNotEmpty()) loadRidesByDate(_uiState.value.selectedDate)
+                else loadAllFutureRides()
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    bookingMessage = result.exceptionOrNull()?.message ?: "Booking failed"
+                )
+            }
         }
     }
 
     fun clearBookingMessage() { _uiState.value = _uiState.value.copy(bookingMessage = null) }
+    fun refresh() {
+        if (_uiState.value.selectedDate.isNotEmpty()) loadRidesByDate(_uiState.value.selectedDate)
+        else loadAllFutureRides()
+    }
+    fun dismissBookSuccess() {
+        _uiState.value = _uiState.value.copy(showBookSuccess = false)
+    }
 }
 
 class FutureRideViewModelFactory(

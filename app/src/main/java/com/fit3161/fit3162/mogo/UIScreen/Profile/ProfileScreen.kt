@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.material3.CheckboxDefaults.colors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,8 +48,6 @@ fun ProfileScreenUI(
     var gender by remember { mutableStateOf("") }
     var userRole by remember { mutableStateOf("") }
     val homeCampus = uiState.homeCampus
-
-
 
     var showNameDialog by remember { mutableStateOf(false) }
     var showMobileDialog by remember { mutableStateOf(false) }
@@ -106,26 +103,32 @@ fun ProfileScreenUI(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Settings icon
-        IconButton(
-            onClick = {
-                onNavigateToSettings()
-            },
-            modifier = Modifier.align(Alignment.End)
+        // ========== HEADER ROW (consistent with Offers screen) ==========
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Filled.Settings,
-                contentDescription = "Settings"
+            Text(
+                text = "Profile",
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Bold
+                // No explicit color – uses default theme color (same as Offers title)
             )
+            IconButton(onClick = onNavigateToSettings) {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = "Settings"
+                )
+            }
         }
-
         Spacer(modifier = Modifier.height(10.dp))
 
+        // Profile picture
         Box(
             modifier = Modifier.size(120.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Circular image
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -162,7 +165,7 @@ fun ProfileScreenUI(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .offset(x = (-8).dp, y = (-8).dp)  // position inside the circle edge
+                    .offset(x = (-8).dp, y = (-8).dp)
                     .size(32.dp)
                     .background(Color.White, CircleShape)
                     .clickable { galleryLauncher.launch("image/*") },
@@ -174,7 +177,6 @@ fun ProfileScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Rest of the fields (unchanged)...
         // Name field
         OutlinedTextField(
             value = name,
@@ -241,7 +243,6 @@ fun ProfileScreenUI(
                 }
             }
         )
-
         Spacer(modifier = Modifier.height(12.dp))
 
         // Role field
@@ -261,7 +262,6 @@ fun ProfileScreenUI(
                 }
             }
         )
-
         Spacer(modifier = Modifier.height(12.dp))
 
         // Home Campus
@@ -305,8 +305,7 @@ fun ProfileScreenUI(
         }
     }
 
-
-    // Dialogs (unchanged – they don't use LocalTextStyle)
+    // Name edit dialog
     if (showNameDialog) {
         AlertDialog(
             onDismissRequest = { showNameDialog = false },
@@ -335,6 +334,7 @@ fun ProfileScreenUI(
         )
     }
 
+    // Mobile edit dialog
     if (showMobileDialog) {
         AlertDialog(
             onDismissRequest = { showMobileDialog = false },
@@ -363,6 +363,7 @@ fun ProfileScreenUI(
         )
     }
 
+    // Gender edit dialog
     if (showGenderDialog) {
         val genderOptions = listOf("Female", "Male", "Non-binary", "Genderqueer", "Agender", "Transgender", "Prefer not to say", "Other")
         var expanded by remember { mutableStateOf(false) }
@@ -413,7 +414,8 @@ fun ProfileScreenUI(
             }
         )
     }
-    // Show Role
+
+    // Role edit dialog
     if (showRoleDialog) {
         val roleOptions = listOf("rider", "driver")
         AlertDialog(
@@ -443,7 +445,6 @@ fun ProfileScreenUI(
                 TextButton(
                     onClick = {
                         if (tempUserRole.isNotBlank()) {
-                            // Passes the updated value before it stores in DB because of delays of fetching
                             viewModel.updateField("user_role", tempUserRole, onRoleChanged)
                         }
                         showRoleDialog = false
@@ -456,7 +457,7 @@ fun ProfileScreenUI(
         )
     }
 
-    // Campus dialog
+    // Home Campus edit dialog
     if (showCampusDialog) {
         var expanded by remember { mutableStateOf(false) }
         AlertDialog(

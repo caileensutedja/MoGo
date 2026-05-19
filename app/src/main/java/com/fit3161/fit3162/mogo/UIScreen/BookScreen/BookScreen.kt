@@ -41,73 +41,26 @@ private val riderCancellationReasons = listOf(
     "Prefer not to say"
 )
 
-// ============================================================================
-// CARBON SAVINGS CALCULATION
-// ============================================================================
-// Compares SHARED ride (one car) vs DRIVING SEPARATELY (two cars).
-//
-// Without carpooling (two separate cars):
-//   - Driver drives: origin → destination  (back-computed from ride.carbonEstimate)
-//   - Rider drives:  pickup → destination  (booking.estimatedDistanceMeters)
-//   - Emissions = (driver km + rider km) × 0.21 kg CO₂/km (average petrol car)
-//
-// With carpooling (one shared car):
-//   - Only the driver drives (with small detour for pickup)
-//   - Emissions = driver km × vehicle emission factor
-//
-// Carbon saved = separate emissions − shared emissions
-//
-// Data sources:
-//   - booking.estimatedDistanceMeters: from Google Routes API at booking time
-//   - ride.carbonEstimate: stored in rides table at upload time
-//   - ride.vehicleType: determines shared vehicle emission factor
-//
-// Emission factors (kg CO₂ per km):
-//   Petrol: 0.21 | Hybrid: 0.12 | Electric: 0.01
-// ============================================================================
-
-/**
- * Computes carbon savings (kg CO₂) from carpooling for a single booking.
- * Returns the savings in kg, or null if required data is missing.
- */
+// Carbon savings: compares shared ride vs two separate rides when not doing carpooling.
+// See BookScreen carbon comments in previous versions for full formula.
 private fun computeCarbonSavedKg(booking: Booking, ride: Ride?): Double? {
     val riderDistanceMeters = booking.estimatedDistanceMeters ?: return null
     val rideCarbonEstimate = ride?.carbonEstimate ?: return null
     if (rideCarbonEstimate <= 0) return null
-
     val riderSoloKm = riderDistanceMeters / 1000.0
-
-    // Emission factor for the shared vehicle
     val sharedVehicleFactor = when (ride.vehicleType.lowercase()) {
-        "electric", "ev" -> 0.01
-        "hybrid" -> 0.12
-        else -> 0.21
+        "electric", "ev" -> 0.01; "hybrid" -> 0.12; else -> 0.21
     }
-
-    // Back-compute driver's route distance from stored carbon estimate
-    // (carbonEstimate = distanceKm × factor)
     val driverSoloKm = rideCarbonEstimate / sharedVehicleFactor
-
-    // Average petrol car factor (what the rider would have driven)
-    val averageCarFactor = 0.21
-
-    // Separate: both drive petrol cars
-    val separateEmissions = (driverSoloKm + riderSoloKm) * averageCarFactor
-
-    // Shared: only the driver's vehicle
+    val separateEmissions = (driverSoloKm + riderSoloKm) * 0.21
     val sharedEmissions = driverSoloKm * sharedVehicleFactor
-
     val saved = separateEmissions - sharedEmissions
     return if (saved > 0) saved else null
 }
 
 private fun formatTimeLeft(departureTime: String): String {
     val now = OffsetDateTime.now(ZoneOffset.UTC)
-    val departure = try {
-        OffsetDateTime.parse(departureTime)
-    } catch (e: Exception) {
-        return "??"
-    }
+    val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "??" }
     if (departure.isBefore(now)) return "Departed"
     val minutesLeft = Duration.between(now, departure).toMinutes()
     return when {
@@ -119,11 +72,7 @@ private fun formatTimeLeft(departureTime: String): String {
 
 private fun getRideTitle(departureTime: String, durationMinutes: Int?): String {
     val now = OffsetDateTime.now(ZoneOffset.UTC)
-    val departure = try {
-        OffsetDateTime.parse(departureTime)
-    } catch (e: Exception) {
-        return "Unknown"
-    }
+    val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "Unknown" }
     if (departure.isAfter(now)) return "Upcoming Ride"
     if (durationMinutes != null) {
         val endTime = departure.plusMinutes(durationMinutes.toLong())
@@ -151,9 +100,7 @@ fun BookScreenUI(
                 Button(
                     onClick = { viewModel.dismissCancelSuccess() },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF))
-                ) {
-                    Text("OK", color = Color.White)
-                }
+                ) { Text("OK", color = Color.White) }
             }
         )
     }
@@ -163,12 +110,7 @@ fun BookScreenUI(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Book",
-            fontSize = 34.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.fillMaxWidth()
-        )
+        Text(text = "Book", fontSize = 34.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth())
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -209,13 +151,11 @@ fun BookScreenUI(
                             }
                         }
                     }
-
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.LocationOn, null, Modifier.size(16.dp), tint = Color.DarkGray)
                         Spacer(Modifier.width(4.dp))
                         Text("${ongoing.origin} → ${ongoing.destination}", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     }
-
                     if (ongoing.estimatedDistanceKm != null || ongoing.estimatedDurationMinutes != null) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             ongoing.estimatedDistanceKm?.let {
@@ -242,13 +182,12 @@ fun BookScreenUI(
             Box(
                 Modifier.fillMaxWidth().height(80.dp).background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
-            ) {
-                Text("No rides scheduled", fontSize = 14.sp, color = Color.Gray)
-            }
+            ) { Text("No rides scheduled", fontSize = 14.sp, color = Color.Gray) }
         }
 
         Spacer(modifier = Modifier.height(30.dp))
 
+        // Booked rides list
         Text("Booked Rides", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
 
         if (state.isLoading) CircularProgressIndicator()
@@ -277,14 +216,13 @@ fun BookScreenUI(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Pickup location is selected in FutureRideScreen via PickupDialog when booking
         Button(
             onClick = { onNavigateToFutureBookRides() },
             modifier = Modifier.fillMaxWidth().height(55.dp),
             shape = RoundedCornerShape(15.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCEA2FD))
-        ) {
-            Text("Book Future Ride", fontSize = 18.sp)
-        }
+        ) { Text("Book Future Ride", fontSize = 18.sp) }
 
         Spacer(modifier = Modifier.height(15.dp))
     }
@@ -392,19 +330,14 @@ fun BookedCard(
                     Text(formatDepartureTime(ride?.departureTime), fontSize = 14.sp, color = Color.DarkGray)
                 }
 
-                // Carbon savings: uses computeCarbonSavedKg() instead of hardcoded ride.carbonEstimate.
-                // Falls back to ride.carbonEstimate if the computed value is unavailable.
+                // Carbon savings: computed or fallback to ride.carbonEstimate
                 val carbonSaved = computeCarbonSavedKg(booking, ride)
                 val carbonDisplay = carbonSaved ?: ride?.carbonEstimate
                 if (carbonDisplay != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Eco, null, Modifier.size(14.dp), tint = Color(0xFF4CAF50))
                         Spacer(Modifier.width(4.dp))
-                        Text(
-                            "%.2f kg CO₂ saved".format(carbonDisplay),
-                            fontSize = 13.sp,
-                            color = Color(0xFF4CAF50)
-                        )
+                        Text("%.2f kg CO₂ saved".format(carbonDisplay), fontSize = 13.sp, color = Color(0xFF4CAF50))
                     }
                 }
 

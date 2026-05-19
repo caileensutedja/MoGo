@@ -19,8 +19,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.HourglassBottom
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -70,7 +76,8 @@ private fun formatTimeLeft(departureTime: String): String {
     }
 }
 
-private fun getRideTitle(departureTime: String, durationMinutes: Int?): String {
+private fun getRideTitle(departureTime: String, durationMinutes: Int?, isInProgress: Boolean): String {
+    if (isInProgress) return "Ride in Progress"
     val now = OffsetDateTime.now(ZoneOffset.UTC)
     val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "Unknown" }
     if (departure.isAfter(now)) return "Upcoming Ride"
@@ -151,16 +158,28 @@ fun HomeScreenUI(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (uiState.rideStreak > 0) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
                             Text(text = "🔥", fontSize = 18.sp)
-                            Text(text = "${uiState.rideStreak}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF9800))
+                            Text(
+                                text = "${uiState.rideStreak}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFF9800)
+                            )
                         }
                     }
 
                     // Notification icon with badge
                     Box {
                         IconButton(onClick = { showNotificationDialog = true }) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color(0xFF4A2C8A))
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = Color(0xFF4A2C8A)
+                            )
                         }
                         if (uiState.hasUnreadNotification) {
                             Box(
@@ -184,7 +203,9 @@ fun HomeScreenUI(
                             AsyncImage(
                                 model = uiState.profile!!.avatar_url,
                                 contentDescription = "Profile picture",
-                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(10.dp)),
                                 contentScale = ContentScale.Crop
                             )
                         } else {
@@ -195,7 +216,11 @@ fun HomeScreenUI(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-            Text(text = "Hello, ${uiState.profile?.user_name ?: ""}", fontSize = 34.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Hello, ${uiState.profile?.user_name ?: ""}",
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Bold
+            )
             Spacer(modifier = Modifier.height(16.dp))
 
             // Role toggle
@@ -250,60 +275,185 @@ fun HomeScreenUI(
             )
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Ride Section
+            // Ride Section: shows in_progress rides, upcoming rides, or empty state
             val ongoing = uiState.ongoingRide
             if (ongoing != null) {
-                val title = getRideTitle(ongoing.departureTime, ongoing.estimatedDurationMinutes)
-                Text(text = title, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4A2C8A))
+                val title = getRideTitle(
+                    ongoing.departureTime,
+                    ongoing.estimatedDurationMinutes,
+                    ongoing.isInProgress
+                )
+                Text(
+                    text = title,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (ongoing.isInProgress) Color(0xFF2196F3) else Color(0xFF4A2C8A)
+                )
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Card is tappable when ride is in_progress (navigates to ActiveRide screen)
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (ongoing.isInProgress)
+                                Modifier.clickable { onNavigateToActiveRide() }
+                            else Modifier
+                        ),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E8FF))
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (ongoing.isInProgress) Color(0xFFE3F2FD) else Color(0xFFF3E8FF)
+                    )
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "🚗 ${ongoing.driverName ?: "Driver"}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF4A2C8A))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Filled.DirectionsCar, null,
+                                    Modifier.size(18.dp),
+                                    tint = Color(0xFF4A2C8A)
+                                )
+                                Text(
+                                    text = " ${ongoing.driverName ?: "Driver"}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = Color(0xFF4A2C8A)
+                                )
+                            }
                             IconButton(onClick = {
                                 val shareText = "Ride: ${ongoing.origin} → ${ongoing.destination} at ${formatDepartureTime(ongoing.departureTime)}"
                                 clipboardManager.setText(AnnotatedString(shareText))
                                 Toast.makeText(context, "Ride details copied", Toast.LENGTH_SHORT).show()
                             }) {
-                                Icon(Icons.Default.Share, contentDescription = "Share ride", tint = Color(0xFF4A2C8A))
+                                Icon(
+                                    Icons.Default.Share,
+                                    contentDescription = "Share ride",
+                                    tint = Color(0xFF4A2C8A)
+                                )
                             }
                         }
-                        Text(text = "📍 ${ongoing.origin} → ${ongoing.destination}", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.LocationOn, null,
+                                Modifier.size(14.dp),
+                                tint = Color.DarkGray
+                            )
+                            Text(
+                                " ${ongoing.origin} → ${ongoing.destination}",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("🕐 Departs: ${formatDepartureTime(ongoing.departureTime)}", fontSize = 13.sp, color = Color.DarkGray)
-                            Surface(shape = RoundedCornerShape(20.dp), color = Color(0xFFFFE0B2)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Filled.Schedule, null,
+                                    Modifier.size(14.dp),
+                                    tint = Color.DarkGray
+                                )
                                 Text(
-                                    text = "⏳ ${formatTimeLeft(ongoing.departureTime)}",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFFE65100),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    " Departs: ${formatDepartureTime(ongoing.departureTime)}",
+                                    fontSize = 13.sp,
+                                    color = Color.DarkGray
                                 )
                             }
-                        }
-                        if (ongoing.estimatedDistanceKm != null || ongoing.estimatedDurationMinutes != null) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                ongoing.estimatedDistanceKm?.let { distance -> Text("📏 ${"%.1f".format(distance)} km", fontSize = 12.sp, color = Color.Gray) }
-                                ongoing.estimatedDurationMinutes?.let { duration -> Text("⏱️ $duration min trip", fontSize = 12.sp, color = Color.Gray) }
+
+                            // Show "In Progress" badge or countdown timer
+                            if (ongoing.isInProgress) {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Color(0xFFC8E6C9)
+                                ) {
+                                    Row(
+                                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.DirectionsCar, null,
+                                            Modifier.size(14.dp),
+                                            tint = Color(0xFF2E7D32)
+                                        )
+                                        Text(
+                                            " Live",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF2E7D32)
+                                        )
+                                    }
+                                }
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Color(0xFFFFE0B2)
+                                ) {
+                                    Row(
+                                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.HourglassBottom, null,
+                                            Modifier.size(14.dp),
+                                            tint = Color(0xFFE65100)
+                                        )
+                                        Text(
+                                            " ${formatTimeLeft(ongoing.departureTime)}",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFFE65100)
+                                        )
+                                    }
+                                }
                             }
+                        }
+
+                        if (ongoing.estimatedDistanceKm != null || ongoing.estimatedDurationMinutes != null) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                ongoing.estimatedDistanceKm?.let { distance ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Filled.Route, null, Modifier.size(14.dp), tint = Color.Gray)
+                                        Text(" ${"%.1f".format(distance)} km", fontSize = 12.sp, color = Color.Gray)
+                                    }
+                                }
+                                ongoing.estimatedDurationMinutes?.let { duration ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Filled.Timer, null, Modifier.size(14.dp), tint = Color.Gray)
+                                        Text(" $duration min trip", fontSize = 12.sp, color = Color.Gray)
+                                    }
+                                }
+                            }
+                        }
+
+                        // "Tap to track" hint when ride is in progress
+                        if (ongoing.isInProgress) {
+                            Text(
+                                "Tap to view live tracking",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF2196F3),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
             } else {
-                // Empty state illustration
+                // Empty state
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -312,7 +462,11 @@ fun HomeScreenUI(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(48.dp), tint = Color(0xFFCEA2FD))
+                        Icon(
+                            Icons.Default.Notifications, null,
+                            Modifier.size(48.dp),
+                            tint = Color(0xFFCEA2FD)
+                        )
                         Spacer(Modifier.height(8.dp))
                         Text("No rides scheduled", fontSize = 14.sp, color = Color.Gray)
                         Text("Tap 'Book Future Ride' to get started", fontSize = 12.sp, color = Color.Gray)
@@ -417,10 +571,7 @@ fun HomeScreenUI(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(100.dp)
-                        .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                    modifier = Modifier.weight(1f).height(100.dp).background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -429,10 +580,7 @@ fun HomeScreenUI(
                     }
                 }
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(100.dp)
-                        .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                    modifier = Modifier.weight(1f).height(100.dp).background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -441,19 +589,11 @@ fun HomeScreenUI(
                     }
                 }
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(100.dp)
-                        .background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
+                    modifier = Modifier.weight(1f).height(100.dp).background(Color(0xFFF3E8FF), RoundedCornerShape(20.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "%.0f".format(uiState.totalDistanceShared),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 28.sp,
-                            color = Color(0xFF4CAF50)
-                        )
+                        Text("%.0f".format(uiState.totalDistanceShared), fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFF4CAF50))
                         Text("km shared", fontSize = 11.sp, color = Color.Gray)
                     }
                 }

@@ -17,13 +17,19 @@ import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
+/**
+ * Ongoing/active ride details for the dashboard card.
+ * @param isInProgress True if the ride has started (ride_status = "in_progress").
+ *                     False if it's upcoming but not yet started.
+ */
 data class OngoingRideDetails(
     val driverName: String? = null,
     val origin: String,
     val destination: String,
     val departureTime: String,
     val estimatedDistanceKm: Double? = null,
-    val estimatedDurationMinutes: Int? = null
+    val estimatedDurationMinutes: Int? = null,
+    val isInProgress: Boolean = false
 )
 
 data class HomeUiState(
@@ -37,7 +43,7 @@ data class HomeUiState(
     val totalDistanceShared: Double = 0.0,
     val treesEquivalent: Double = 0.0,
     val ongoingRide: OngoingRideDetails? = null,
-    val hasUnreadNotification: Boolean = false,   // NEW
+    val hasUnreadNotification: Boolean = false,
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -74,6 +80,7 @@ class HomeViewModel(
                 // Driver data
                 val allDriverRides = bookRepo.getMyRides(userId)
                 val upcomingDriverRides = allDriverRides.filter { it.rideStatus == "scheduled" }
+                val inProgressDriverRides = allDriverRides.filter { it.rideStatus == "in_progress" }
                 val driverHistory = allDriverRides.filter { it.rideStatus == "completed" }
 
                 // Calculate carbon
@@ -85,15 +92,26 @@ class HomeViewModel(
                 val rideStreak = minOf(riderHistory.size + driverHistory.size, 7)
                 val treesEquivalent = totalCarbonSaved / 25.0
 
-                // Determine ongoing ride details (strictly future)
                 val now = OffsetDateTime.now(ZoneOffset.UTC)
 
+                // Determine ongoing ride:
+                // Priority 1: in_progress rides (ride has started)
+                // Priority 2: upcoming scheduled rides (departure in the future)
                 val ongoingRideDetails = if (isDriver) {
-                    upcomingDriverRides
+                    // Driver: check in_progress first, then upcoming scheduled
+                    inProgressDriverRides.firstOrNull()?.let { ride ->
+                        OngoingRideDetails(
+                            driverName = profile?.user_name,
+                            origin = ride.origin,
+                            destination = ride.destination,
+                            departureTime = ride.departureTime,
+                            estimatedDistanceKm = ride.carbonEstimate?.let { it / 0.21 },
+                            estimatedDurationMinutes = ride.carbonEstimate?.let { ((it / 0.21) / 40 * 60).toInt() },
+                            isInProgress = true
+                        )
+                    } ?: upcomingDriverRides
                         .filter { ride ->
-                            val departure = try {
-                                OffsetDateTime.parse(ride.departureTime)
-                            } catch (e: Exception) { null }
+                            val departure = try { OffsetDateTime.parse(ride.departureTime) } catch (e: Exception) { null }
                             departure != null && departure.isAfter(now)
                         }
                         .firstOrNull()
@@ -103,23 +121,15 @@ class HomeViewModel(
                                 origin = ride.origin,
                                 destination = ride.destination,
                                 departureTime = ride.departureTime,
-                                estimatedDistanceKm = ride.carbonEstimate?.let { carbon ->
-                                    carbon / 0.21
-                                },
-                                estimatedDurationMinutes = ride.carbonEstimate?.let { carbon ->
-                                    ((carbon / 0.21) / 40 * 60).toInt()
-                                }
+                                estimatedDistanceKm = ride.carbonEstimate?.let { it / 0.21 },
+                                estimatedDurationMinutes = ride.carbonEstimate?.let { ((it / 0.21) / 40 * 60).toInt() },
+                                isInProgress = false
                             )
                         }
                 } else {
+                    // Rider: check for in_progress booked ride first, then upcoming
                     ongoingBookings
-                        .filter { booking ->
-                            val departure = try {
-                                OffsetDateTime.parse(booking.rides?.departureTime)
-                            } catch (e: Exception) { null }
-                            departure != null && departure.isAfter(now)
-                        }
-                        .firstOrNull()
+                        .firstOrNull { it.rides?.rideStatus == "in_progress" }
                         ?.let { booking ->
                             val ride = booking.rides
                             OngoingRideDetails(
@@ -127,10 +137,29 @@ class HomeViewModel(
                                 origin = ride?.origin ?: "",
                                 destination = ride?.destination ?: "",
                                 departureTime = ride?.departureTime ?: "",
-                                estimatedDistanceKm = ride?.carbonEstimate?.let { carbon -> carbon / 0.21 },
-                                estimatedDurationMinutes = ride?.carbonEstimate?.let { carbon -> ((carbon / 0.21) / 40 * 60).toInt() }
+                                estimatedDistanceKm = ride?.carbonEstimate?.let { it / 0.21 },
+                                estimatedDurationMinutes = ride?.carbonEstimate?.let { ((it / 0.21) / 40 * 60).toInt() },
+                                isInProgress = true
                             )
                         }
+                        ?: ongoingBookings
+                            .filter { booking ->
+                                val departure = try { OffsetDateTime.parse(booking.rides?.departureTime) } catch (e: Exception) { null }
+                                departure != null && departure.isAfter(now)
+                            }
+                            .firstOrNull()
+                            ?.let { booking ->
+                                val ride = booking.rides
+                                OngoingRideDetails(
+                                    driverName = ride?.users?.userName,
+                                    origin = ride?.origin ?: "",
+                                    destination = ride?.destination ?: "",
+                                    departureTime = ride?.departureTime ?: "",
+                                    estimatedDistanceKm = ride?.carbonEstimate?.let { it / 0.21 },
+                                    estimatedDurationMinutes = ride?.carbonEstimate?.let { ((it / 0.21) / 40 * 60).toInt() },
+                                    isInProgress = false
+                                )
+                            }
                 }
 
                 _uiState.value = _uiState.value.copy(
@@ -144,8 +173,6 @@ class HomeViewModel(
                     rideStreak = rideStreak,
                     treesEquivalent = treesEquivalent,
                     ongoingRide = ongoingRideDetails,
-                    // For demo, we set a notification badge if there's any unread system message.
-                    // You can set this to true when certain events occur (e.g., ride cancellation).
                     hasUnreadNotification = false,
                     isLoading = false
                 )

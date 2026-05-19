@@ -103,7 +103,7 @@ val ktorVersion = "3.4.1"
 
 dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
-    implementation("androidx.compose.material:material:1.7.5")
+    implementation("androidx.compose.material:material")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("androidx.core:core-splashscreen:1.0.1")

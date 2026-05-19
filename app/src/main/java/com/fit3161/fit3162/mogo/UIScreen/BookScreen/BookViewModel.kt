@@ -70,9 +70,7 @@ class BookViewModel(
                     val departure = try {
                         OffsetDateTime.parse(booking.rides?.departureTime)
                     } catch (e: Exception) { null }
-                    departure != null && departure.isAfter(
-                        OffsetDateTime.now(ZoneOffset.UTC)
-                    )
+                    departure != null && departure.isAfter(OffsetDateTime.now(ZoneOffset.UTC))
                 }?.let { booking ->
                     val ride = booking.rides
                     OngoingRideDetails(
@@ -80,12 +78,8 @@ class BookViewModel(
                         origin = ride?.origin ?: "",
                         destination = ride?.destination ?: "",
                         departureTime = ride?.departureTime ?: "",
-                        estimatedDistanceKm = ride?.carbonEstimate?.let {
-                            it / 0.21
-                        },
-                        estimatedDurationMinutes = ride?.carbonEstimate?.let {
-                            ((it / 0.21) / 40 * 60).toInt()
-                        }
+                        estimatedDistanceKm = ride?.carbonEstimate?.let { it / 0.21 },
+                        estimatedDurationMinutes = ride?.carbonEstimate?.let { ((it / 0.21) / 40 * 60).toInt() }
                     )
                 }
 
@@ -265,6 +259,7 @@ class BookViewModel(
     fun refresh() = loadBookedRides()
 }
 
+// Back to 3-arg factory (no placesRepo needed)
 class BookViewModelFactory(
     private val client: SupabaseClient,
     private val mapsRepo: MapsRepository,

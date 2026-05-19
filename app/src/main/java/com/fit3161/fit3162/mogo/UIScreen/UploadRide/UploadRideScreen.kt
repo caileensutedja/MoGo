@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -43,7 +42,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -58,9 +56,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fit3161.fit3162.mogo.UIScreen.FutureRideScreen.convertMillisToDate
-import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
+import com.fit3161.fit3162.mogo.data.model.PresetDestinations
+import com.fit3161.fit3162.mogo.ui.components.AddressAutocompleteField
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.time.Instant
+
+// Local helper so this file doesn't depend on FutureRideScreen
+private fun convertMillisToDate(millis: Long): String {
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    return formatter.format(Date(millis))
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,9 +93,6 @@ fun UploadRideScreen(
     var showTimePicker by remember { mutableStateOf(false) }
     val timePickerState = rememberTimePickerState()
 
-    // Destination campus dropdown state
-    var campusExpanded by remember { mutableStateOf(false) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -110,42 +114,55 @@ fun UploadRideScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Origin (simple text field – user types manually)
-        OutlinedTextField(
-            value = form.origin,
-            onValueChange = { viewModel.onOriginChange(it) },
-            label = { Text("Starting Location / Address") },
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) }
+        // Origin field with Places Autocomplete + "Use my current location"
+        AddressAutocompleteField(
+            label = "Starting Location",
+            currentValue = form.origin,
+            placesRepo = viewModel.placesRepo,
+            onCurrentLocation = { viewModel.useCurrentLocationForOrigin() },
+            onPlacePicked = { resolved ->
+                viewModel.onOriginPlacePicked(
+                    name = resolved.name,
+                    lat = resolved.latLng.latitude,
+                    lng = resolved.latLng.longitude
+                )
+            },
+            setValue = { viewModel.onOriginChange(it) }
         )
 
-        // Destination campus dropdown
+        // Destination dropdown using PresetDestinations (campus list)
+        var destinationExpanded by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(
-            expanded = campusExpanded,
-            onExpandedChange = { campusExpanded = !campusExpanded },
+            expanded = destinationExpanded,
+            onExpandedChange = { destinationExpanded = it },
             modifier = Modifier.fillMaxWidth()
         ) {
             OutlinedTextField(
-                value = form.destination.ifEmpty { "Select Campus" },
+                value = form.destination?.name ?: "",
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Destination Campus") },
+                label = { Text("Destination") },
+                placeholder = { Text("Select a campus") },
                 leadingIcon = { Icon(Icons.Default.Flag, null) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = campusExpanded) },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(
+                        expanded = destinationExpanded
+                    )
+                },
                 modifier = Modifier
-                    .fillMaxWidth()
                     .menuAnchor()
+                    .fillMaxWidth()
             )
             ExposedDropdownMenu(
-                expanded = campusExpanded,
-                onDismissRequest = { campusExpanded = false }
+                expanded = destinationExpanded,
+                onDismissRequest = { destinationExpanded = false }
             ) {
-                CAMPUS_OPTIONS.keys.forEach { campusName ->
+                PresetDestinations.all.forEach { preset ->
                     DropdownMenuItem(
-                        text = { Text(campusName) },
+                        text = { Text(preset.name) },
                         onClick = {
-                            viewModel.onDestinationChange(campusName)
-                            campusExpanded = false
+                            viewModel.onDestinationChange(preset)
+                            destinationExpanded = false
                         }
                     )
                 }
@@ -175,7 +192,10 @@ fun UploadRideScreen(
                 leadingIcon = { Icon(Icons.Default.CalendarToday, null) },
                 trailingIcon = {
                     IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Default.CalendarToday, contentDescription = "Select Date")
+                        Icon(
+                            Icons.Default.CalendarToday,
+                            contentDescription = "Select Date"
+                        )
                     }
                 }
             )
@@ -189,7 +209,10 @@ fun UploadRideScreen(
                 leadingIcon = { Icon(Icons.Default.Schedule, null) },
                 trailingIcon = {
                     IconButton(onClick = { showTimePicker = true }) {
-                        Icon(Icons.Default.Schedule, contentDescription = "Select Time")
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = "Select Time"
+                        )
                     }
                 }
             )
@@ -208,7 +231,9 @@ fun UploadRideScreen(
                     }) { Text("Confirm") }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                    TextButton(onClick = { showDatePicker = false }) {
+                        Text("Cancel")
+                    }
                 }
             ) {
                 DatePicker(state = datePickerState)
@@ -217,21 +242,28 @@ fun UploadRideScreen(
 
         // Time picker dialog
         if (showTimePicker) {
-            TimePickerDialog(
+            DatePickerDialog(
                 onDismissRequest = { showTimePicker = false },
-                title = { Text("Select Departure Time") },
                 confirmButton = {
                     TextButton(onClick = {
-                        val formattedTime = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
+                        val formattedTime = String.format(
+                            "%02d:%02d",
+                            timePickerState.hour,
+                            timePickerState.minute
+                        )
                         viewModel.onTimeChange(formattedTime)
                         showTimePicker = false
                     }) { Text("Confirm") }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+                    TextButton(onClick = { showTimePicker = false }) {
+                        Text("Cancel")
+                    }
                 }
             ) {
-                TimePicker(state = timePickerState)
+                androidx.compose.foundation.layout.Box(Modifier.padding(24.dp)) {
+                    TimePicker(state = timePickerState)
+                }
             }
         }
 
@@ -276,8 +308,14 @@ fun UploadRideScreen(
                 label = { Text("Vehicle Type") },
                 placeholder = { Text("Select type") },
                 leadingIcon = { Icon(Icons.Default.DirectionsCar, null) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = vehicleExpanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor()
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(
+                        expanded = vehicleExpanded
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
             )
             ExposedDropdownMenu(
                 expanded = vehicleExpanded,
@@ -318,12 +356,15 @@ fun UploadRideScreen(
                             onNavigateToDashboard()
                         },
                         shape = RoundedCornerShape(15.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCEA2FD))
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFCEA2FD)
+                        )
                     ) { Text("Continue") }
                 }
             )
         }
 
+        // Recurring ride week slider
         if (form.isRecurring) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -349,7 +390,9 @@ fun UploadRideScreen(
 
         Button(
             onClick = { viewModel.submitRide() },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
             enabled = status !is UploadStatus.Loading
         ) {
             if (status is UploadStatus.Loading) CircularProgressIndicator(color = Color.White)

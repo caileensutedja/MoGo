@@ -53,40 +53,45 @@ class MainActivity : ComponentActivity() {
                 )
 
                 // Variable to allow bottom bar to be shown
-                val showBottomBar = currentRoute != null && currentRoute !in hideBottomBarRoutes
+                val showBottomBar = currentRoute != null &&
+                        currentRoute !in hideBottomBarRoutes
 
                 val supabase = application.supabase
                 val roleViewModel: UserRoleViewModel = viewModel<UserRoleViewModel>(
-                    factory = UserRoleViewModelFactory(ProfileRepository(supabase), supabase)
+                    factory = UserRoleViewModelFactory(
+                        ProfileRepository(supabase),
+                        supabase
+                    )
                 )
                 val userRole by roleViewModel.userRole.collectAsStateWithLifecycle()
                 var roleTrigger by remember { mutableStateOf(0) }
+
                 LaunchedEffect(Unit) {
                     roleViewModel.fetchRole()
                 }
 
-                Scaffold(modifier = Modifier.fillMaxSize(),
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
                     // Show the bottom bar on approved screens
                     bottomBar = {
                         if (showBottomBar) {
                             BottomBar(navController, userRole)
                         }
                     }
-                ){ innerPadding ->
+                ) { innerPadding ->
 
-                    Surface(modifier=Modifier.padding(innerPadding)) {
+                    Surface(modifier = Modifier.padding(innerPadding)) {
                         AppNavigation(
                             application = application as MogoApplication,
-                            navController = navController, // Navigation Controller
+                            navController = navController,
                             onRoleChanged = {
                                 roleViewModel.fetchRole()
-                                roleTrigger++}
+                                roleTrigger++
+                            }
                         )
                     }
-
                 }
             }
         }
     }
 }
-

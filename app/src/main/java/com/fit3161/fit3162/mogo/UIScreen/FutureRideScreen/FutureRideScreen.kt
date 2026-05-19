@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
-import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
+import com.fit3161.fit3162.mogo.data.model.PresetDestinations
 import com.fit3161.fit3162.mogo.data.repo.Ride
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -129,7 +129,9 @@ fun FutureRideScreenUI(
             fontSize = 14.sp,
             color = Color.Gray
         )
-        val campusNames = listOf("All") + CAMPUS_OPTIONS.keys.toList()
+//        val campusNames = listOf("All") + CAMPUS_OPTIONS.keys.toList()
+        val campusNames = listOf("All") + PresetDestinations.all.map { it.name }
+
 
         Row(
             modifier = Modifier

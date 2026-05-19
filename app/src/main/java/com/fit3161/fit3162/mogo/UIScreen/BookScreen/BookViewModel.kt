@@ -3,9 +3,9 @@ package com.fit3161.fit3162.mogo.UIScreen.BookScreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.fit3161.fit3162.mogo.data.model.PresetDestinations
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
 import com.fit3161.fit3162.mogo.data.repo.Booking
-import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.data.repo.MapsRepository
 import com.fit3161.fit3162.mogo.data.repo.Ride
 import com.fit3161.fit3162.mogo.data.repo.RideUser
@@ -26,15 +26,25 @@ data class OngoingRideDetails(
     val estimatedDurationMinutes: Int? = null
 )
 
+/**
+ * UI state for the Book screen (rider view).
+ *
+ * @param showCancelSuccess Whether to show the cancel success dialog.
+ */
 data class BookUIState(
     val bookings: List<Booking> = emptyList(),
     val rides: List<MapsRepository.RideWithDetour> = emptyList(),
     val ongoingRide: OngoingRideDetails? = null,
     val rebookMessage: String? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showCancelSuccess: Boolean = false
 )
 
+/**
+ * ViewModel for the rider's Booked Rides screen.
+ * Handles loading bookings, cancelling with reasons, and rebooking recurring rides.
+ */
 class BookViewModel(
     private val repo: BookRepository,
     private val mapsRepo: MapsRepository,
@@ -52,14 +62,17 @@ class BookViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val bookings = repo.getBookedRides(userId).sortedBy { it.rides?.departureTime }
+                val bookings = repo.getBookedRides(userId)
+                    .sortedBy { it.rides?.departureTime }
 
-                // Compute ongoing ride (first confirmed booking with future departure)
+                // Find the first upcoming booking to display as "ongoing ride"
                 val ongoingRide = bookings.firstOrNull { booking ->
                     val departure = try {
                         OffsetDateTime.parse(booking.rides?.departureTime)
                     } catch (e: Exception) { null }
-                    departure != null && departure.isAfter(OffsetDateTime.now(ZoneOffset.UTC))
+                    departure != null && departure.isAfter(
+                        OffsetDateTime.now(ZoneOffset.UTC)
+                    )
                 }?.let { booking ->
                     val ride = booking.rides
                     OngoingRideDetails(
@@ -67,8 +80,12 @@ class BookViewModel(
                         origin = ride?.origin ?: "",
                         destination = ride?.destination ?: "",
                         departureTime = ride?.departureTime ?: "",
-                        estimatedDistanceKm = ride?.carbonEstimate?.let { carbon -> carbon / 0.21 },
-                        estimatedDurationMinutes = ride?.carbonEstimate?.let { carbon -> ((carbon / 0.21) / 40 * 60).toInt() }
+                        estimatedDistanceKm = ride?.carbonEstimate?.let {
+                            it / 0.21
+                        },
+                        estimatedDurationMinutes = ride?.carbonEstimate?.let {
+                            ((it / 0.21) / 40 * 60).toInt()
+                        }
                     )
                 }
 
@@ -78,12 +95,20 @@ class BookViewModel(
                     isLoading = false
                 )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
             }
         }
     }
 
-    fun loadRides(rider: RideUser, pickupLat: Double, pickupLng: Double, date: String?) {
+    fun loadRides(
+        rider: RideUser,
+        pickupLat: Double,
+        pickupLng: Double,
+        date: String?
+    ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
@@ -92,41 +117,47 @@ class BookViewModel(
                 val blockedByRider = emptySet<String>()
                 val blockedByDriver = emptySet<String>()
 
-                // 1. DB query
                 val candidates = if (date != null)
                     repo.getFutureRidesByDate(userId, date, genderPref ?: "")
                 else
                     repo.getAllFutureRides(userId, genderPref ?: "")
 
-                // 2. Hard memory filters
                 val hardFiltered = candidates.filter { ride ->
-                    repo.passesHardMemoryFilters(ride, userId, rider, alreadyBooked, blockedByRider, blockedByDriver)
+                    repo.passesHardMemoryFilters(
+                        ride, userId, rider,
+                        alreadyBooked, blockedByRider, blockedByDriver
+                    )
                 }
 
-                // 3. Soft filters
                 val softFiltered = hardFiltered.filter { ride ->
                     repo.passesSoftFilters(ride, userId, rider)
                 }
 
-                // 4. Radius pre-filter
                 val inRadius = softFiltered.filter { ride ->
                     val oLat = ride.originLat ?: return@filter false
                     val oLng = ride.originLng ?: return@filter false
                     repo.isWithinRadiusKm(pickupLat, pickupLng, oLat, oLng, 5.0)
                 }
 
-                // 5. Detour check — strict first, relax if empty
-                var withDetour = checkDetours(inRadius, pickupLat, pickupLng, maxDetourKm = 5.0)
+                var withDetour = checkDetours(
+                    inRadius, pickupLat, pickupLng, maxDetourKm = 5.0
+                )
                 if (withDetour.isEmpty()) {
-                    withDetour = checkDetours(inRadius, pickupLat, pickupLng, maxDetourKm = 10.0)
+                    withDetour = checkDetours(
+                        inRadius, pickupLat, pickupLng, maxDetourKm = 10.0
+                    )
                 }
 
-                // 6. Sort
                 val sorted = repo.sortRides(withDetour)
-                _uiState.value = _uiState.value.copy(rides = sorted, isLoading = false)
-
+                _uiState.value = _uiState.value.copy(
+                    rides = sorted,
+                    isLoading = false
+                )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
             }
         }
     }
@@ -138,7 +169,8 @@ class BookViewModel(
         maxDetourKm: Double
     ): List<MapsRepository.RideWithDetour> {
         return rides.mapNotNull { ride ->
-            val detour = mapsRepo.computeDetour(ride, pickupLat, pickupLng) ?: return@mapNotNull null
+            val detour = mapsRepo.computeDetour(ride, pickupLat, pickupLng)
+                ?: return@mapNotNull null
             if (detour.addedKm <= maxDetourKm && detour.addedMinutes <= 10) {
                 MapsRepository.RideWithDetour(ride, detour.addedKm, detour.addedMinutes)
             } else null
@@ -159,7 +191,7 @@ class BookViewModel(
                 return@launch
             }
 
-            val campusLocation = CAMPUS_OPTIONS[booking.dropoffLocation]
+            val campusLocation = PresetDestinations.byName(booking.dropoffLocation)
 
             val result = repo.bookRide(
                 riderId = userId,
@@ -168,41 +200,62 @@ class BookViewModel(
                 pickupLat = booking.pickupLat ?: 0.0,
                 pickupLng = booking.pickupLng ?: 0.0,
                 dropoffLocation = booking.dropoffLocation,
-                dropoffLat = campusLocation?.latLng?.latitude ?: booking.dropoffLat ?: 0.0,
-                dropoffLng = campusLocation?.latLng?.longitude ?: booking.dropoffLng ?: 0.0,
+                dropoffLat = campusLocation?.latLng?.latitude
+                    ?: booking.dropoffLat ?: 0.0,
+                dropoffLng = campusLocation?.latLng?.longitude
+                    ?: booking.dropoffLng ?: 0.0
             )
 
             if (result.isSuccess) {
-                _uiState.value = _uiState.value.copy(rebookMessage = "✅ Rebooked for next week!")
+                _uiState.value = _uiState.value.copy(
+                    rebookMessage = "Rebooked for next week!"
+                )
                 loadBookedRides()
             } else {
                 val msg = result.exceptionOrNull()?.message ?: ""
                 _uiState.value = _uiState.value.copy(
                     rebookMessage = when {
-                        msg.contains("Already booked", ignoreCase = true) ||
-                                msg.contains("duplicate key", ignoreCase = true) ||
-                                msg.contains("unique_booking", ignoreCase = true) ->
-                            "❌ You have already rebooked this ride"
-                        msg.contains("No seats available", ignoreCase = true) ->
-                            "❌ This ride is now full"
-                        else -> "❌ Ride unavailable for next week"
+                        msg.contains("Already booked", true) ||
+                                msg.contains("duplicate key", true) ||
+                                msg.contains("unique_booking", true) ->
+                            "You have already rebooked this ride"
+                        msg.contains("No seats available", true) ->
+                            "This ride is now full"
+                        else ->
+                            "Ride unavailable for next week"
                     }
                 )
             }
         }
     }
 
-    fun cancelBooking(bookingId: String, rideId: String) {
+    /**
+     * Cancels a booking with a reason.
+     * Restores the seat on the ride via the repository.
+     * Shows a success dialog on completion.
+     */
+    fun cancelBooking(bookingId: String, rideId: String, reason: String) {
         _uiState.value = _uiState.value.copy(
             bookings = _uiState.value.bookings.filter { it.id != bookingId }
         )
         viewModelScope.launch {
-            val result = repo.cancelBooking(bookingId, rideId)
-            if (result.isFailure) {
+            val result = repo.cancelBooking(bookingId, rideId, reason)
+            if (result.isSuccess) {
+                _uiState.value = _uiState.value.copy(
+                    showCancelSuccess = true
+                )
+            } else {
                 loadBookedRides()
-                _uiState.value = _uiState.value.copy(error = "Failed to cancel booking")
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to cancel booking"
+                )
             }
         }
+    }
+
+    // Dismiss the cancel success dialog.
+    fun dismissCancelSuccess() {
+        _uiState.value = _uiState.value.copy(showCancelSuccess = false)
     }
 
     fun clearRebookMessage() {
@@ -220,7 +273,9 @@ class BookViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(BookViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return BookViewModel(BookRepository(client), mapsRepo, userId) as T
+            return BookViewModel(
+                BookRepository(client), mapsRepo, userId
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

@@ -62,9 +62,7 @@ fun MyRidesScreen(
             confirmButton = {
                 Button(
                     onClick = { viewModel.dismissCancelSuccess() },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFB57BFF)
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF))
                 ) {
                     Text("OK", color = Color.White)
                 }
@@ -113,8 +111,10 @@ fun MyRidesScreen(
             }
         } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
-                items(state.rides.size) { idx ->
-                    val ride = state.rides[idx]
+                // Active rides (in_progress + scheduled) - always visible
+                val activeRides = state.activeRides
+                items(activeRides.size) { idx ->
+                    val ride = activeRides[idx]
                     val bookings = state.rideBookings[ride.id] ?: emptyList()
                     MyRideCard(
                         ride = ride,
@@ -127,6 +127,42 @@ fun MyRidesScreen(
                         onViewOnMap = { onNavigateToActiveRide() }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // Show/hide completed rides toggle
+                val completedRides = state.completedRides
+                if (completedRides.isNotEmpty()) {
+                    item {
+                        TextButton(
+                            onClick = { viewModel.toggleShowCompleted() }
+                        ) {
+                            Text(
+                                text = if (state.showCompleted)
+                                    "Hide completed rides (${completedRides.size})"
+                                else
+                                    "Show completed rides (${completedRides.size})",
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+
+                    // Completed/cancelled rides (only shown when toggled on)
+                    if (state.showCompleted) {
+                        items(completedRides.size) { idx ->
+                            val ride = completedRides[idx]
+                            val bookings = state.rideBookings[ride.id] ?: emptyList()
+                            MyRideCard(
+                                ride = ride,
+                                bookings = bookings,
+                                onCancelRide = { },
+                                onStartRide = { },
+                                onEndRide = { },
+                                onViewOnMap = { }
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
                 }
             }
         }
@@ -175,11 +211,7 @@ fun MyRideCard(
                         fontSize = 14.sp
                     )
                     Spacer(Modifier.height(12.dp))
-                    Text(
-                        "Reason for cancellation:",
-                        fontSize = 13.sp,
-                        color = Color.Gray
-                    )
+                    Text("Reason for cancellation:", fontSize = 13.sp, color = Color.Gray)
                     Spacer(Modifier.height(4.dp))
 
                     ExposedDropdownMenuBox(
@@ -190,12 +222,8 @@ fun MyRideCard(
                             value = selectedReason.ifEmpty { "Select a reason" },
                             onValueChange = {},
                             readOnly = true,
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded)
-                            },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
                         ExposedDropdownMenu(
                             expanded = expanded,
@@ -218,9 +246,7 @@ fun MyRideCard(
                 Button(
                     onClick = {
                         showCancelDialog = false
-                        onCancelRide(
-                            selectedReason.ifEmpty { "Prefer not to say" }
-                        )
+                        onCancelRide(selectedReason.ifEmpty { "Prefer not to say" })
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                     enabled = selectedReason.isNotEmpty()
@@ -229,9 +255,7 @@ fun MyRideCard(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCancelDialog = false }) {
-                    Text("Go Back")
-                }
+                TextButton(onClick = { showCancelDialog = false }) { Text("Go Back") }
             }
         )
     }
@@ -249,21 +273,14 @@ fun MyRideCard(
             },
             confirmButton = {
                 Button(
-                    onClick = {
-                        showStartDialog = false
-                        onStartRide()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4CAF50)
-                    )
+                    onClick = { showStartDialog = false; onStartRide() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
                 ) {
                     Text("Start Ride", color = Color.White)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showStartDialog = false }) {
-                    Text("Not Yet")
-                }
+                TextButton(onClick = { showStartDialog = false }) { Text("Not Yet") }
             }
         )
     }
@@ -281,31 +298,27 @@ fun MyRideCard(
             },
             confirmButton = {
                 Button(
-                    onClick = {
-                        showEndDialog = false
-                        onEndRide()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4A2C8A)
-                    )
+                    onClick = { showEndDialog = false; onEndRide() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A2C8A))
                 ) {
                     Text("End Ride", color = Color.White)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showEndDialog = false }) {
-                    Text("Keep Going")
-                }
+                TextButton(onClick = { showEndDialog = false }) { Text("Keep Going") }
             }
         )
     }
 
+    // Card background: green for in_progress, grey for completed/cancelled, purple for scheduled
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(
                 when (ride.rideStatus) {
                     "in_progress" -> Color(0xFFE8F5E9)
+                    "completed" -> Color(0xFFEEEEEE)
+                    "cancelled" -> Color(0xFFEEEEEE)
                     else -> Color(0xFFF3E8FF)
                 },
                 RoundedCornerShape(20.dp)
@@ -412,7 +425,7 @@ fun MyRideCard(
                             }
                         }
                     }
-                } else {
+                } else if (ride.rideStatus == "scheduled" || ride.rideStatus == "in_progress") {
                     Text("No riders booked yet", fontSize = 13.sp, color = Color.Gray)
                 }
 
@@ -448,7 +461,6 @@ fun MyRideCard(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // View Map button (purple to match UI theme)
                             Button(
                                 onClick = { onViewOnMap() },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB57BFF)),
@@ -459,7 +471,6 @@ fun MyRideCard(
                                 Spacer(Modifier.width(4.dp))
                                 Text("View Map", color = Color.White)
                             }
-                            // End Ride button (dark purple to match UI theme)
                             Button(
                                 onClick = { showEndDialog = true },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A2C8A)),
@@ -472,6 +483,7 @@ fun MyRideCard(
                             }
                         }
                     }
+                    // completed / cancelled: no action buttons
                 }
             }
         }

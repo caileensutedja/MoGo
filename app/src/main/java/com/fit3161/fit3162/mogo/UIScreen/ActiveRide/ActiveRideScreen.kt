@@ -536,6 +536,7 @@ fun RideDetailRow(label: String, value: String) {
 }
 
 // Sends an SMS message to a phone number.
+// SMS permission on device must be enabled for this to work.
 fun sendSms(context: android.content.Context, phone: String, message: String) {
     try {
         SmsManager.getDefault().sendTextMessage(phone, null, message, null, null)

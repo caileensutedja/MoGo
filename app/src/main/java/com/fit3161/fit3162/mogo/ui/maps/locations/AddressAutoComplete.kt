@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import androidx.compose.runtime.rememberCoroutineScope
 
+
 /**
  * The result emitted when the user picks a suggestion.
  *
@@ -54,16 +55,12 @@ import androidx.compose.runtime.rememberCoroutineScope
  * An OutlinedTextField that shows address autocomplete predictions as the
  * user types. Always offers "Use my current location" as the first option.
  *
- * @param label             Text shown as the field's label (e.g. "Starting Location").
- * @param currentValue      Display text currently in the field. Caller owns the state.
- * @param placesRepo        For predictions + place details.
+ * @param label Text shown as the field's label (e.g. "Starting Location").
+ * @param currentValue Display text currently in the field. Caller owns the state.
+ * @param placesRepo For predictions + place details.
  * @param onCurrentLocation Called when user taps "Use my current location."
- *                          Caller is responsible for fetching the device location and
- *                          calling [setValue] with whatever label they want shown.
- * @param onPlacePicked     Called when the user picks an autocomplete suggestion AND
- *                          the place's coordinates have been resolved.
- * @param setValue          Called whenever the displayed text changes (typing OR picking).
- *                          Lets the caller keep the field's state in sync.
+ * @param onPlacePicked Called when the user picks an autocomplete suggestion AND the place's coordinates have been resolved.
+ * @param setValue Called whenever the displayed text changes (typing OR picking). Lets the caller keep the field's state in sync.
  */
 @OptIn(FlowPreview::class)
 @Composable

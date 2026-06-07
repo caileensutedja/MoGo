@@ -64,6 +64,8 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
 
+
+
 private fun formatTimeLeft(departureTime: String): String {
     val now = OffsetDateTime.now(ZoneOffset.UTC)
     val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "??" }

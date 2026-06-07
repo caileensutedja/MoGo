@@ -23,6 +23,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+
+/**
+ * ActiveRideUIState data class.
+ */
 data class ActiveRideUiState(
     val booking: Booking? = null,
     val ride: Ride? = null,
@@ -37,6 +41,9 @@ data class ActiveRideUiState(
     val error: String? = null
 )
 
+/**
+ * ActiveRouteState sealed class.
+ */
 sealed class ActiveRouteState {
     object Idle : ActiveRouteState()
     object Loading : ActiveRouteState()
@@ -44,6 +51,9 @@ sealed class ActiveRouteState {
     data class Error(val message: String) : ActiveRouteState()
 }
 
+/**
+ * ActiveRide ViewModel.
+ */
 class ActiveRideViewModel(
     private val authRepo: AuthRepository,
     private val bookRepo: BookRepository,
@@ -54,7 +64,7 @@ class ActiveRideViewModel(
 
     companion object {
         private const val TAG = "ActiveRide"
-        private const val POLL_INTERVAL_MS = 20_000L
+        private const val POLL_INTERVAL_MS = 20_000L // for db polling during active ride: 20seconds.
     }
 
     private val _uiState = MutableStateFlow(ActiveRideUiState())
@@ -109,8 +119,10 @@ class ActiveRideViewModel(
     private fun fetchRideRoute(ride: Ride) {
         val oLat = ride.originLat ?: return
         val oLng = ride.originLng ?: return
+
         val dLat = ride.destinationLat ?: return
         val dLng = ride.destinationLng ?: return
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(routeState = ActiveRouteState.Loading)
             mapsRepo.getRoute(LatLng(oLat, oLng), LatLng(dLat, dLng)).fold(
@@ -136,6 +148,7 @@ class ActiveRideViewModel(
                             _uiState.value = _uiState.value.copy(riderLocation = myLocation)
                         }
                     }
+                    
                     val liveRide = bookRepo.getRideLiveLocations(rideId)
                     if (liveRide != null) {
                         if (isDriver && liveRide.riderLiveLat != null && liveRide.riderLiveLng != null) {

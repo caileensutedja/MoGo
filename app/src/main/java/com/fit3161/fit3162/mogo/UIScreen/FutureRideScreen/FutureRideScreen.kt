@@ -32,6 +32,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+
 /**
  * Dialog that lets the rider choose their pickup location before confirming a booking.
  * Options:
@@ -467,6 +468,9 @@ fun FutureRideCard(
     }
 }
 
+/**
+ * Formatter helper function.
+ */
 fun convertMillisToDate(millis: Long): String {
     val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     formatter.timeZone = TimeZone.getTimeZone("UTC")

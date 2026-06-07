@@ -19,6 +19,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class MogoApplication : Application() {
 
+    // Define Supabase client instance for db connection/repos when needed.
     val supabase: SupabaseClient by lazy {
         createSupabaseClient(
             supabaseUrl = BuildConfig.SUPABASE_URL,

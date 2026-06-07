@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+
 // REMOVED: FusedLocationProviderClient import — location is now handled by MapsRepository
 
 class MapsViewModel(private val mapRepository: MapsRepository) : ViewModel() {
@@ -26,11 +27,11 @@ class MapsViewModel(private val mapRepository: MapsRepository) : ViewModel() {
         DriverLocation("id01", "Jack", LatLng(-37.91241, 145.13598))
     )
 
-    // ADDED: user location state (was not tracked before)
+    // user location state (was not tracked before)
     private val _userLocation = MutableStateFlow<LocationState>(LocationState.Unknown)
     val userLocation: StateFlow<LocationState> = _userLocation.asStateFlow()
 
-    // ADDED: selected destination state for chip highlighting + route info card
+    // selected destination state for chip highlighting + route info card
     private val _selectedDestination = MutableStateFlow<PresetDestination?>(null)
     val selectedDestination: StateFlow<PresetDestination?> = _selectedDestination.asStateFlow()
 
@@ -45,7 +46,7 @@ class MapsViewModel(private val mapRepository: MapsRepository) : ViewModel() {
     val nearbyDrivers: StateFlow<List<DriverLocation>> = _nearbyDrivers.asStateFlow()
 
 
-    // ADDED: replaces old getDeviceLocation() that took FusedLocationProviderClient as parameter
+    // Replaces old getDeviceLocation() that took FusedLocationProviderClient as parameter
     // Now delegates to repository (proper MVVM — ViewModel doesn't touch Android framework classes)
     fun loadDeviceLocation() {
         viewModelScope.launch {

@@ -68,6 +68,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.launch
 
+/**
+ * Defines all the screens included in the app for in-between screen navigation.
+ */
 sealed class Screen(val route: String) {
     object Welcome : Screen("welcome")
     object Login : Screen("login")
@@ -87,6 +90,9 @@ sealed class Screen(val route: String) {
     }
 }
 
+/**
+ * AppNavigation handles page navigation between different pages/screens in the app.
+ */
 @Composable
 fun AppNavigation(
     application: MogoApplication,
@@ -107,6 +113,9 @@ fun AppNavigation(
     val supabase = application.supabase
     val authRepository = AuthRepository(supabase)
 
+    /**
+     * "Navigation graph" is defined here by calling ui composables and their respective viewmodel.
+     */
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -319,7 +328,9 @@ fun AppNavigation(
     }
 }
 
-
+/**
+ * Small data class to contain bottom bar navigation items.
+ */
 data class BottomNavItem(
     val route: String,
     val label: String,
@@ -332,10 +343,9 @@ fun BottomBar(
     navController: NavHostController,
     userRole: String = "rider"
 ) {
-    val currentRoute =
-        navController.currentBackStackEntryAsState().value?.destination?.route
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
-    val riderOrDriver = if (userRole.lowercase() == "driver") {
+    val riderOrDriver = if (userRole.lowercase() == "driver") { // user-role
         BottomNavItem(Screen.MyRides.route, "My Rides", Icons.Filled.CalendarMonth)
     } else {
         BottomNavItem(Screen.Booked.route, "Booked", Icons.Filled.CalendarMonth)

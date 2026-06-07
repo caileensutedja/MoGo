@@ -19,6 +19,10 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
+
+/**
+ * MapsRepository handles data involving maps view, getting routes, getting locations.
+ */
 class MapsRepository(
     private val context: Context,
     private val apiService: RoutesApiService,
@@ -29,6 +33,9 @@ class MapsRepository(
         private const val TAG = "MapsRepository"
     }
 
+    /**
+     * Get device location (location permissions for the app on the device must be enabled, else it won't work).
+     */
     @SuppressLint("MissingPermission")
     suspend fun getDeviceLocation(): Result<LatLng> = runCatching {
         val location: android.location.Location? = fusedLocationProviderClient.getCurrentLocation(
@@ -43,21 +50,28 @@ class MapsRepository(
         }
     }
 
-    // Converts lat/lng to a human-readable address string
+    /**
+     * Converts lat/lng to a address string.
+     */
     suspend fun reverseGeocode(latLng: LatLng): String = withContext(Dispatchers.IO) {
         try {
             val geocoder = Geocoder(context, Locale.getDefault())
             @Suppress("DEPRECATION")
             val results = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+            
             if (!results.isNullOrEmpty()) {
+                
                 val address = results[0]
                 val parts = listOfNotNull(
                     address.subThoroughfare,
                     address.thoroughfare,
                     address.locality
                 )
+                
                 val formatted = if (parts.isNotEmpty()) parts.joinToString(" ")
+                
                 else address.getAddressLine(0) ?: ""
+                
                 Log.d(TAG, "Reverse geocoded: $formatted")
                 formatted.ifBlank { formatLatLng(latLng) }
             } else {
@@ -69,18 +83,28 @@ class MapsRepository(
         }
     }
 
+    /**
+     * Format latitude and longitude coordinates.
+     */
     private fun formatLatLng(latLng: LatLng): String =
         "(%.4f, %.4f)".format(latLng.latitude, latLng.longitude)
 
+    /**
+     * Returns a route based on the origin and destination of the route.
+     * Route origin and destination are set by drivers (rider only adds a pickup point).
+     */
     suspend fun getRoute(origin: LatLng, destination: LatLng): Result<RouteResult> = runCatching {
         val request = RoutesRequest(
             origin = Waypoint(WaypointLocation(LatLngLiteral(origin.latitude, origin.longitude))),
             destination = Waypoint(WaypointLocation(LatLngLiteral(destination.latitude, destination.longitude)))
         )
+        
         val response = apiService.computeRoutes(apiKey = apiKey, request = request)
         check(!response.routes.isNullOrEmpty()) { "Routes API returned no routes." }
+        
         val route = response.routes.first()
         val leg = route.legs.first()
+        
         RouteResult(
             polylinePoints = route.polyline.encodedPolyline,
             distanceText = leg.localizedValues.distance.text,
@@ -94,29 +118,41 @@ class MapsRepository(
         )
     }
 
+    /**
+     * Computes detour/route distance and duration after adding Rider pickup location.
+     */
     suspend fun computeDetour(ride: Ride, pickupLat: Double, pickupLng: Double): DetourResult? {
         val oLat = ride.originLat ?: return null
         val oLng = ride.originLng ?: return null
+
         val dLat = ride.destinationLat ?: return null
         val dLng = ride.destinationLng ?: return null
+
         val original = getRoute(LatLng(oLat, oLng), LatLng(dLat, dLng)).getOrNull() ?: return null
         val detour = getRouteWithStop(LatLng(oLat, oLng), LatLng(pickupLat, pickupLng), LatLng(dLat, dLng)).getOrNull() ?: return null
+        
         return DetourResult(
             addedKm = (detour.distanceMeters - original.distanceMeters) / 1000.0,
             addedMinutes = (detour.durationSeconds - original.durationSeconds) / 60L
         )
     }
 
+    /**
+     * Computes/gets route after adding Rider pickup location.
+     */
     suspend fun getRouteWithStop(origin: LatLng, stop: LatLng, destination: LatLng): Result<RouteResult> = runCatching {
         val request = RoutesRequest(
             origin = Waypoint(WaypointLocation(LatLngLiteral(origin.latitude, origin.longitude))),
             destination = Waypoint(WaypointLocation(LatLngLiteral(destination.latitude, destination.longitude))),
             intermediates = listOf(Waypoint(WaypointLocation(LatLngLiteral(stop.latitude, stop.longitude))))
         )
+        
         val response = apiService.computeRoutes(apiKey = apiKey, request = request)
         check(!response.routes.isNullOrEmpty()) { "Routes API returned no routes." }
+        
         val route = response.routes.first()
         val leg = route.legs.first()
+        
         RouteResult(
             polylinePoints = route.polyline.encodedPolyline,
             distanceText = leg.localizedValues.distance.text,
@@ -131,5 +167,6 @@ class MapsRepository(
     }
 
     data class DetourResult(val addedKm: Double, val addedMinutes: Long)
+    
     data class RideWithDetour(val ride: Ride, val addedKm: Double, val addedMinutes: Long)
 }

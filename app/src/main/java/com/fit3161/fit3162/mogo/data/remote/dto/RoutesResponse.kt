@@ -8,21 +8,28 @@ package com.fit3161.fit3162.mogo.data.remote.dto
 data class RoutesResponse(
     val routes: List<Route>? = null
 ) {
+    /**
+     * 
+     */
     data class Route(
         val distanceMeters: Int,
-        val duration: String,           // returned as "1234s"
+        val duration: String, // in seconds, e.g. returned as "1234s"
         val polyline: Polyline,
         val viewport: Bounds,
         val legs: List<Leg>
     )
 
+    /**
+     * Polyline data class to display map routes
+     * Polyline definition: series of connected line segments used to represent paths, routes, or borders on a map.
+     */
     data class Polyline(
         val encodedPolyline: String
     )
 
     data class Bounds(
-        val low: LatLngLiteral,         // southwest corner
-        val high: LatLngLiteral         // northeast corner
+        val low: LatLngLiteral, // southwest corner
+        val high: LatLngLiteral // northeast corner
     )
 
     data class Leg(
@@ -36,8 +43,8 @@ data class RoutesResponse(
     )
 
     data class LocalizedValues(
-        val distance: TextValue,        // e.g. "12.3 km"
-        val duration: TextValue         // e.g. "18 mins"
+        val distance: TextValue, // e.g. "12.3 km"
+        val duration: TextValue // e.g. "18 mins"
     )
 
     data class TextValue(

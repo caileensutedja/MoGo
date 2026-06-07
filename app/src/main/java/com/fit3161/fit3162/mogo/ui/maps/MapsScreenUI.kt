@@ -52,6 +52,10 @@ import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 
+
+/**
+ * MapsScreenUI scren layout.
+ */
 @Composable
 fun MapScreenUI(viewModel: MapsViewModel) {
     val context = LocalContext.current

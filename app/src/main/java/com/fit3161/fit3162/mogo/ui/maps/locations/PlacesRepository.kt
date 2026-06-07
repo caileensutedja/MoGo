@@ -11,6 +11,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+
 /**
  * One row in the autocomplete dropdown.
  *
@@ -46,8 +47,7 @@ data class ResolvedPlace(
  *   discard it. After [resolvePrediction] returns, call [refreshSessionToken]
  *   so the next interaction starts a new session.
  *
- * - Predictions are biased toward Australia (`AU`). Adjust the country code
- *   if you ever expand outside.
+ * - Predictions are biased toward Australia (`AU`). 
  */
 class PlacesRepository(
     private val placesClient: PlacesClient

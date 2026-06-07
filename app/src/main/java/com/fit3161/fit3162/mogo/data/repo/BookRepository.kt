@@ -14,7 +14,10 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-// Represents a user profile joined from the users table.
+
+/**
+ * Represents a user profile joined from the users table.
+ */
 @Serializable
 data class RideUser(
         @SerialName("user_id") val userId: String,
@@ -80,7 +83,9 @@ data class Ride(
         val vehicles: Vehicle? = null
 )
 
-// Represents a booking made by a rider for a specific ride.
+/**
+ * Represents a booking made by a rider for a specific ride.
+ */
 @Serializable
 data class Booking(
         @SerialName("booking_id") val id: String,
@@ -101,8 +106,10 @@ data class Booking(
         val rides: Ride? = null
 )
 
-// Lightweight booking info for the driver's "My Rides" view.
-// Joins with users table on rider_id to get the rider's name/phone.
+/**
+ * Lightweight booking info for the driver's "My Rides" view.
+ * Joins with users table on rider_id to get the rider's name/phone.
+ */
 @Serializable
 data class RideBookingInfo(
         @SerialName("booking_id") val bookingId: String,

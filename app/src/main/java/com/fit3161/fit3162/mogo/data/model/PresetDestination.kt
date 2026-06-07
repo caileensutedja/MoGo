@@ -5,9 +5,9 @@ import com.google.android.gms.maps.model.LatLng
 /**
  * Represents a preset destination the user can select.
  *
- * @param name          Display name shown in the UI chip/button.
- * @param latLng        Coordinates of the destination.
- * @param description   Optional short description (e.g. address or landmark info).
+ * @param name Display name shown in the UI chip/button.
+ * @param latLn Coordinates of the destination.
+ * @param description Optional short description (e.g. address or landmark info).
  */
 data class PresetDestination(
     val name: String,
@@ -47,6 +47,10 @@ object PresetDestinations {
     fun byName(name: String): PresetDestination? =
         all.firstOrNull { it.name == name }
 }
+
+/**
+ * Location data class for precise coordinates.
+ */
 data class Location(
     val name: String,
     val latLng: LatLng

@@ -41,11 +41,10 @@ import com.fit3161.fit3162.mogo.ui.components.AddressAutocompleteField
  * The dialog tracks its own internal state. It commits nothing until the
  * rider taps Confirm.
  *
- * @param placesRepo  used by the embedded autocomplete field.
- * @param onConfirm   called with the chosen pickup. If [useCurrentLocation]
- *                    is true, [pickupLat] / [pickupLng] / [pickupLabel] are
- *                    null — the caller resolves them.
- * @param onDismiss   called when the rider cancels or taps outside.
+ * @param placesRepo used by the embedded autocomplete field.
+ * @param onConfirm called with the chosen pickup. If [useCurrentLocation] is true, [pickupLat] / [pickupLng] / [pickupLabel] are
+ *                  null — the caller resolves them.
+ * @param onDismiss called when the rider cancels or taps outside.
  */
 @Composable
 fun PickupDialog(

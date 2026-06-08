@@ -64,19 +64,27 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
 
+/**
+ * Main home dashboard screen Page Screen
+ * Shows user's ride status, history, bookings and carbon metrics.
+ */
+
 private fun formatTimeLeft(departureTime: String): String {
     val now = OffsetDateTime.now(ZoneOffset.UTC)
     val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "??" }
     if (departure.isBefore(now)) return "Departed"
     val minutesLeft = Duration.between(now, departure).toMinutes()
     return when {
-        minutesLeft < 60 -> "${minutesLeft} min"
+        minutesLeft < 60 -> "$minutesLeft min"
         minutesLeft < 1440 -> "${minutesLeft / 60}h ${minutesLeft % 60}m"
         else -> "${minutesLeft / 1440}d"
     }
 }
 
 private fun getRideTitle(departureTime: String, durationMinutes: Int?, isInProgress: Boolean): String {
+    // Returns the status for the ride, based on the current time and ride status
+    // "Upcoming Ride", "Ongoing ride", "Ride in Progress", "Past Ride"
+
     if (isInProgress) return "Ride in Progress"
     val now = OffsetDateTime.now(ZoneOffset.UTC)
     val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "Unknown" }
@@ -408,7 +416,7 @@ fun HomeScreenUI(
                                             Modifier.size(14.dp),
                                             tint = Color(0xFFE65100)
                                         )
-                                        Text(
+                                        Text( // Returns human-readable time until depature
                                             " ${formatTimeLeft(ongoing.departureTime)}",
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Medium,

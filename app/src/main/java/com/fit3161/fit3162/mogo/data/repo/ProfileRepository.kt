@@ -1,11 +1,15 @@
 package com.fit3161.fit3162.mogo.data.repo
 
-import com.fit3161.fit3162.mogo.data.model.Location
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+
+/** Data Class representing a user profile as stored in Supabase
+ *
+ * The field names will match the database column names.
+ */
 
 @Serializable
 data class UserProfile(
@@ -21,6 +25,12 @@ data class UserProfile(
 
 class ProfileRepository(private val supabase: SupabaseClient) {
 
+    /**
+     * Fetches the full profile of a user by their ID.
+     *
+     * @param userId The UUID of the user.
+     * @return userProfile if found, null otherwise (or an error).
+     */
     suspend fun getProfile(userId: String): UserProfile? {
         return try {
             supabase.from("users")
@@ -33,6 +43,14 @@ class ProfileRepository(private val supabase: SupabaseClient) {
             null
         }
     }
+
+    /**
+     * Updates the Avatar's URL for a user.
+     *
+     * @param userId The User's ID
+     * @param avatarUrl New avatar URL
+     * @return Result.success(Unit) on success
+     */
     suspend fun updateAvatarUrl(userId: String, avatarUrl: String): Result<Unit> {
         return try {
             supabase.from("users")
@@ -45,6 +63,19 @@ class ProfileRepository(private val supabase: SupabaseClient) {
         }
     }
 
+    /**
+     * Updates one or more fields for a User.
+     * Only provided fields will be updated.
+     *
+     * @param userId User's ID
+     * @param name User's name
+     * @param phone User's phone
+     * @param gender User's gender
+     * @param user_role User's user Role
+     * @param home_campus User's Home campus
+     *
+     * @return Result.success(Unit) on success
+     */
     suspend fun updateProfile(
         userId: String,
         name: String? = null,

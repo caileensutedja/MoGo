@@ -50,6 +50,14 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fit3161.fit3162.mogo.data.model.AuthState
 
+/**
+ * Registration Screen where new users create an account.
+ *
+ * Features:
+ * - Email with domain hint
+ * - Other boxes to input information (type/dropdown)
+ * - Password & Confirm password with visibility toggle.
+ */
 @Composable
 fun RegisterScreen(
     viewModel: RegisterViewModel,
@@ -57,13 +65,22 @@ fun RegisterScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val form by viewModel.form.collectAsStateWithLifecycle()
+
+    // Dropdown for country code selection
     var expanded by remember { mutableStateOf(false) }
+
+    // Toggle for password visibility
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // Gender drop down and 'Other' logic.
     var genderExpanded by remember { mutableStateOf(false) }
     var showOtherInput by remember { mutableStateOf(false) }
     var otherInput by remember { mutableStateOf("") }
+
+    // Search query
     var searchQuery by remember { mutableStateOf("") }
 
+    // Filter country list based on user search query
     val filteredCountries = viewModel.countryOptions.filter {
         it.name.contains(searchQuery, true) ||
                 it.code.contains(searchQuery)
@@ -354,7 +371,7 @@ fun RegisterScreen(
         }
 
         /**
-         * Pops up as a dialog alert if successful, then prompts users to sign in again.
+         * Pops up as a dialogue alert if successful, then prompts users to sign in again.
          */
         if (state is AuthState.AwaitingEmailConfirmation) {
             AlertDialog(
@@ -362,7 +379,7 @@ fun RegisterScreen(
                 title = { Text("Registration Successful!") },
                 text = {
                     Text(
-                        "✅ Check your Monash email and click the verification link. Then return to sign in."
+                        "Check your Monash email and click the verification link. Then return to sign in."
                     )
                 },
                 confirmButton = {

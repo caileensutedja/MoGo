@@ -1,20 +1,49 @@
 package com.fit3161.fit3162.mogo.UIScreen.ProfileScreen
 
 import android.net.Uri
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +59,15 @@ import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileViewModel
 import com.fit3161.fit3162.mogo.data.model.PresetDestinations
 import kotlinx.coroutines.launch
 
+/**
+ * Profile Screen where users can edit and view their personal information.
+ *
+ * Key Features include:
+ * - Display/edit profile picture
+ * - Editable fields (i.e. Full name, Gender, Campus)
+ * - Read-only: Email Address (Cannot edit twice)
+ * - Buttons
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreenUI(
@@ -49,12 +87,14 @@ fun ProfileScreenUI(
     var userRole by remember { mutableStateOf("") }
     val homeCampus = uiState.homeCampus
 
+    // Dialog Visibility Flags
     var showNameDialog by remember { mutableStateOf(false) }
     var showMobileDialog by remember { mutableStateOf(false) }
     var showGenderDialog by remember { mutableStateOf(false) }
     var showRoleDialog by remember { mutableStateOf(false) }
     var showCampusDialog by remember { mutableStateOf(false) }
 
+    // Temporary Values for the edit dialogs (to avoid modifying live data until saved.)
     var tempName by remember { mutableStateOf("") }
     var tempMobile by remember { mutableStateOf("") }
     var tempGender by remember { mutableStateOf("") }
@@ -87,6 +127,7 @@ fun ProfileScreenUI(
         return
     }
 
+    // Launcher for imaging picking
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -284,6 +325,7 @@ fun ProfileScreenUI(
 
         Spacer(modifier = Modifier.height(80.dp))
 
+        // Implement Change password functionality
         Button(
             onClick = { /* TODO: change password */ },
             modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -295,6 +337,8 @@ fun ProfileScreenUI(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Logs out the user and clears the session.
+        // Navigation points back to the welcome screen.
         Button(
             onClick = { scope.launch { onLogout() } },
             modifier = Modifier.fillMaxWidth().height(50.dp),

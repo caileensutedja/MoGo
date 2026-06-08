@@ -174,7 +174,7 @@ fun BookingPreviewScreen(viewModel: BookingPreviewViewModel) {
             }
         }
 
-        // Error snackbar
+        // Error snack bar
         if (state is PreviewState.Error) {
             Snackbar(
                 modifier = Modifier

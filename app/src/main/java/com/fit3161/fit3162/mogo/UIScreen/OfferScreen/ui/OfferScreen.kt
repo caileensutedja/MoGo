@@ -20,6 +20,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModel
 import com.fit3161.fit3162.mogo.data.repo.Offer
 
+/**
+ * Screen that displays a list of available promotional offers around Monash University.
+ *
+ * - Loading indicator when fetching offers.
+ * - Error message if failed.
+ * - Lazy list of Offer Card with more information
+ * - Generates a promotional code + T's & C's
+ */
 @Composable
 fun OfferScreenUI(
     viewModel: OfferViewModel,
@@ -70,17 +78,26 @@ fun OfferScreenUI(
     }
 }
 
+/**
+ * Single Card for an offer
+ * Shows:
+ * - Title
+ * - Discount Amount
+ * - Expiry Date
+ *
+ * Shows two action buttons as well - Claim/T&Cs
+ */
 @Composable
 fun OfferCardSkeleton(offer: Offer) {
     var showTermsDialog by remember { mutableStateOf(false) }
     var showCodeDialog by remember { mutableStateOf(false) }
 
-    // Determine the display title based on offer_code
+    // Code based on type of offer.
     val displayTitle = when (offer.offerCode) {
-        "CAFE10" -> "☕️ Grafalis Cafe"
-        "SIGNUP10" -> "🎉 New User Voucher"
-        "REFER5" -> "🤝 Refer a Friend (You get $5)"
-        "REFERRED5" -> "🎁 Refer a Friend (Friend gets $5)"
+        "CAFE10" -> " Grafalis Cafe"
+        "SIGNUP10" -> " New User Voucher"
+        "REFER5" -> " Refer a Friend (You get $5)"
+        "REFERRED5" -> " Refer a Friend (Friend gets $5)"
         else -> offer.businesses?.name ?: "MoGo"
     }
 
@@ -181,6 +198,10 @@ fun OfferCardSkeleton(offer: Offer) {
     }
 }
 
+/**
+ * Helper Function for formatting the date.
+ * Creates a 'dd MMM YYY' format.
+ */
 fun formatDate(dateString: String?): String {
     if (dateString == null) return "No expiry"
     return try {

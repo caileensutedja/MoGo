@@ -167,29 +167,6 @@ fun FutureRideScreenUI(
         )
     }
 
-//    // Booking success/error message
-//    state.bookingMessage?.let { message ->
-//        AlertDialog(
-//            onDismissRequest = { viewModel.clearBookingMessage() },
-//            title = {
-//                Text(
-//                    if (message.contains("success", true)) "Booked!"
-//                    else "Booking Issue",
-//                    fontWeight = FontWeight.Bold
-//                )
-//            },
-//            text = { Text(message) },
-//            confirmButton = {
-//                Button(
-//                    onClick = { viewModel.clearBookingMessage() },
-//                    colors = ButtonDefaults.buttonColors(
-//                        containerColor = Color(0xFFB57BFF)
-//                    )
-//                ) { Text("OK", color = Color.White) }
-//            }
-//        )
-//    }
-
     Column(
         modifier = modifier
             .fillMaxSize()

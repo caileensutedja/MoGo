@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.fit3161.fit3162.mogo.data.repo.BookRepository
-//import com.fit3161.fit3162.mogo.data.repo.CAMPUS_OPTIONS
 import com.fit3161.fit3162.mogo.data.repo.MapsRepository
 import com.fit3161.fit3162.mogo.data.repo.PlacesRepository
 import com.fit3161.fit3162.mogo.data.repo.Ride
@@ -16,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+// UI State for the Futures Ride Screen
 data class FutureRideUiState(
     val selectedDate: String = "",
     val rides: List<Ride> = emptyList(),
@@ -31,6 +31,7 @@ data class FutureRideUiState(
     val hiddenRides get() = rides.filter { it.id in hiddenRideIds }.filter { selectedCampus == null || it.destination == selectedCampus }
 }
 
+// ViewModel for the Future Rides Screen
 class FutureRideViewModel(
     private val repo: BookRepository,
     private val mapsRepo: MapsRepository,
@@ -175,6 +176,7 @@ class FutureRideViewModel(
     }
 }
 
+// Factory for creating [FutureRideViewModel] Instances.
 class FutureRideViewModelFactory(
     private val client: SupabaseClient, private val mapsRepo: MapsRepository, private val placesRepo: PlacesRepository, private val userId: String
 ) : ViewModelProvider.Factory {

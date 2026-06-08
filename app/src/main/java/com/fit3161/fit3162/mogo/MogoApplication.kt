@@ -17,8 +17,15 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
+/**
+ * Custom Application Class that initialises and provides global dependencies.
+ * - Client
+ * - MapsRepo
+ * - PlacesRepo
+ */
 class MogoApplication : Application() {
-
+    // Supabase Client configured with Auth, Postgrest, and Realtime Features
+    // Uses API Keys from local.properties
     val supabase: SupabaseClient by lazy {
         createSupabaseClient(
             supabaseUrl = BuildConfig.SUPABASE_URL,
@@ -30,6 +37,9 @@ class MogoApplication : Application() {
         }
     }
 
+    /**
+     * MapsRepository for routing, geocoding, and device location.
+     */
     val mapsRepository: MapsRepository by lazy {
 
         val loggingInterceptor = HttpLoggingInterceptor { message ->
@@ -43,6 +53,7 @@ class MogoApplication : Application() {
 
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor { chain ->
+                // Required headers for Android-restricted API Keys
                 val original = chain.request()
                 val request = original.newBuilder()
                     .addHeader("X-Android-Package", BuildConfig.APPLICATION_ID)
@@ -56,6 +67,7 @@ class MogoApplication : Application() {
             .addInterceptor(loggingInterceptor)
             .build()
 
+        // Retrofit client for Google Maps API
         val routesApiService = Retrofit.Builder()
             .baseUrl("https://routes.googleapis.com/")
             .client(okHttpClient)
@@ -72,6 +84,10 @@ class MogoApplication : Application() {
         )
     }
 
+    /**
+     * Repository for Google Places Autocomplete
+     * Initialised onCreate()
+     */
     val placesRepository: PlacesRepository by lazy {
         PlacesRepository(Places.createClient(this))
     }

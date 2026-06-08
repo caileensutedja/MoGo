@@ -17,6 +17,8 @@ import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
+const val EMISSION_FACTOR_PETROL = 0.21
+
 /**
  * Ongoing/active ride details for the dashboard card.
  * @param isInProgress True if the ride has started (ride_status = "in_progress").
@@ -48,6 +50,11 @@ data class HomeUiState(
     val error: String? = null
 )
 
+/**
+ * View model for the Home Dashboard Screen.
+ * Useful for user profile, ride history, carbon metrics and current ride.
+ *
+ */
 class HomeViewModel(
     private val authRepo: AuthRepository,
     private val profileRepo: ProfileRepository,
@@ -61,6 +68,9 @@ class HomeViewModel(
         loadData()
     }
 
+    /**
+     * Loads all data required for the Home Dashboard
+     */
     fun loadData() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
@@ -87,7 +97,7 @@ class HomeViewModel(
                 val riderCarbon = riderHistory.mapNotNull { it.rides?.carbonEstimate }.sum()
                 val driverCarbon = driverHistory.mapNotNull { it.carbonEstimate }.sum()
                 val totalCarbonSaved = riderCarbon + driverCarbon
-                val totalDistanceShared = totalCarbonSaved / 0.21
+                val totalDistanceShared = totalCarbonSaved / EMISSION_FACTOR_PETROL
 
                 val rideStreak = minOf(riderHistory.size + driverHistory.size, 7)
                 val treesEquivalent = totalCarbonSaved / 25.0
@@ -105,8 +115,8 @@ class HomeViewModel(
                             origin = ride.origin,
                             destination = ride.destination,
                             departureTime = ride.departureTime,
-                            estimatedDistanceKm = ride.carbonEstimate?.let { it / 0.21 },
-                            estimatedDurationMinutes = ride.carbonEstimate?.let { ((it / 0.21) / 40 * 60).toInt() },
+                            estimatedDistanceKm = ride.carbonEstimate?.let { it / EMISSION_FACTOR_PETROL },
+                            estimatedDurationMinutes = ride.carbonEstimate?.let { ((it / EMISSION_FACTOR_PETROL) / 40 * 60).toInt() },
                             isInProgress = true
                         )
                     } ?: upcomingDriverRides
@@ -121,8 +131,8 @@ class HomeViewModel(
                                 origin = ride.origin,
                                 destination = ride.destination,
                                 departureTime = ride.departureTime,
-                                estimatedDistanceKm = ride.carbonEstimate?.let { it / 0.21 },
-                                estimatedDurationMinutes = ride.carbonEstimate?.let { ((it / 0.21) / 40 * 60).toInt() },
+                                estimatedDistanceKm = ride.carbonEstimate?.let { it / EMISSION_FACTOR_PETROL },
+                                estimatedDurationMinutes = ride.carbonEstimate?.let { ((it /EMISSION_FACTOR_PETROL) / 40 * 60).toInt() },
                                 isInProgress = false
                             )
                         }
@@ -137,8 +147,8 @@ class HomeViewModel(
                                 origin = ride?.origin ?: "",
                                 destination = ride?.destination ?: "",
                                 departureTime = ride?.departureTime ?: "",
-                                estimatedDistanceKm = ride?.carbonEstimate?.let { it / 0.21 },
-                                estimatedDurationMinutes = ride?.carbonEstimate?.let { ((it / 0.21) / 40 * 60).toInt() },
+                                estimatedDistanceKm = ride?.carbonEstimate?.let { it / EMISSION_FACTOR_PETROL },
+                                estimatedDurationMinutes = ride?.carbonEstimate?.let { ((it / EMISSION_FACTOR_PETROL) / 40 * 60).toInt() },
                                 isInProgress = true
                             )
                         }
@@ -155,8 +165,8 @@ class HomeViewModel(
                                     origin = ride?.origin ?: "",
                                     destination = ride?.destination ?: "",
                                     departureTime = ride?.departureTime ?: "",
-                                    estimatedDistanceKm = ride?.carbonEstimate?.let { it / 0.21 },
-                                    estimatedDurationMinutes = ride?.carbonEstimate?.let { ((it / 0.21) / 40 * 60).toInt() },
+                                    estimatedDistanceKm = ride?.carbonEstimate?.let { it / EMISSION_FACTOR_PETROL },
+                                    estimatedDurationMinutes = ride?.carbonEstimate?.let { ((it / EMISSION_FACTOR_PETROL) / 40 * 60).toInt() },
                                     isInProgress = false
                                 )
                             }
@@ -183,6 +193,11 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Switches the User's Role and refreshes the Home Dashboard
+     * @param newRole the User's New Role
+     * @param onRoleChanged callback after role is Updated
+     */
     fun switchRole(newRole: String, onRoleChanged: () -> Unit = {}) {
         viewModelScope.launch {
             val userId = authRepo.getCurrentUserId() ?: return@launch
@@ -194,6 +209,10 @@ class HomeViewModel(
     }
 }
 
+/**
+ * Factory for creating [HomeViewModel] instances.
+ * Providing dependencies via the Supabase Client.
+ */
 class HomeViewModelFactory(
     private val client: SupabaseClient
 ) : ViewModelProvider.Factory {

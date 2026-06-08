@@ -19,6 +19,15 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
+/**
+ * Repository for mapping and routing operations.
+ * Google Maps API, device location, and reverse geocoding.
+ *
+ * @param context Android Context
+ * @param apiService Routes API
+ * @param apiKey Google Map's API Key
+ * @param fusedLocationProviderClient current Location
+ */
 class MapsRepository(
     private val context: Context,
     private val apiService: RoutesApiService,
@@ -94,6 +103,7 @@ class MapsRepository(
         )
     }
 
+    // Computes Detour route and added time when a rider's pickup point is inserted, between origin and destination.
     suspend fun computeDetour(ride: Ride, pickupLat: Double, pickupLng: Double): DetourResult? {
         val oLat = ride.originLat ?: return null
         val oLng = ride.originLng ?: return null

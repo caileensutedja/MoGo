@@ -11,6 +11,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * UI state for the Settings screen.
+ *
+ * Holds:
+ * - List of saved emergency contacts
+ * - Loading indicator for async operations
+ * - Error messages for failed actions
+ * - Success messages for user feedback
+ */
 data class SettingsUiState(
     val contacts: List<EmergencyContact> = emptyList(),
     val isLoading: Boolean = false,
@@ -18,6 +27,19 @@ data class SettingsUiState(
     val successMessage: String? = null
 )
 
+/**
+ * ViewModel for the Settings screen.
+ *
+ * Responsibilities:
+ * - Load the user's emergency contacts
+ * - Add new contacts to the database
+ * - Delete existing contacts
+ * - Manage UI state (loading, errors, success messages)
+ *
+ * Uses:
+ * - AuthRepository to identify the current user
+ * - EmergencyContactRepository to read/write contact data
+ */
 class SettingsViewModel(
     private val authRepo: AuthRepository,
     private val contactRepo: EmergencyContactRepository
@@ -30,6 +52,15 @@ class SettingsViewModel(
         loadContacts()
     }
 
+    /**
+     * Loads all emergency contacts for the current user.
+     *
+     * Steps:
+     * - Show loading state
+     * - Fetch user ID from AuthRepository
+     * - Retrieve contacts from EmergencyContactRepository
+     * - Update UI state with results
+     */
     fun loadContacts() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -43,6 +74,16 @@ class SettingsViewModel(
         }
     }
 
+    /**
+     * Adds a new emergency contact for the current user.
+     *
+     * Behaviour:
+     * - Builds an EmergencyContact object
+     * - Saves it via the repository
+     * - Shows a success message on success
+     * - Shows an error message on failure
+     * - Reloads the contact list after adding
+     */
     fun addContact(name: String, phone: String) {
         viewModelScope.launch {
             val userId = authRepo.getCurrentUserId() ?: return@launch
@@ -63,6 +104,14 @@ class SettingsViewModel(
         }
     }
 
+    /**
+     * Deletes a contact by ID.
+     *
+     * Behaviour:
+     * - Optimistically removes the contact from UI state
+     * - Attempts deletion in the repository
+     * - If deletion fails, reloads contacts and shows an error
+     */
     fun deleteContact(contactId: String) {
         _uiState.value = _uiState.value.copy(
             contacts = _uiState.value.contacts.filter { it.contactId != contactId }
@@ -76,15 +125,34 @@ class SettingsViewModel(
         }
     }
 
+    /**
+     * Clears both error and success messages from the UI state.
+     *
+     * Used after Snackbar messages are shown.
+     */
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(error = null, successMessage = null)
     }
 
+    /**
+     * Shows a generic "Settings saved!" confirmation message.
+     *
+     * Triggered when the user taps the Save button.
+     */
     fun showSaved() {
         _uiState.value = _uiState.value.copy(successMessage = "Settings saved!")
     }
 }
 
+/**
+ * Factory for creating SettingsViewModel instances.
+ *
+ * Injects:
+ * - AuthRepository
+ * - EmergencyContactRepository
+ *
+ * Required because SettingsViewModel has constructor parameters.
+ */
 class SettingsViewModelFactory(
     private val client: SupabaseClient
 ) : ViewModelProvider.Factory {

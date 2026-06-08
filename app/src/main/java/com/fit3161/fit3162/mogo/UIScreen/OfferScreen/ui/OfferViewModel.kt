@@ -10,6 +10,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel and state definitions for the Offers screen.
+ *
+ * Manages fetching and exposing the list of available offers
+ * for the current user.
+ */
+
+
 data class OfferUiState(
     val offers: com.fit3161.fit3162.mogo.data.repo.Offer? = null,
     val offersList: List<com.fit3161.fit3162.mogo.data.repo.Offer> = emptyList(),
@@ -17,6 +25,14 @@ data class OfferUiState(
     val error: String? = null
 )
 
+/**
+ * ViewModel for the Offers screen.
+ *
+ * Fetches the list of available offers from [OfferRepository]
+ * and exposes them via [uiState].
+ *
+ * @param repo Repository used to retrieve offer data.
+ */
 class OfferViewModel(private val repo: OfferRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(OfferUiState())
     val uiState: StateFlow<OfferUiState> = _uiState.asStateFlow()
@@ -44,6 +60,14 @@ class OfferViewModel(private val repo: OfferRepository) : ViewModel() {
     }
 }
 
+/**
+ * Factory for creating [OfferViewModel] instances.
+ *
+ * Constructs an [OfferRepository] from the provided [SupabaseClient]
+ * and injects it into the ViewModel.
+ *
+ * @param client The Supabase client used to initialise the repository.
+ */
 class OfferViewModelFactory(
     private val client: SupabaseClient
 ) : ViewModelProvider.Factory {

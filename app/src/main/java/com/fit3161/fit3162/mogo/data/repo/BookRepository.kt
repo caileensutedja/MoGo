@@ -14,7 +14,10 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-// Represents a user profile joined from the users table.
+
+/**
+ * Represents a user profile joined from the users table.
+ */
 @Serializable
 data class RideUser(
         @SerialName("user_id") val userId: String,
@@ -80,7 +83,9 @@ data class Ride(
         val vehicles: Vehicle? = null
 )
 
-// Represents a booking made by a rider for a specific ride.
+/**
+ * Represents a booking made by a rider for a specific ride.
+ */
 @Serializable
 data class Booking(
         @SerialName("booking_id") val id: String,
@@ -101,8 +106,10 @@ data class Booking(
         val rides: Ride? = null
 )
 
-// Lightweight booking info for the driver's "My Rides" view.
-// Joins with users table on rider_id to get the rider's name/phone.
+/**
+ * Lightweight booking info for the driver's "My Rides" view.
+ * Joins with users table on rider_id to get the rider's name/phone.
+ */
 @Serializable
 data class RideBookingInfo(
         @SerialName("booking_id") val bookingId: String,
@@ -219,37 +226,26 @@ class BookRepository(private val client: SupabaseClient) {
                 userId: String,
                 genderPreference: String? = null
         ): List<Ride> {
-                val thirtyMinsFromNow = java.time.OffsetDateTime
+                val thirtyMinsFromNow = java.time.OffsetDateTime // Filter rides 30 mins from that time
                         .now(java.time.ZoneOffset.UTC)
                         .plusMinutes(30)
                         .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-
                 val bookedIds = client.from("bookings")
-                        .select(Columns.raw("ride_id")) {
-                                filter { eq("rider_id", userId) }
-                        }
+                        .select(Columns.raw("ride_id")) {filter { eq("rider_id", userId) }}
                         .decodeList<BookedRideId>()
                         .map { it.rideId }
                         .toSet()
-
-                return client.from("rides")
+                return client.from("rides") // Return the list of rides
                         .select(Columns.raw("*, users!inner(*), vehicles!left(*)")) {
-                                filter {
-                                        and {
-                                                gte("departure_time", thirtyMinsFromNow)
-                                                eq("ride_status", "scheduled")
-                                                gt("available_seats", 0)
-                                                neq("driver_id", userId)
-                                                if (genderPreference != null) {
-                                                        eq("users.user_gender", genderPreference)
-                                                }
-                                        }
-                                }
-                                order("departure_time", Order.ASCENDING)
-                        }
+                                filter {and {gte("departure_time", thirtyMinsFromNow) // Filter with optional date
+                                        eq("ride_status", "scheduled") // Filter upcoming rides only
+                                        gt("available_seats", 0) // Filter rides with available seats > 0
+                                        neq("driver_id", userId) // Filter that its not its own ride
+                                        // Apply gender preference filtering
+                                        if (genderPreference != null) { eq("users.user_gender", genderPreference)}}}
+                                order("departure_time", Order.ASCENDING)} // Order ascendingly
                         .decodeList<Ride>()
-                        .filter { it.id !in bookedIds }
-        }
+                        .filter { it.id !in bookedIds }} // Removed already booked rides (avoid duplicates)
 
         // Get future rides filtered by a specific date (AEST timezone).
         suspend fun getFutureRidesByDate(

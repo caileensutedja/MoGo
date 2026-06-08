@@ -8,8 +8,15 @@ import com.fit3161.fit3162.mogo.data.repo.AuthRepository
 import com.fit3161.fit3162.mogo.data.repo.ProfileRepository
 
 /**
- * Navigation Route for the Profile Screen.
- * Provides Key Dependencies (AuthRepo, ProfileRepo, ProfileViewModel)
+ * Route composable for the Profile screen.
+ *
+ * Constructs the required repositories and [ProfileViewModel] from the application context,
+ * then renders [ProfileScreenUI].
+ *
+ * @param application The [MogoApplication] instance used to access the Supabase client and context.
+ * @param onLogout Callback invoked when the user logs out.
+ * @param onRoleChanged Callback invoked after the user's role is successfully updated.
+ * @param onNavigateToSettings Callback invoked when the user navigates to the settings screen.
  */
 @Composable
 fun ProfileRoute(

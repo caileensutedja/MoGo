@@ -58,15 +58,33 @@ import coil.compose.AsyncImage
 import com.fit3161.fit3162.mogo.UIScreen.Profile.ProfileViewModel
 import com.fit3161.fit3162.mogo.data.model.PresetDestinations
 import kotlinx.coroutines.launch
+/**
+ * Profile screen UI
+ *
+ * Displays and allows editing of the authenticated user's profile information,
+ * including their avatar, name, contact details, role, and home campus.
+ */
+
+
 
 /**
- * Profile Screen where users can edit and view their personal information.
+ * Root composable for the Profile screen.
  *
- * Key Features include:
- * - Display/edit profile picture
- * - Editable fields (i.e. Full name, Gender, Campus)
- * - Read-only: Email Address (Cannot edit twice)
- * - Buttons
+ * Shows:
+ * - A tappable profile avatar with an edit icon that opens the device gallery
+ * - Read-only fields for name, email, mobile, gender, role, and home campus,
+ *   each with an edit icon that opens an inline dialog for updating the value
+ * - A "Change Password" button (not yet implemented)
+ * - A "Log Out" button
+ *
+ * Shows a loading indicator while profile data is being fetched, and an error
+ * message if loading fails.
+ *
+ * @param viewModel The [ProfileViewModel] managing profile state and updates.
+ * @param modifier Optional modifier applied to the root layout.
+ * @param onLogout Callback invoked when the user confirms logout.
+ * @param onRoleChanged Callback invoked after the user's role is successfully updated.
+ * @param onNavigateToSettings Callback invoked when the user taps the settings icon.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

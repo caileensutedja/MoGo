@@ -5,6 +5,9 @@ import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/**
+ * Emergency Contact data class storing an individual's contact information.
+ */
 @Serializable
 data class EmergencyContact(
     @SerialName("contact_id") val contactId: String? = null,

@@ -20,10 +20,15 @@ import java.time.ZoneOffset
 const val EMISSION_FACTOR_PETROL = 0.21
 
 /**
- * Ongoing/active ride details for the dashboard card.
- * @param isInProgress True if the ride has started (ride_status = "in_progress").
- *                     False if it's upcoming but not yet started.
+ * ViewModel and state definitions for the Home Dashboard screen.
+ *
+ * Manages loading and exposing ride, booking, history, and carbon metrics data
+ * for the currently authenticated user.
  */
+
+
+
+
 data class OngoingRideDetails(
     val driverName: String? = null,
     val origin: String,
@@ -34,6 +39,23 @@ data class OngoingRideDetails(
     val isInProgress: Boolean = false
 )
 
+/**
+ * UI state for the Home Dashboard screen.
+ *
+ * @property profile The currently authenticated user's profile.
+ * @property bookings Confirmed bookings for the user as a rider.
+ * @property riderHistory Past completed bookings for the user as a rider.
+ * @property driverHistory Past completed rides offered by the user as a driver.
+ * @property driverRides Upcoming scheduled rides offered by the user as a driver.
+ * @property totalCarbonSaved Total CO₂ saved in kg across all rider and driver history.
+ * @property rideStreak Current ride streak count, capped at 7.
+ * @property totalDistanceShared Total kilometres shared across all rides.
+ * @property treesEquivalent Carbon savings expressed as a tree-planting equivalent.
+ * @property ongoingRide Details of the current in-progress or next upcoming ride, if any.
+ * @property hasUnreadNotification Whether the user has unread notifications.
+ * @property isLoading Whether data is currently being fetched.
+ * @property error Error message to display if data loading fails.
+ */
 data class HomeUiState(
     val profile: UserProfile? = null,
     val bookings: List<Booking> = emptyList(),
@@ -50,10 +72,16 @@ data class HomeUiState(
     val error: String? = null
 )
 
+
 /**
- * View model for the Home Dashboard Screen.
- * Useful for user profile, ride history, carbon metrics and current ride.
+ * ViewModel for the Home Dashboard screen.
  *
+ * Fetches and exposes ride, booking, history, and carbon metrics for the authenticated user.
+ * Handles role-switching between rider and driver.
+ *
+ * @param authRepo Provides the current authenticated user's ID.
+ * @param profileRepo Fetches and updates the user's profile.
+ * @param bookRepo Fetches ride and booking data for the user.
  */
 class HomeViewModel(
     private val authRepo: AuthRepository,
@@ -194,9 +222,13 @@ class HomeViewModel(
     }
 
     /**
-     * Switches the User's Role and refreshes the Home Dashboard
-     * @param newRole the User's New Role
-     * @param onRoleChanged callback after role is Updated
+     * Switches the authenticated user's role between rider and driver.
+     *
+     * Updates the role in the remote profile, reloads dashboard data, and reflects
+     * the change immediately in [uiState]. Invokes [onRoleChanged] after the switch completes.
+     *
+     * @param newRole The role to switch to — either "rider" or "driver".
+     * @param onRoleChanged Optional callback invoked after the role has been updated.
      */
     fun switchRole(newRole: String, onRoleChanged: () -> Unit = {}) {
         viewModelScope.launch {
@@ -211,7 +243,11 @@ class HomeViewModel(
 
 /**
  * Factory for creating [HomeViewModel] instances.
- * Providing dependencies via the Supabase Client.
+ *
+ * Constructs the required repositories from a [SupabaseClient] and injects them
+ * into the ViewModel.
+ *
+ * @param client The Supabase client used to initialise all repositories.
  */
 class HomeViewModelFactory(
     private val client: SupabaseClient

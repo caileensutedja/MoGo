@@ -31,6 +31,7 @@ import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
+
 // Common cancellation reasons for riders
 private val riderCancellationReasons = listOf(
     "Found another ride",
@@ -46,23 +47,30 @@ private val riderCancellationReasons = listOf(
 private fun computeCarbonSavedKg(booking: Booking, ride: Ride?): Double? {
     val riderDistanceMeters = booking.estimatedDistanceMeters ?: return null
     val rideCarbonEstimate = ride?.carbonEstimate ?: return null
+
     if (rideCarbonEstimate <= 0) return null
+
     val riderSoloKm = riderDistanceMeters / 1000.0
     val sharedVehicleFactor = when (ride.vehicleType.lowercase()) {
         "electric", "ev" -> 0.01; "hybrid" -> 0.12; else -> 0.21
     }
+
     val driverSoloKm = rideCarbonEstimate / sharedVehicleFactor
     val separateEmissions = (driverSoloKm + riderSoloKm) * 0.21
     val sharedEmissions = driverSoloKm * sharedVehicleFactor
     val saved = separateEmissions - sharedEmissions
+
     return if (saved > 0) saved else null
 }
 
 private fun formatTimeLeft(departureTime: String): String {
     val now = OffsetDateTime.now(ZoneOffset.UTC)
     val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "??" }
+    
     if (departure.isBefore(now)) return "Departed"
+    
     val minutesLeft = Duration.between(now, departure).toMinutes()
+    
     return when {
         minutesLeft < 60 -> "${minutesLeft} min"
         minutesLeft < 1440 -> "${minutesLeft / 60}h ${minutesLeft % 60}m"
@@ -81,6 +89,9 @@ private fun getRideTitle(departureTime: String, durationMinutes: Int?): String {
     return "Past Ride"
 }
 
+/**
+ * BookScreenUI layout.
+ */
 @Composable
 fun BookScreenUI(
     viewModel: BookViewModel,
@@ -228,6 +239,9 @@ fun BookScreenUI(
     }
 }
 
+/**
+ * BookedCard UI.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookedCard(
@@ -375,6 +389,9 @@ fun BookedCard(
     }
 }
 
+/**
+ * Formatter helper function.
+ */
 fun formatDepartureTime(timestamp: String?): String {
     if (timestamp == null) return "TBA"
     return try {

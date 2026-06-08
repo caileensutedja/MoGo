@@ -15,7 +15,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// UI State for the Futures Ride Screen
+
+/**
+ * FutureRideUI state.
+ */
 data class FutureRideUiState(
     val selectedDate: String = "",
     val rides: List<Ride> = emptyList(),
@@ -31,7 +34,9 @@ data class FutureRideUiState(
     val hiddenRides get() = rides.filter { it.id in hiddenRideIds }.filter { selectedCampus == null || it.destination == selectedCampus }
 }
 
-// ViewModel for the Future Rides Screen
+/**
+ * FutureRide ViewModel.
+ */
 class FutureRideViewModel(
     private val repo: BookRepository,
     private val mapsRepo: MapsRepository,
@@ -93,7 +98,6 @@ class FutureRideViewModel(
         viewModelScope.launch {
             try {
                 val rides = repo.getAllFutureRides(userId, _uiState.value.genderPreference)
-//                _uiState.value = _uiState.value.copy(rides = rides, isLoading = false)
                 _uiState.value = _uiState.value.copy(
                     rides = rides,
                     isLoading = false,

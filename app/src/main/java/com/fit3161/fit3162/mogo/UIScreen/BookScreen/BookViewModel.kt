@@ -17,6 +17,10 @@ import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
+
+/**
+ * Ongoing/ActiveRide details.
+ */
 data class OngoingRideDetails(
     val driverName: String? = null,
     val origin: String,
@@ -259,7 +263,6 @@ class BookViewModel(
     fun refresh() = loadBookedRides()
 }
 
-// Back to 3-arg factory (no placesRepo needed)
 class BookViewModelFactory(
     private val client: SupabaseClient,
     private val mapsRepo: MapsRepository,

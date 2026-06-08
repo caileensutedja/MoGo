@@ -17,6 +17,23 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel and state definitions for the Profile screen.
+ *
+ * Manages loading, displaying, and updating the authenticated user's profile data,
+ * including their avatar, personal details, role, and home campus.
+ */
+
+
+
+/**
+ * UI state for the Profile screen.
+ *
+ * @property profile The authenticated user's profile data, or null if not yet loaded.
+ * @property homeCampus The user's home campus as a [Location], or null if not set.
+ * @property isLoading Whether profile data is currently being fetched.
+ * @property error Error message to display if loading or updating fails.
+ */
 data class ProfileUiState(
     val profile: UserProfile? = null,
     val homeCampus: Location? = null,
@@ -24,6 +41,16 @@ data class ProfileUiState(
     val error: String? = null
 )
 
+/**
+ * ViewModel for the Profile screen.
+ *
+ * Fetches and exposes the user's profile, and handles updates to individual
+ * profile fields and the profile avatar.
+ *
+ * @param authRepo Provides the current authenticated user's ID and Supabase client.
+ * @param profileRepo Fetches and updates profile data in the remote database.
+ * @param context Application context required for image upload operations.
+ */
 class ProfileViewModel(
     private val authRepo: AuthRepository,
     private val profileRepo: ProfileRepository,
@@ -39,6 +66,14 @@ class ProfileViewModel(
         loadProfile()
     }
 
+    /**
+     * Uploads a new profile picture and updates the user's avatar URL.
+     *
+     * Uploads the image at [uri] to remote storage, saves the resulting URL
+     * to the user's profile, then reloads the profile to reflect the change.
+     *
+     * @param uri The local URI of the image selected from the device gallery.
+     */
     fun updateProfilePicture(uri: Uri) {
         viewModelScope.launch {
             val userId = authRepo.getCurrentUserId() ?: return@launch
@@ -50,6 +85,17 @@ class ProfileViewModel(
         }
     }
 
+    /**
+     * Updates a single field on the authenticated user's profile.
+     *
+     * Writes the new value to the remote database, then reloads the profile.
+     * For "home_campus", also updates [ProfileUiState.homeCampus] immediately.
+     * For "user_role", updates the role in [ProfileUiState.profile] and invokes [onRoleChanged].
+     *
+     * @param field The field to update. One of: "name", "mobile", "gender", "user_role", "home_campus".
+     * @param value The new value to save.
+     * @param onRoleChanged Optional callback invoked after a role change is saved.
+     */
     fun updateField(field: String, value: String, onRoleChanged: () -> Unit = {}) {
         viewModelScope.launch {
             val userId = authRepo.getCurrentUserId() ?: return@launch

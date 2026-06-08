@@ -1,16 +1,31 @@
 package com.fit3161.fit3162.mogo.data.repo
 
+import com.fit3161.fit3162.mogo.data.model.Location
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-/** Data Class representing a user profile as stored in Supabase
+/**
+ * Repository for reading and writing user profile data in the MoGo application.
  *
- * The field names will match the database column names.
+ * Provides access to the "users" table in Supabase for profile retrieval and updates.
  */
 
+
+/**
+ * Represents a user's profile as stored in the remote database.
+ *
+ * @property user_id Unique identifier for the user.
+ * @property user_email The user's Monash email address.
+ * @property user_name The user's display name.
+ * @property user_phone The user's mobile phone number.
+ * @property user_gender The user's gender.
+ * @property user_role The user's current role, either "rider" or "driver".
+ * @property avatar_url URL of the user's profile picture, or null if not set.
+ * @property home_campus The user's preferred Monash campus, or null if not set.
+ */
 @Serializable
 data class UserProfile(
     val user_id: String,
@@ -23,13 +38,18 @@ data class UserProfile(
     val home_campus: String?
 )
 
+/**
+ * Repository for accessing and updating user profile data.
+ *
+ * @param supabase The Supabase client used to query the "users" table.
+ */
 class ProfileRepository(private val supabase: SupabaseClient) {
 
     /**
-     * Fetches the full profile of a user by their ID.
+     * Fetches the profile for the given user.
      *
-     * @param userId The UUID of the user.
-     * @return userProfile if found, null otherwise (or an error).
+     * @param userId The ID of the user to fetch.
+     * @return The matching [UserProfile], or null if not found or an error occurs.
      */
     suspend fun getProfile(userId: String): UserProfile? {
         return try {
@@ -43,13 +63,12 @@ class ProfileRepository(private val supabase: SupabaseClient) {
             null
         }
     }
-
     /**
-     * Updates the Avatar's URL for a user.
+     * Updates the avatar URL for the given user.
      *
-     * @param userId The User's ID
-     * @param avatarUrl New avatar URL
-     * @return Result.success(Unit) on success
+     * @param userId The ID of the user to update.
+     * @param avatarUrl The new avatar URL to save.
+     * @return [Result.success] on success, or [Result.failure] with the exception on error.
      */
     suspend fun updateAvatarUrl(userId: String, avatarUrl: String): Result<Unit> {
         return try {
@@ -62,19 +81,18 @@ class ProfileRepository(private val supabase: SupabaseClient) {
             Result.failure(e)
         }
     }
-
     /**
-     * Updates one or more fields for a User.
-     * Only provided fields will be updated.
+     * Updates one or more profile fields for the given user.
      *
-     * @param userId User's ID
-     * @param name User's name
-     * @param phone User's phone
-     * @param gender User's gender
-     * @param user_role User's user Role
-     * @param home_campus User's Home campus
+     * Only non-null parameters are included in the update. All fields are optional.
      *
-     * @return Result.success(Unit) on success
+     * @param userId The ID of the user to update.
+     * @param name New display name, if changing.
+     * @param phone New mobile number, if changing.
+     * @param gender New gender value, if changing.
+     * @param user_role New role ("rider" or "driver"), if changing.
+     * @param home_campus New home campus name, if changing.
+     * @return [Result.success] on success, or [Result.failure] with the exception on error.
      */
     suspend fun updateProfile(
         userId: String,

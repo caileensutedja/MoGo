@@ -32,8 +32,7 @@ sealed class AuthState {
     /**
      * Error data class. Representing a state when an authentication operation fails.
      *
-     * @param message the error message displayed when encountered.
-     *                Defined in more detail in [AuthRepository].
+     * @param message the error message displayed when encountered. Defined in more detail in [AuthRepository].
      */
     data class Error(val message: String) : AuthState()
 }

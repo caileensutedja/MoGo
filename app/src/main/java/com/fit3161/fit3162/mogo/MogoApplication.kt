@@ -24,8 +24,8 @@ import retrofit2.converter.gson.GsonConverterFactory
  * - PlacesRepo
  */
 class MogoApplication : Application() {
-    // Supabase Client configured with Auth, Postgrest, and Realtime Features
-    // Uses API Keys from local.properties
+
+    // Define Supabase client instance for db connection/repos when needed.
     val supabase: SupabaseClient by lazy {
         createSupabaseClient(
             supabaseUrl = BuildConfig.SUPABASE_URL,

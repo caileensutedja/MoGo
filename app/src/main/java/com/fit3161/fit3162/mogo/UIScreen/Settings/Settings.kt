@@ -24,6 +24,20 @@ import androidx.compose.ui.unit.sp
 import com.fit3161.fit3162.mogo.data.repo.EmergencyContact
 import com.fit3161.fit3162.mogo.utils.readContactFromUri
 
+/**
+ * Settings screen UI.
+ *
+ * Responsibilities:
+ * - Displays user preferences (driver preference, car preference, role)
+ * - Manages safety contacts (add, delete)
+ * - Handles permission + contact picker flows
+ * - Shows success/error messages via Snackbar
+ *
+ * The ViewModel provides:
+ * - Current UI state (contacts, loading, messages)
+ * - Operations for adding/removing contacts
+ * - Save confirmation feedback
+ */
 @Composable
 fun SettingsScreenUI(
     viewModel: SettingsViewModel,
@@ -48,14 +62,14 @@ fun SettingsScreenUI(
             }
         }
     }
-
+    // Permission launcher for reading contacts
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) contactPickerLauncher.launch(null)
     }
 
-    // LaunchedEffect inside the composable
+    // Displays success messages via Snackbar when they appear
     LaunchedEffect(uiState.successMessage) {
         if (uiState.successMessage != null) {
             snackbarHostState.showSnackbar(uiState.successMessage!!)
@@ -187,6 +201,16 @@ fun SettingsScreenUI(
     }
 }
 
+/**
+ * Reusable dropdown component for selecting a single option.
+ *
+ * Used for:
+ * - Driver preference
+ * - Car preference
+ * - Role selection
+ *
+ * Displays a styled box that expands into a dropdown menu.
+ */
 @Composable
 fun SettingsDropdown(
     label: String,
@@ -227,6 +251,16 @@ fun SettingsDropdown(
     }
 }
 
+/**
+ * Displays a single safety contact row.
+ *
+ * Shows:
+ * - Contact name
+ * - Contact phone number
+ * - Delete icon for removing the contact
+ *
+ * Used inside the Settings screen to list all saved emergency contacts.
+ */
 @Composable
 fun SafetyContactRow(
     contact: EmergencyContact,

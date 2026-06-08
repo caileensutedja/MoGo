@@ -45,7 +45,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fit3161.fit3162.mogo.data.model.AuthState
+/**
+ * Sign-in screen UI for the MoGo application.
+ *
+ * Handles user authentication using Monash University credentials.
+ */
 
+
+/**
+ * Root composable for the Sign In screen.
+ *
+ * Shows:
+ * - A Monash email input field with validation (must end in .monash.edu)
+ * - A password input field with show/hide toggle
+ * - An animated error message if authentication fails
+ * - A sign-in button that shows a loading indicator while authenticating
+ * - A link to navigate to the registration screen
+ *
+ * Navigates to the home screen automatically on successful login.
+ *
+ * @param viewModel The [SignInViewModel] managing authentication state.
+ * @param onNavigateToRegister Callback invoked when the user taps "Register" or "Forgot Password".
+ * @param onLoginSuccess Callback invoked when authentication succeeds.
+ */
 @Composable
 fun SignInScreen(
     viewModel: SignInViewModel,

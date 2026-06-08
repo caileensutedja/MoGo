@@ -64,8 +64,26 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import com.fit3161.fit3162.mogo.UIScreen.BookScreen.formatDepartureTime
 
+/**
+ * Home Dashboard UI
+ *
+ * Contains the main composable and supporting helper functions for the home screen,
+ * including ride status display, role toggling, booking summaries, and carbon metrics.
+ */
 
 
+
+
+/**
+ * Calculates the time remaining until a ride departs and returns it as a formatted string.
+ *
+ * Returns:
+ * - "??" if the departure time string cannot be parsed
+ * - "Departed" if the departure time has already passed
+ * - Time in minutes (e.g. "14 min") if less than 60 minutes remain
+ * - Time in hours and minutes (e.g. "1h 30m") if less than 24 hours remain
+ * - Time in days (e.g. "2d") if 24 or more hours remain
+ */
 private fun formatTimeLeft(departureTime: String): String {
     val now = OffsetDateTime.now(ZoneOffset.UTC)
     val departure = try { OffsetDateTime.parse(departureTime) } catch (e: Exception) { return "??" }
@@ -78,6 +96,16 @@ private fun formatTimeLeft(departureTime: String): String {
     }
 }
 
+/**
+ * Determines the display title for a ride card based on its current status.
+ *
+ * Returns:
+ * - "Ride in Progress" if the ride is actively ongoing
+ * - "Upcoming Ride" if the departure time is in the future
+ * - "Ongoing Ride" if the current time falls within the estimated ride duration window
+ * - "Past Ride" if the ride has ended
+ * - "Unknown" if the departure time string cannot be parsed
+ */
 private fun getRideTitle(departureTime: String, durationMinutes: Int?, isInProgress: Boolean): String {
     if (isInProgress) return "Ride in Progress"
     val now = OffsetDateTime.now(ZoneOffset.UTC)
@@ -90,6 +118,19 @@ private fun getRideTitle(departureTime: String, durationMinutes: Int?, isInProgr
     return "Past Ride"
 }
 
+/**
+ * Root composable for the home dashboard screen.
+ *
+ * Shows:
+ * - Top bar with ride streak, notification bell (with unread badge), and profile avatar
+ * - Rider/driver role toggle
+ * - Upcoming or in-progress ride card with status badge, countdown timer, route, and share button
+ * - History summary tiles for rider and driver views
+ * - Booking summary tiles for rider bookings and driver-offered rides
+ * - Carbon savings metrics (CO₂ saved, tree equivalent, km shared)
+ *
+ * Supports pull-to-refresh. Tapping an in-progress ride card navigates to the active ride screen.
+ */
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun HomeScreenUI(

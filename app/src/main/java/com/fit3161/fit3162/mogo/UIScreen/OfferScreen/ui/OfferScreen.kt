@@ -20,6 +20,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fit3161.fit3162.mogo.UIScreen.OfferScreen.ui.OfferViewModel
 import com.fit3161.fit3162.mogo.data.repo.Offer
 
+/**
+ * Root composable for the Offers screen.
+ *
+ * Shows:
+ * - A loading indicator while offers are being fetched
+ * - An error message if loading fails
+ * - An empty state message if no offers are available
+ * - A scrollable list of [OfferCardSkeleton] cards for each available offer
+ *
+ * @param viewModel The [OfferViewModel] providing offer state.
+ * @param modifier Optional modifier applied to the root layout.
+ */
 @Composable
 fun OfferScreenUI(
     viewModel: OfferViewModel,
@@ -70,6 +82,17 @@ fun OfferScreenUI(
     }
 }
 
+/**
+ * Displays a single offer as a card.
+ *
+ * Shows:
+ * - A display title derived from the offer code or business name
+ * - Discount amount and expiry date
+ * - A "Claim" button that reveals the offer code in a dialog
+ * - A "T&C" button that shows a terms and conditions dialog
+ *
+ * @param offer The [Offer] data to display.
+ */
 @Composable
 fun OfferCardSkeleton(offer: Offer) {
     var showTermsDialog by remember { mutableStateOf(false) }
@@ -181,6 +204,16 @@ fun OfferCardSkeleton(offer: Offer) {
     }
 }
 
+/**
+ * Formats an ISO-8601 date string into a human-readable date.
+ *
+ * Returns the date formatted as "dd MMM yyyy" (e.g. "01 Jan 2025").
+ * Returns "No expiry" if the input is null.
+ * Falls back to the first 10 characters of the raw string if parsing fails.
+ *
+ * @param dateString An ISO-8601 formatted date string, or null.
+ * @return A formatted date string.
+ */
 fun formatDate(dateString: String?): String {
     if (dateString == null) return "No expiry"
     return try {
